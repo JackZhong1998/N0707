@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
+import type { Metadata } from 'next';
 import '@/app/globals.css';
+
+export const metadata: Metadata = {
+  icons: {
+    icon: '/icon.svg',
+  },
+};
 
 type Props = {
   children: ReactNode;

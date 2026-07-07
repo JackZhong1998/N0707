@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/landing/Footer';
+import { localePath, languageAlternates } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -14,8 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: t('title'),
     description: t('description'),
     alternates: {
-      canonical: `/${locale}/terms`,
-      languages: { en: '/en/terms', zh: '/zh/terms' },
+      canonical: localePath(locale, '/terms'),
+      languages: languageAlternates('/terms'),
     },
   };
 }

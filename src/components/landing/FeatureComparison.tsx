@@ -3,14 +3,14 @@
 import { useTranslations } from 'next-intl';
 
 const featureKeys = [
-  'auth',
-  'payments',
-  'database',
-  'seo',
-  'i18n',
-  'deploy',
-  'speed',
+  'strategy',
+  'calendar',
+  'content',
+  'tracking',
+  'skills',
 ] as const;
+
+const altColumns = ['chatgpt', 'notion', 'buffer'] as const;
 
 function CheckIcon() {
   return (
@@ -66,10 +66,13 @@ export default function FeatureComparison() {
                   </div>
                 </th>
                 <th className="pb-4 px-4 text-center text-sm font-semibold text-gray-500">
-                  {t('table.diy')}
+                  {t('table.chatgpt')}
+                </th>
+                <th className="pb-4 px-4 text-center text-sm font-semibold text-gray-500">
+                  {t('table.notion')}
                 </th>
                 <th className="pb-4 pl-4 text-center text-sm font-semibold text-gray-500">
-                  {t('table.others')}
+                  {t('table.buffer')}
                 </th>
               </tr>
             </thead>
@@ -88,26 +91,20 @@ export default function FeatureComparison() {
                     <div className="flex flex-col items-center gap-1">
                       <CheckIcon />
                       <span className="text-xs font-medium text-emerald-700">
-                        {t(`rows.${key}Saas`)}
+                        {t(`rows.${key}Nowbuild`)}
                       </span>
                     </div>
                   </td>
-                  <td className="py-4 px-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <CrossIcon />
-                      <span className="text-xs text-gray-500">
-                        {t(`rows.${key}Diy`)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-4 pl-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <PartialIcon />
-                      <span className="text-xs text-gray-500">
-                        {t(`rows.${key}Others`)}
-                      </span>
-                    </div>
-                  </td>
+                  {altColumns.map((col) => (
+                    <td key={col} className="py-4 px-4">
+                      <div className="flex flex-col items-center gap-1">
+                        {col === 'chatgpt' ? <PartialIcon /> : <CrossIcon />}
+                        <span className="text-xs text-gray-500">
+                          {t(`rows.${key}${col.charAt(0).toUpperCase()}${col.slice(1)}`)}
+                        </span>
+                      </div>
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>

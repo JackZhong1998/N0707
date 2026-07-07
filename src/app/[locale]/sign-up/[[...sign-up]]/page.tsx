@@ -33,6 +33,8 @@ export default async function SignUpPage({ params }: Props) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface px-4">
       <SignUp
+        fallbackRedirectUrl={`/${locale}/workspace`}
+        signInFallbackRedirectUrl={`/${locale}/workspace`}
         appearance={{
           elements: {
             rootBox: 'mx-auto',

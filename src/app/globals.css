@@ -67,6 +67,14 @@
   .bg-gradient-radial {
     background: radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-primary-100), transparent);
   }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes fade-in-up {

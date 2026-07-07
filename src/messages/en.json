@@ -1,16 +1,16 @@
 {
   "Metadata": {
     "home": {
-      "title": "NowBuild — The Modern Platform for Building & Scaling Your Business",
-      "description": "NowBuild provides powerful tools to launch, manage, and grow your SaaS product. Start building with authentication, payments, and analytics out of the box."
+      "title": "NowBuild — 30-Day GTM Action Calendar to Get Your First Users",
+      "description": "You shipped with AI — now build your business loop. NowBuild turns a 15-minute strategy conversation into a 30-day go-to-market calendar: AI drafts daily content, you review and publish."
     },
     "blog": {
-      "title": "Blog — Insights & Updates from NowBuild",
-      "description": "Read the latest articles on SaaS development, product management, growth strategies, and engineering best practices."
+      "title": "Blog — GTM Playbooks & First-User Growth",
+      "description": "Practical articles on go-to-market strategy, channel selection, content rhythm, and getting your first 100 users — for builders doing their first launch."
     },
     "pricing": {
-      "title": "Pricing — Simple, Transparent Plans for Every Stage",
-      "description": "Choose the plan that fits your needs. Start free, upgrade when you're ready. No hidden fees, cancel anytime."
+      "title": "Pricing — Free Strategy, Pro from $19/month",
+      "description": "Define your go-to-market strategy for free. Unlock the full 30-day execution calendar with Pro at $19/month or $199/year. No hidden fees, cancel anytime."
     },
     "privacy": {
       "title": "Privacy Policy — How We Protect Your Data",
@@ -21,8 +21,8 @@
       "description": "Read the terms and conditions governing your use of the NowBuild platform and services."
     },
     "about": {
-      "title": "About Us — The Team Behind NowBuild",
-      "description": "Meet the team building NowBuild. Learn about our mission, values, and the story behind the product."
+      "title": "About — Helping Builders Find Their First Real Users | nowbuild.ai",
+      "description": "NowBuild's mission: every builder who can ship a product should be able to build their business loop. Go-to-Market is the most important step."
     }
   },
   "Nav": {
@@ -34,122 +34,190 @@
     "getStarted": "Get Started"
   },
   "Hero": {
-    "badge": "Now in Public Beta — Try it Free",
-    "title": "Build & Scale Your SaaS",
-    "titleHighlight": "10x Faster",
-    "description": "The all-in-one framework with authentication, payments, database, and SEO baked in. Ship your product in days, not months.",
-    "cta": "Start Building for Free",
-    "secondaryCta": "View Live Demo",
-    "trustedBy": "Trusted by teams at",
-    "stat1Value": "10K+",
-    "stat1Label": "Developers",
-    "stat2Value": "99.9%",
-    "stat2Label": "Uptime",
-    "stat3Value": "50ms",
-    "stat3Label": "Avg Response"
+    "badge": "nowbuild.ai · Public Beta",
+    "title": "You shipped the product.",
+    "titleHighlight": "Now build your business loop.",
+    "description": "Go-to-Market is the most important step. NowBuild helps you define a market strategy in 15 minutes, then drives daily execution with a 30-day action calendar — AI drafts 80% of the content, you review and publish, and lightweight reviews keep your strategy evolving.",
+    "cta": "Start for Free",
+    "secondaryCta": "See how it works",
+    "trustedBy": "Trusted by builders at",
+    "stat1Value": "30-day",
+    "stat1Label": "Strategy calendar",
+    "stat2Value": "28+",
+    "stat2Label": "Channel skills",
+    "stat3Value": "80%",
+    "stat3Label": "Content prefilled"
   },
-  "Features": {
-    "title": "Why Teams Choose NowBuild",
-    "subtitle": "Compare how NowBuild stacks up against building from scratch or using alternatives.",
-    "table": {
-      "feature": "Feature",
-      "nowbuild": "NowBuild",
-      "diy": "DIY / From Scratch",
-      "others": "Other Frameworks"
-    },
-    "rows": {
-      "auth": "Authentication & SSO",
-      "authSaas": "Built-in (Clerk)",
-      "authDiy": "Weeks of work",
-      "authOthers": "Partial",
-      "payments": "Payment Integration",
-      "paymentsSaas": "Stripe Ready",
-      "paymentsDiy": "Complex setup",
-      "paymentsOthers": "Basic",
-      "database": "Database & ORM",
-      "databaseSaas": "Supabase + Types",
-      "databaseDiy": "Manual config",
-      "databaseOthers": "Varies",
-      "seo": "SEO Optimization",
-      "seoSaas": "Built-in Best Practices",
-      "seoDiy": "Often overlooked",
-      "seoOthers": "Limited",
-      "i18n": "Internationalization",
-      "i18nSaas": "Full i18n Support",
-      "i18nDiy": "Major effort",
-      "i18nOthers": "Plugin needed",
-      "deploy": "One-Click Deploy",
-      "deploySaas": "Vercel Optimized",
-      "deployDiy": "Manual CI/CD",
-      "deployOthers": "Varies",
-      "speed": "Time to Launch",
-      "speedSaas": "Days",
-      "speedDiy": "Months",
-      "speedOthers": "Weeks"
-    }
-  },
-  "Highlights": {
-    "title": "Everything You Need to Ship",
-    "subtitle": "Powerful features designed for developers who want to build fast and scale confidently.",
+  "Problem": {
+    "title": "You're not bad at marketing — nobody tells you what to do today",
+    "subtitle": "AI lowered the bar for shipping a product. It didn't lower the bar for getting the market to notice.",
     "items": [
       {
-        "title": "Secure Authentication",
-        "description": "Enterprise-grade auth with Clerk. Social logins, MFA, session management, and user profiles — ready out of the box."
+        "title": "Blank-page fear",
+        "description": "You know you should promote, but you open the editor and don't know what the first post should say.",
+        "solution": "AI pre-drafts 80% — you just review"
       },
       {
-        "title": "Stripe Payments",
-        "description": "Subscriptions, one-time payments, invoicing, and webhook handling. Start monetizing from day one."
+        "title": "Channel paralysis",
+        "description": "You've heard of Product Hunt, Twitter, Reddit — but don't know which one your product should bet on.",
+        "solution": "2–3 core channels picked for your product type"
       },
       {
-        "title": "Supabase Database",
-        "description": "PostgreSQL with real-time subscriptions, Row Level Security, auto-generated APIs, and type-safe queries."
+        "title": "Broken momentum",
+        "description": "Ambitious plan on Monday, silence by Wednesday. No external rhythm keeping you going.",
+        "solution": "A 30-day calendar tells you what to do daily"
       },
       {
-        "title": "SEO Optimized",
-        "description": "Server-side rendering, structured data, meta tags, sitemaps, and performance best practices built into every page."
-      },
-      {
-        "title": "Multi-Language Ready",
-        "description": "Full internationalization with locale routing, translated content, and SEO-friendly hreflang tags."
-      },
-      {
-        "title": "One-Click Deploy",
-        "description": "Optimized for Vercel with edge functions, ISR, image optimization, and automatic CI/CD pipelines."
+        "title": "Feedback black hole",
+        "description": "You posted something. Did it work? Should you change direction? No idea.",
+        "solution": "30-second reviews + weekly reports drive adjustments"
       }
     ]
   },
+  "HowItWorks": {
+    "title": "From \"it's shipped\" to \"people use it\" — in 3 steps",
+    "subtitle": "15 minutes to define your strategy, then a 15–30 minute daily execution rhythm.",
+    "steps": [
+      {
+        "title": "Define strategy in conversation",
+        "description": "Answer a few questions and talk with your GTM advisor for 15 minutes — confirm your target users, 2–3 core channels, and 30-day goal."
+      },
+      {
+        "title": "Execute daily from the calendar",
+        "description": "Open the Today view and know exactly what to post and where. Every task comes 80% pre-drafted, tagged with its channel and purpose."
+      },
+      {
+        "title": "Review and evolve",
+        "description": "Mark market reactions in 30 seconds a day. Week-1 report on day 7, monthly review on day 30 — see exactly which channels and content work."
+      }
+    ],
+    "cta": "Start your 30-day plan"
+  },
+  "Features": {
+    "title": "Not another AI copywriting tool",
+    "subtitle": "NowBuild connects market strategy, daily execution, and feedback into one loop you'll open every day.",
+    "table": {
+      "feature": "Capability",
+      "nowbuild": "NowBuild",
+      "chatgpt": "ChatGPT",
+      "notion": "Notion templates",
+      "buffer": "Buffer"
+    },
+    "rows": {
+      "strategy": "Market strategy",
+      "strategyNowbuild": "Structured kickoff",
+      "strategyChatgpt": "Chat and forget",
+      "strategyNotion": "Fill it yourself",
+      "strategyBuffer": "No strategy layer",
+      "calendar": "30-day action calendar",
+      "calendarNowbuild": "Strategy-bound",
+      "calendarChatgpt": "No calendar",
+      "calendarNotion": "Blank todos",
+      "calendarBuffer": "Scheduling only",
+      "content": "Content prefilled",
+      "contentNowbuild": "80% pre-drafted",
+      "contentChatgpt": "Rewrite every time",
+      "contentNotion": "No AI",
+      "contentBuffer": "No generation",
+      "tracking": "Execution & review",
+      "trackingNowbuild": "Completion + feedback loop",
+      "trackingChatgpt": "No tracking",
+      "trackingNotion": "Manual checkboxes",
+      "trackingBuffer": "Publishing only",
+      "skills": "Channel skill library",
+      "skillsNowbuild": "28+ specialized skills",
+      "skillsChatgpt": "General chat",
+      "skillsNotion": "None",
+      "skillsBuffer": "None"
+    }
+  },
+  "Highlights": {
+    "title": "Build your business loop — start with Go-to-Market",
+    "subtitle": "28+ channel skills covering the full path from strategy to daily execution.",
+    "items": [
+      {
+        "title": "Define strategy in 15 minutes",
+        "description": "Structured kickoff conversation to confirm product type, target users, core channels, and 30-day goals — no more staring at a blank page."
+      },
+      {
+        "title": "30-day action calendar",
+        "description": "Open the app and know exactly what to do, what to post, and where to post today. Every task is tied to your market strategy."
+      },
+      {
+        "title": "AI content prefilled",
+        "description": "Open a task and 80% of the copy is already written. Edit via conversation — shorter, add a case study, adjust tone. You review, you publish."
+      },
+      {
+        "title": "28+ channel skills",
+        "description": "Xiaohongshu, WeChat, newsletters, Product Hunt, Twitter/X… The system recommends 2–3 core channels based on your product type and activates the right skills."
+      },
+      {
+        "title": "30-second daily review",
+        "description": "Mark whether you published and whether the market responded. Week-1 report on day 7, monthly review on day 30."
+      },
+      {
+        "title": "Strategy that evolves",
+        "description": "Based on your execution and market signals, the system suggests adjustments to next week's content and channel focus."
+      }
+    ]
+  },
+  "Qualifier": {
+    "title": "Who is NowBuild for?",
+    "subtitle": "We serve one kind of person: builders who shipped a product but have never done systematic marketing.",
+    "fitTitle": "✓ It's for you if",
+    "fit": [
+      "You have a product you can show (link, screenshots, or demo)",
+      "You've never run a systematic 30-day marketing push",
+      "You can spend 15–30 minutes a day on execution",
+      "Your product is a small SaaS, AI tool, course, template, or light consulting"
+    ],
+    "notFitTitle": "✗ Not yet, if",
+    "notFit": [
+      "You're still at the idea stage with no MVP to show",
+      "You're a growth veteran with stable acquisition channels",
+      "You want fully automated posting with zero involvement",
+      "You need paid ads, SEO, or complex B2B funnels"
+    ],
+    "note": "No product yet? Ship it first — we'll be here when you're ready for the Go-to-Market step."
+  },
+  "FinalCTA": {
+    "title": "The product is done. The market is waiting to hear from you.",
+    "description": "Define your market strategy in 15 minutes and know what your first post says — today. Start building your business loop.",
+    "cta": "Start for Free",
+    "note": "No credit card required · Public beta · nowbuild.ai"
+  },
   "FAQ": {
     "title": "Frequently Asked Questions",
-    "subtitle": "Everything you need to know about NowBuild. Can't find an answer? Contact our team.",
+    "subtitle": "Everything you need to know about NowBuild. Can't find an answer? Reach us at nowbuild.ai.",
     "items": [
       {
         "question": "What is NowBuild?",
-        "answer": "NowBuild is a production-ready SaaS framework built with Next.js, featuring integrated authentication (Clerk), payments (Stripe), database (Supabase), and full SEO optimization. It's designed to help you launch your product in days instead of months."
+        "answer": "NowBuild (nowbuild.ai) is a GTM execution workspace: define a 30-day market strategy through conversation, drive daily tasks with a calendar, pre-draft content with AI, review and publish yourself, and evolve your strategy with lightweight reviews. Start building your business loop — Go-to-Market is the most important step."
       },
       {
-        "question": "Do I need to know Next.js to use NowBuild?",
-        "answer": "Basic knowledge of React and Next.js is recommended. NowBuild follows Next.js best practices and conventions, so familiarity with the App Router will help you customize the framework to your needs."
+        "question": "How is this different from ChatGPT?",
+        "answer": "ChatGPT can discuss strategy but has no calendar, no tracking, and no memory across sessions. NowBuild turns strategy → calendar → execution → feedback into a GUI you open every day, with 28+ channel skills built in."
       },
       {
-        "question": "Can I use my own payment provider instead of Stripe?",
-        "answer": "NowBuild is built with Stripe as the default payment provider, but the payment layer is modular. You can replace it with any payment provider by implementing the same interface in the payment service module."
+        "question": "Do I need an existing product?",
+        "answer": "Yes. NowBuild is for builders who shipped something but don't know how to take it to market — not for the idea stage."
       },
       {
-        "question": "Is NowBuild suitable for production use?",
-        "answer": "Yes. NowBuild is built with production best practices including type safety, security headers, SEO optimization, error handling, and performance monitoring. It's designed to scale with your business from MVP to enterprise."
+        "question": "Will AI post for me automatically?",
+        "answer": "No. You review and publish manually. We reduce the friction of 'what to write' and 'what to do today' — we don't run your accounts."
       },
       {
-        "question": "How does the multi-language support work?",
-        "answer": "NowBuild uses next-intl for internationalization. All content is stored in JSON translation files, and the routing system automatically handles locale detection, URL prefixing, and hreflang tags for SEO."
+        "question": "What are the 28+ skills?",
+        "answer": "Each channel has a dedicated execution skill — content structure, posting cadence, copy templates, and more. The system recommends the 2–3 best channels for your product type instead of turning everything on at once."
       },
       {
-        "question": "Can I deploy to platforms other than Vercel?",
-        "answer": "While NowBuild is optimized for Vercel, it's a standard Next.js application. You can deploy it to any platform that supports Next.js, including AWS, Netlify, Docker containers, or self-hosted servers."
+        "question": "Do you guarantee users?",
+        "answer": "No. We guarantee the system and the rhythm — helping you stay in conversation with the market. You'll have reviewable market feedback within the first week, and by day 30 you'll know which channels and content work for you."
       }
     ]
   },
   "Footer": {
-    "description": "The modern SaaS framework for developers who ship fast.",
+    "description": "nowbuild.ai — Help builders start their business loop. Go-to-Market is the most important step.",
     "product": "Product",
     "features": "Features",
     "pricing": "Pricing",
@@ -167,128 +235,128 @@
     "copyright": "© {year} NowBuild. All rights reserved."
   },
   "Pricing": {
-    "title": "Simple, Transparent Pricing",
-    "subtitle": "Start free, upgrade when you're ready. All plans include a 14-day free trial.",
+    "title": "Simple pricing, two plans",
+    "subtitle": "Define your market strategy for free. Upgrade when you're ready for the full 30-day plan.",
     "monthly": "Monthly",
     "yearly": "Yearly",
-    "yearlyDiscount": "Save 20%",
+    "yearlyDiscount": "Save $29",
     "perMonth": "/month",
     "perYear": "/year",
+    "yearlyEquivalent": "≈ $16.6/month",
+    "valueAnchor": "Less than a coffee a day for a 30-day market partner",
     "currentPlan": "Current Plan",
-    "getStarted": "Get Started",
-    "subscribe": "Subscribe Now",
-    "contactSales": "Contact Sales",
-    "mostPopular": "Most Popular",
+    "getStarted": "Start for Free",
+    "subscribe": "Subscribe",
+    "mostPopular": "Recommended",
     "plans": {
       "free": {
         "name": "Free",
         "priceMonthly": "$0",
         "priceYearly": "$0",
-        "description": "For individuals and small projects getting started.",
+        "description": "Define strategy and preview the rhythm.",
         "features": [
-          "Up to 100 active users",
-          "Basic analytics dashboard",
-          "Community support",
-          "1 project",
-          "Standard API access"
+          "GTM kickoff strategy conversation",
+          "7-day calendar preview",
+          "3 AI-generated content pieces",
+          "Channel recommendations (2–3 core channels)",
+          "Community support"
         ]
       },
       "pro": {
         "name": "Pro",
-        "priceMonthly": "$29",
-        "priceYearly": "$278",
-        "description": "For growing teams that need more power and flexibility.",
+        "priceMonthly": "$19",
+        "priceYearly": "$199",
+        "description": "Full 30-day market strategy execution, start to review.",
         "features": [
-          "Up to 10,000 active users",
-          "Advanced analytics & reports",
-          "Priority email support",
-          "Unlimited projects",
-          "Full API access",
-          "Custom domain",
-          "Team collaboration",
-          "Webhook integrations"
-        ]
-      },
-      "enterprise": {
-        "name": "Enterprise",
-        "priceMonthly": "Custom",
-        "priceYearly": "Custom",
-        "description": "For large organizations with advanced needs.",
-        "features": [
-          "Unlimited active users",
-          "Enterprise analytics suite",
-          "Dedicated support manager",
-          "Unlimited everything",
-          "SSO / SAML authentication",
-          "Custom SLA guarantee",
-          "On-premise deployment option",
-          "Advanced security & compliance",
-          "Custom integrations"
+          "Full 30-day action calendar",
+          "Unlimited AI content generation & editing",
+          "28+ channel skills on demand",
+          "30-second daily review cards",
+          "Week-1 report + day-30 monthly review",
+          "Strategy evolution suggestions",
+          "Priority email support"
         ]
       }
+    },
+    "faq": {
+      "title": "Pricing FAQ",
+      "items": [
+        {
+          "question": "Is the free plan enough?",
+          "answer": "Enough to validate whether the market strategy works for you. For the full 30-day plan and review reports, you'll need Pro."
+        },
+        {
+          "question": "Can I subscribe for just one month?",
+          "answer": "Yes, cancel anytime. We recommend running the full 30 days before judging results."
+        },
+        {
+          "question": "Is yearly worth it?",
+          "answer": "Yearly at $199 (≈ $16.6/month) saves $29 vs monthly — great for builders planning multiple strategy cycles."
+        }
+      ]
     }
   },
   "Blog": {
     "title": "Blog",
-    "subtitle": "Insights, tutorials, and updates from the NowBuild team.",
+    "subtitle": "Practical articles on Go-to-Market, channel selection, and getting your first users.",
     "readMore": "Read More",
     "backToBlog": "← Back to Blog",
     "publishedOn": "Published on {date}",
     "minRead": "{minutes} min read",
     "posts": [
       {
-        "slug": "getting-started-with-nowbuild",
-        "title": "Getting Started with NowBuild: A Complete Guide",
-        "excerpt": "Learn how to set up your SaaS project from scratch using NowBuild. This guide covers authentication, payments, and deployment.",
-        "date": "2026-03-15",
+        "slug": "product-done-now-what",
+        "title": "The Product Is Done. Now What? A 30-Day Roadmap for Your First Launch",
+        "excerpt": "Most builders don't get stuck on the product — they get stuck on the step after shipping. Here's a day-1-to-day-30 market action roadmap.",
+        "date": "2026-06-20",
         "author": "NowBuild Team",
         "readTime": "8",
-        "content": "NowBuild is designed to help developers launch SaaS products quickly without sacrificing quality or scalability. In this guide, we'll walk through the complete setup process.\n\n## Prerequisites\n\nBefore getting started, make sure you have Node.js 18+ installed and accounts set up for Clerk, Stripe, and Supabase.\n\n## Step 1: Clone and Install\n\nClone the NowBuild repository and install dependencies using npm or yarn.\n\n## Step 2: Configure Environment\n\nCopy the .env.example file and fill in your API keys for Clerk, Stripe, and Supabase.\n\n## Step 3: Customize Your Brand\n\nUpdate the theme colors, logo, and content in the translation files to match your brand.\n\n## Step 4: Deploy to Vercel\n\nConnect your repository to Vercel and deploy with a single click. NowBuild is optimized for the Vercel platform.\n\n## What's Next?\n\nExplore the documentation to learn about advanced features like webhooks, custom database schemas, and analytics integration."
+        "content": "You built a tool with AI over the weekend. The landing page is live. You shared it three times — 12 visitors in 7 days, zero signups. That's not a product problem. It's a rhythm problem.\n\n## Why most first launches fall apart\n\nIt's not a lack of theory. It's three things compounding: not knowing what today's post should say (blank-page fear), not knowing which channel to bet on (channel paralysis), and posting into silence with no idea whether to continue (the feedback black hole).\n\n## Week 1: Set strategy, publish your first batch\n\nAnswer three questions first: How is your product different from the alternatives? Where do your target users already hang out? How much time can you spend daily? Then pick 2–3 core channels and schedule week one's content.\n\n## Week 2: Adjust your message based on reactions\n\nWatch which content gets likes, comments, or DMs. Double down on formats that get reactions; change the angle on ones that don't. This is when you add direct outreach.\n\n## Week 3: Double down on what works\n\nUse day-7 and day-14 data to cut ineffective actions and concentrate your time on channels showing market signal.\n\n## Week 4: Review and decide what's next\n\nBy day 30 you should be able to answer: Which channel works for me? Which content structure converts? Next month — go deeper or switch arenas?\n\n## The key isn't perfection — it's rhythm\n\n15–30 minutes a day for 30 days beats one explosive week followed by three silent ones. The market rewards whoever keeps showing up."
       },
       {
-        "slug": "why-seo-matters-for-saas",
-        "title": "Why SEO Matters for SaaS Products in 2026",
-        "excerpt": "Discover why investing in SEO from day one can be the most impactful growth lever for your SaaS business.",
-        "date": "2026-03-01",
+        "slug": "how-to-choose-first-channel",
+        "title": "How to Choose Your First Marketing Channel, by Product Type",
+        "excerpt": "Product Hunt, Twitter, Reddit, newsletters… too many channels is a first-time marketer's worst enemy. Here's how to subtract.",
+        "date": "2026-06-05",
         "author": "NowBuild Team",
         "readTime": "6",
-        "content": "Many SaaS founders overlook SEO in the early stages, focusing instead on paid acquisition. But organic search traffic is one of the most sustainable and cost-effective growth channels available.\n\n## The Compound Effect\n\nUnlike paid ads, SEO traffic compounds over time. A well-optimized page can drive traffic for years.\n\n## Technical SEO Foundation\n\nStart with fast page loads, proper meta tags, structured data, and mobile optimization. These are table stakes.\n\n## Content Strategy\n\nCreate content that answers your target audience's questions. Build topical authority in your niche.\n\n## Measuring Success\n\nTrack organic traffic, keyword rankings, and conversion rates from organic visitors."
+        "content": "The first rule of channel selection: don't pick the hottest one — pick the one your target users are already on. The second rule: at most 2–3 channels in your first month.\n\n## Match channels to your product type\n\n**Tools for consumers**: story-driven posts on visual platforms plus a direct-message funnel. The 'why I built this' side-project story is a natural fit.\n\n**Tools for developers (global)**: build in public on Twitter/X plus a concentrated Product Hunt launch. Accumulate two weeks of content before PH — a cold-start PH launch usually sinks.\n\n**Courses and consulting**: personal network plus long-form newsletters. These products convert on trust; a short conversion path beats broad reach.\n\n**Open source**: README optimization plus a technical community launch. Your README is your landing page — polish it until it's understandable in 3 seconds before promoting anywhere.\n\n## Signals that a channel is working\n\nWithin two weeks, look for three things: engagement on content (likes and comments), inbound DMs or link clicks, and at least one real usage or inquiry. All three missing? Consider switching. Any one present? Worth two more weeks.\n\n## The most common mistake\n\nOpening every channel at once. Each channel has its own format and cadence — running five at once means doing all five badly. Subtraction is the most important strategy of a first launch."
       },
       {
-        "slug": "building-multi-language-saas",
-        "title": "Building a Multi-Language SaaS Application",
-        "excerpt": "A practical guide to implementing internationalization in your SaaS product using next-intl and best practices.",
-        "date": "2026-02-15",
+        "slug": "first-100-users-without-ads",
+        "title": "How to Get Your First 100 Users Without Spending a Dollar on Ads",
+        "excerpt": "For a first launch, paid ads almost always lose money. Here are three zero-budget paths to your first 100 users.",
+        "date": "2026-05-18",
         "author": "NowBuild Team",
-        "readTime": "10",
-        "content": "Going global is one of the fastest ways to grow your SaaS user base. But implementing internationalization (i18n) correctly requires careful planning.\n\n## Why i18n Matters\n\nOver 60% of internet users prefer content in their native language. Supporting multiple languages dramatically increases your addressable market.\n\n## Choosing an i18n Strategy\n\nNowBuild uses next-intl with locale-based routing. Each language gets its own URL prefix for SEO benefits.\n\n## Translation Workflow\n\nStore translations in JSON files, use ICU message syntax for dynamic content, and consider using translation management platforms for larger teams.\n\n## SEO Considerations\n\nImplement hreflang tags, use locale-specific sitemaps, and ensure each language version has unique meta descriptions."
+        "readTime": "7",
+        "content": "The point of your first 100 users isn't revenue — it's market feedback: is your positioning right, does your message land, does the product give people a reason to stay? Running ads at this stage means paying to amplify an unvalidated message.\n\n## Path 1: Tell your own story\n\n'Why I built this' is the highest-performing content in a cold start. Not a feature list — the scene of the problem: what frustrated you, what you tried, why you decided to build. These posts typically get 3–5x the engagement of feature announcements.\n\n## Path 2: One-to-one outreach\n\nList the 20 people most likely to need your product — colleagues, people who asked related questions in communities, users complaining about competitors. Message each one personally and sincerely. No mass blasts. Your first 10 users almost always come this way, and they give the most honest feedback.\n\n## Path 3: Answer questions where users already gather\n\nReddit, Hacker News, industry Slack and Discord groups — search for the exact problem your product solves, answer thoroughly, and mention your product naturally at the end. One high-quality answer can drive long-tail traffic for months.\n\n## How much time per day\n\n15–30 minutes is enough: one post, or three DMs, or one answered question. What matters is doing it every day for 30 days. Skip three days and your accumulated momentum starts evaporating.\n\n## When to consider paid ads\n\nWhen you can answer three questions: Which content converts best? Why do users stay? What is one user worth? Until then, keep your money."
       }
     ]
   },
   "About": {
     "title": "About NowBuild",
-    "subtitle": "We're on a mission to make SaaS development accessible to every developer.",
+    "subtitle": "Helping every builder who can ship a product build their business loop.",
     "story": {
       "title": "Our Story",
-      "content": "NowBuild was born from a simple frustration: building the same boilerplate code for every new SaaS project. Authentication, payments, database setup, SEO optimization — the list goes on. We built NowBuild so developers can focus on what makes their product unique, not the infrastructure underneath."
+      "content": "AI made shipping a product easier than ever — you can launch an MVP over a weekend. But we kept seeing builders stuck at the next step: product done, a few posts shared, 12 visitors in 7 days, zero signups, and no idea what to do tomorrow. The problem isn't that they lack theory. It's that nobody connected strategy → daily action → market feedback → strategy evolution into a path you actually want to open every day. That's why we built NowBuild (nowbuild.ai): strategy through conversation, execution driven by a calendar, content pre-drafted by AI, and reviews that evolve the plan."
     },
     "mission": {
       "title": "Our Mission",
-      "content": "To empower developers worldwide with the tools and framework they need to turn ideas into production-ready SaaS products — in days, not months."
+      "content": "Enable everyone who can ship a product with AI to take the most important step — Go-to-Market — and stay in a steady, sustained conversation with the market until they find their first real users."
     },
     "values": {
       "title": "Our Values",
       "items": [
-        { "title": "Developer First", "description": "Every decision we make starts with the developer experience. Clean APIs, great docs, and sensible defaults." },
-        { "title": "Ship Fast", "description": "Speed matters. We optimize for rapid development without sacrificing code quality or security." },
-        { "title": "Open & Transparent", "description": "Our code is open. Our pricing is clear. Our roadmap is public. No surprises." },
-        { "title": "Quality Matters", "description": "We sweat the details — from type safety to pixel-perfect UI to comprehensive test coverage." }
+        { "title": "Execution over theory", "description": "Builders don't lack growth articles — they lack 'what exactly to post today'. We deliver daily actions, not another GTM course." },
+        { "title": "You review, you publish", "description": "AI drafts 80%, but the voice facing the market is always yours. We reduce friction; we don't run your accounts." },
+        { "title": "Honest promises", "description": "We promise a system and a rhythm, not a guaranteed user count. You'll have reviewable market feedback within the first week." },
+        { "title": "Small and deep", "description": "No all-in-one startup suite. We do one thing extremely well: your first 30 days of taking a product to market." }
       ]
     },
     "cta": {
-      "title": "Ready to Start Building?",
-      "description": "Join thousands of developers who ship faster with NowBuild.",
-      "button": "Get Started for Free"
+      "title": "Ready to build your business loop?",
+      "description": "The product is done — Go-to-Market is the most important step. Define your strategy in 15 minutes and start today.",
+      "button": "Start for Free"
     }
   },
   "Privacy": {

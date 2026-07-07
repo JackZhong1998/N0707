@@ -15,12 +15,12 @@ export default function PricingModal({ isOpen, onClose }: PricingModalProps) {
 
   if (!isOpen) return null;
 
-  const plans = ['free', 'pro', 'enterprise'] as const;
+  const plans = ['free', 'pro'] as const;
 
   async function handleSubscribe(plan: string) {
-    if (plan === 'free') return;
-    if (plan === 'enterprise') {
-      window.location.href = 'mailto:sales@nowbuild.com';
+    if (plan === 'free') {
+      onClose();
+      window.location.href = `/${locale}/sign-up`;
       return;
     }
 
@@ -89,7 +89,7 @@ export default function PricingModal({ isOpen, onClose }: PricingModalProps) {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid gap-6 sm:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2">
           {plans.map((planKey) => {
             const isPro = planKey === 'pro';
             const price = billingCycle === 'monthly'
@@ -136,9 +136,7 @@ export default function PricingModal({ isOpen, onClose }: PricingModalProps) {
 
                 <div className="mb-6">
                   <span className="font-display text-3xl font-bold text-gray-900">{price}</span>
-                  {planKey !== 'enterprise' && (
-                    <span className="text-sm text-gray-500">{period}</span>
-                  )}
+                  <span className="text-sm text-gray-500">{period}</span>
                 </div>
 
                 <ul className="mb-8 flex-1 space-y-3">
@@ -157,16 +155,10 @@ export default function PricingModal({ isOpen, onClose }: PricingModalProps) {
                   className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
                     isPro
                       ? 'bg-primary-600 text-white shadow-sm hover:bg-primary-700 hover:shadow-md'
-                      : planKey === 'enterprise'
-                      ? 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                       : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  {planKey === 'free'
-                    ? t('getStarted')
-                    : planKey === 'enterprise'
-                    ? t('contactSales')
-                    : t('subscribe')}
+                  {planKey === 'free' ? t('getStarted') : t('subscribe')}
                 </button>
               </div>
             );

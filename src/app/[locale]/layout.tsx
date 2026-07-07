@@ -31,38 +31,52 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getBaseUrl()),
-  title: {
-    default: `${getSiteName()} | SaaS Framework`,
-    template: `%s | ${getSiteName()}`,
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    metadataBase: new URL(getBaseUrl()),
+    title: {
+      default: `${getSiteName()} — 30-Day GTM Action Calendar`,
+      template: `%s | ${getSiteName()}`,
+    },
+    applicationName: getSiteName(),
+    keywords: [
+      'GTM tool',
+      'go-to-market software',
+      'product launch calendar',
+      'first users',
+      'marketing calendar for founders',
+      'indie hacker marketing',
+    ],
+    robots: {
       index: true,
       follow: true,
-      'max-snippet': -1,
-      'max-image-preview': 'large',
-      'max-video-preview': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-snippet': -1,
+        'max-image-preview': 'large',
+        'max-video-preview': -1,
+      },
     },
-  },
-  openGraph: {
-    type: 'website',
-    siteName: getSiteName(),
-    locale: 'en_US',
-  },
-  twitter: {
-    card: 'summary_large_image',
-  },
-  alternates: {
-    languages: {
-      en: '/en',
-      zh: '/zh',
+    openGraph: {
+      type: 'website',
+      siteName: getSiteName(),
+      locale: locale === 'zh' ? 'zh_CN' : 'en_US',
+      alternateLocale: locale === 'zh' ? ['en_US'] : ['zh_CN'],
     },
-  },
-};
+    twitter: {
+      card: 'summary_large_image',
+    },
+    alternates: {
+      languages: {
+        en: '/',
+        zh: '/zh',
+        'x-default': '/',
+      },
+    },
+  };
+}
 
 type Props = {
   children: ReactNode;

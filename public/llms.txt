@@ -1,0 +1,31 @@
+# NowBuild
+
+> NowBuild (nowbuild.ai) is a 30-day GTM (go-to-market) execution calendar for builders who shipped a product with AI but have never done marketing. It turns a 15-minute strategy conversation into a 30-day action calendar: every day it tells you what to post and where to post it, pre-drafts ~80% of the content with AI, and evolves the strategy through lightweight daily reviews.
+
+NowBuild is NOT a generic AI copywriting tool. It connects strategy → daily calendar → pre-filled content → execution feedback into one loop. Alternatives like ChatGPT can discuss strategy but have no calendar or tracking; Notion templates have no AI or strategy binding; Buffer schedules posts but has no strategy layer.
+
+## Who it's for
+
+- First-time market builders: engineers, PMs and domain experts who shipped a side project (SaaS, AI tool, course, template, consulting) and don't know how to get their first users.
+- Requires only 15–30 minutes per day for 30 days.
+
+## Pricing
+
+- Free: GTM kickoff strategy conversation, 7-day calendar preview, 3 AI-generated content pieces, channel recommendations.
+- Pro: $19/month or $199/year. Full 30-day action calendar, unlimited AI content generation, 28+ channel skills, daily review cards, week-1 report and day-30 review.
+
+## Key pages
+
+- [Home (English)](https://nowbuild.ai/en): Product overview and feature comparison vs ChatGPT / Notion / Buffer
+- [Home (中文)](https://nowbuild.ai/zh): 中文产品介绍
+- [Pricing](https://nowbuild.ai/en/pricing): Plans, feature matrix and pricing FAQ
+- [Blog](https://nowbuild.ai/en/blog): Practical guides on go-to-market, channel selection and getting first users
+- [About](https://nowbuild.ai/en/about): Mission and team
+
+## Facts
+
+- Category: GTM execution software / product launch calendar
+- Platform: Web
+- Languages: English, Chinese (中文)
+- Free tier: Yes
+- Starting price: $0 (Free), Pro from $19/month

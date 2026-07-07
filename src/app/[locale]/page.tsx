@@ -2,11 +2,15 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/landing/Hero';
+import Problem from '@/components/landing/Problem';
+import HowItWorks from '@/components/landing/HowItWorks';
 import FeatureComparison from '@/components/landing/FeatureComparison';
 import FeatureHighlights from '@/components/landing/FeatureHighlights';
+import Qualifier from '@/components/landing/Qualifier';
 import FAQ from '@/components/landing/FAQ';
+import FinalCTA from '@/components/landing/FinalCTA';
 import Footer from '@/components/landing/Footer';
-import { buildAbsoluteUrl, getBaseUrl, getSiteName } from '@/lib/seo';
+import { buildAbsoluteUrl, getBaseUrl, getSiteName, localePath, languageAlternates } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -19,8 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: t('title'),
     description: t('description'),
     alternates: {
-      canonical: `/${locale}`,
-      languages: { en: '/en', zh: '/zh' },
+      canonical: localePath(locale),
+      languages: languageAlternates(),
     },
   };
 }
@@ -64,8 +68,26 @@ export default async function HomePage({ params }: Props) {
     url: getBaseUrl(),
     potentialAction: {
       '@type': 'SearchAction',
-      target: buildAbsoluteUrl(`/${locale}/blog?q={search_term_string}`),
+      target: `${buildAbsoluteUrl(localePath(locale, '/blog'))}?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
+    },
+  };
+
+  const tMeta = await getTranslations({ locale, namespace: 'Metadata.home' });
+  const softwareStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: getSiteName(),
+    description: tMeta('description'),
+    url: getBaseUrl(),
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    offers: {
+      '@type': 'AggregateOffer',
+      lowPrice: '0',
+      highPrice: '19',
+      priceCurrency: 'USD',
+      offerCount: 2,
     },
   };
 
@@ -74,6 +96,10 @@ export default async function HomePage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareStructuredData) }}
       />
       <script
         type="application/ld+json"
@@ -86,9 +112,13 @@ export default async function HomePage({ params }: Props) {
       <Navbar />
       <main>
         <Hero />
-        <FeatureComparison />
+        <Problem />
+        <HowItWorks />
         <FeatureHighlights />
+        <FeatureComparison />
+        <Qualifier />
         <FAQ />
+        <FinalCTA />
       </main>
       <Footer />
     </>

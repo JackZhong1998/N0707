@@ -4,11 +4,17 @@ import { notFound } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/landing/Footer';
 import { Link } from '@/i18n/navigation';
-import { buildAbsoluteUrl, getSiteName } from '@/lib/seo';
+import { buildAbsoluteUrl, getSiteName, localePath, languageAlternates } from '@/lib/seo';
+import enMessages from '@/messages/en.json';
 
 type Props = {
   params: Promise<{ locale: string; slug: string }>;
 };
+
+// Statically generate every post so it lands in the build output (and sitemap).
+export function generateStaticParams() {
+  return enMessages.Blog.posts.map((post) => ({ slug: post.slug }));
+}
 
 async function getPost(locale: string, slug: string) {
   const t = await getTranslations({ locale, namespace: 'Blog' });
@@ -42,11 +48,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: post.title,
     description: post.excerpt,
     alternates: {
-      canonical: `/${locale}/blog/${slug}`,
-      languages: {
-        en: `/en/blog/${slug}`,
-        zh: `/zh/blog/${slug}`,
-      },
+      canonical: localePath(locale, `/blog/${slug}`),
+      languages: languageAlternates(`/blog/${slug}`),
     },
     openGraph: {
       title: post.title,
@@ -54,7 +57,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'article',
       publishedTime: post.date,
       authors: [post.author],
-      url: `/${locale}/blog/${slug}`,
+      url: localePath(locale, `/blog/${slug}`),
     },
     twitter: {
       title: post.title,
@@ -87,15 +90,15 @@ export default async function BlogPostPage({ params }: Props) {
       '@type': 'Organization',
       name: getSiteName(),
     },
-    mainEntityOfPage: buildAbsoluteUrl(`/${locale}/blog/${slug}`),
+    mainEntityOfPage: buildAbsoluteUrl(localePath(locale, `/blog/${slug}`)),
   };
 
   const breadcrumbData = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: buildAbsoluteUrl(`/${locale}`) },
-      { '@type': 'ListItem', position: 2, name: 'Blog', item: buildAbsoluteUrl(`/${locale}/blog`) },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: buildAbsoluteUrl(localePath(locale)) },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: buildAbsoluteUrl(localePath(locale, '/blog')) },
       { '@type': 'ListItem', position: 3, name: post.title },
     ],
   };

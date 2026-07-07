@@ -36,6 +36,12 @@ function AuthButtons({ signInLabel, getStartedLabel }: { signInLabel: string; ge
         </Link>
       </SignedOut>
       <SignedIn>
+        <Link
+          href="/workspace"
+          className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+        >
+          {signInLabel === '登录' ? '进入行动台' : 'Workspace'}
+        </Link>
         <UserButton afterSignOutUrl="/" />
       </SignedIn>
     </>

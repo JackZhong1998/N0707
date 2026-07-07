@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/landing/Footer';
 import { Link } from '@/i18n/navigation';
-import { buildAbsoluteUrl } from '@/lib/seo';
+import { buildAbsoluteUrl, localePath, languageAlternates } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -16,8 +16,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: t('title'),
     description: t('description'),
     alternates: {
-      canonical: `/${locale}/blog`,
-      languages: { en: '/en/blog', zh: '/zh/blog' },
+      canonical: localePath(locale, '/blog'),
+      languages: languageAlternates('/blog'),
     },
   };
 }
@@ -40,8 +40,8 @@ export default async function BlogPage({ params }: Props) {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: buildAbsoluteUrl(`/${locale}`) },
-      { '@type': 'ListItem', position: 2, name: 'Blog', item: buildAbsoluteUrl(`/${locale}/blog`) },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: buildAbsoluteUrl(localePath(locale)) },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: buildAbsoluteUrl(localePath(locale, '/blog')) },
     ],
   };
 

@@ -12,12 +12,11 @@ export default function PricingPageClient() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [modalOpen, setModalOpen] = useState(false);
 
-  const plans = ['free', 'pro', 'enterprise'] as const;
+  const plans = ['free', 'pro'] as const;
 
   async function handleSubscribe(plan: string) {
-    if (plan === 'free') return;
-    if (plan === 'enterprise') {
-      window.location.href = 'mailto:sales@nowbuild.com';
+    if (plan === 'free') {
+      window.location.href = `/${locale}/sign-up`;
       return;
     }
     try {
@@ -60,6 +59,7 @@ export default function PricingPageClient() {
                 {t('title')}
               </h1>
               <p className="mt-4 text-lg text-gray-500">{t('subtitle')}</p>
+              <p className="mt-3 text-base font-medium text-primary-700">{t('valueAnchor')}</p>
 
               <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-gray-100 p-1">
                 <button
@@ -88,7 +88,7 @@ export default function PricingPageClient() {
               </div>
             </div>
 
-            <div className="mx-auto mt-16 grid max-w-5xl gap-8 sm:grid-cols-3">
+            <div className="mx-auto mt-16 grid max-w-3xl gap-8 sm:grid-cols-2">
               {plans.map((planKey) => {
                 const isPro = planKey === 'pro';
                 const price = billingCycle === 'monthly'
@@ -127,8 +127,9 @@ export default function PricingPageClient() {
 
                     <div className="mb-8">
                       <span className="font-display text-4xl font-bold text-gray-900">{price}</span>
-                      {planKey !== 'enterprise' && (
-                        <span className="text-base text-gray-500">{period}</span>
+                      <span className="text-base text-gray-500">{period}</span>
+                      {isPro && billingCycle === 'yearly' && (
+                        <p className="mt-1 text-sm text-emerald-600">{t('yearlyEquivalent')}</p>
                       )}
                     </div>
 
@@ -151,15 +152,25 @@ export default function PricingPageClient() {
                           : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      {planKey === 'free'
-                        ? t('getStarted')
-                        : planKey === 'enterprise'
-                        ? t('contactSales')
-                        : t('subscribe')}
+                      {planKey === 'free' ? t('getStarted') : t('subscribe')}
                     </button>
                   </div>
                 );
               })}
+            </div>
+
+            <div className="mx-auto mt-20 max-w-2xl">
+              <h2 className="text-center font-display text-2xl font-bold text-gray-900">
+                {t('faq.title')}
+              </h2>
+              <dl className="mt-8 space-y-6">
+                {([0, 1, 2] as const).map((i) => (
+                  <div key={i} className="rounded-xl border border-gray-100 bg-gray-50/50 p-6">
+                    <dt className="font-semibold text-gray-900">{t(`faq.items.${i}.question`)}</dt>
+                    <dd className="mt-2 text-sm leading-relaxed text-gray-600">{t(`faq.items.${i}.answer`)}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           </div>
         </section>

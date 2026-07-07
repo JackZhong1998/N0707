@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import PricingPageClient from '@/components/pricing/PricingPageClient';
+import { buildAbsoluteUrl, getSiteName, localePath, languageAlternates } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -14,13 +15,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: t('title'),
     description: t('description'),
     alternates: {
-      canonical: `/${locale}/pricing`,
-      languages: { en: '/en/pricing', zh: '/zh/pricing' },
+      canonical: localePath(locale, '/pricing'),
+      languages: languageAlternates('/pricing'),
     },
     openGraph: {
       title: t('title'),
       description: t('description'),
-      url: `/${locale}/pricing`,
+      url: localePath(locale, '/pricing'),
       type: 'website',
     },
     twitter: {
@@ -35,5 +36,61 @@ export default async function PricingPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return <PricingPageClient />;
+  const t = await getTranslations({ locale, namespace: 'Pricing' });
+
+  const faqItems = Array.from({ length: 3 }, (_, i) => ({
+    question: t(`faq.items.${i}.question`),
+    answer: t(`faq.items.${i}.answer`),
+  }));
+
+  const faqStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqItems.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+    })),
+  };
+
+  const productStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `${getSiteName()} Pro`,
+    description: t('plans.pro.description'),
+    url: buildAbsoluteUrl(localePath(locale, '/pricing')),
+    brand: { '@type': 'Brand', name: getSiteName() },
+    offers: [
+      {
+        '@type': 'Offer',
+        name: 'Pro Monthly',
+        price: '19',
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: buildAbsoluteUrl(localePath(locale, '/pricing')),
+      },
+      {
+        '@type': 'Offer',
+        name: 'Pro Yearly',
+        price: '199',
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: buildAbsoluteUrl(localePath(locale, '/pricing')),
+      },
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData) }}
+      />
+      <PricingPageClient />
+    </>
+  );
 }

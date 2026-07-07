@@ -8,6 +8,8 @@ const handleI18nRouting = createMiddleware(routing);
 const isProtectedRoute = createRouteMatcher([
   '/:locale/dashboard(.*)',
   '/dashboard(.*)',
+  '/:locale/workspace(.*)',
+  '/workspace(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
@@ -24,6 +26,12 @@ export default clerkMiddleware(async (auth, request) => {
   const isApiRoute = pathname.startsWith('/api');
 
   if (isApiRoute) {
+    return NextResponse.next();
+  }
+
+  // Serve static files from /public (robots.txt, sitemap.xml, llms.txt, ...)
+  // untouched — locale routing would otherwise rewrite them into 404s.
+  if (isStaticAsset) {
     return NextResponse.next();
   }
 

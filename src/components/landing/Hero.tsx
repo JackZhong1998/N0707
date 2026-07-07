@@ -46,7 +46,7 @@ export default function Hero() {
               </svg>
             </Link>
             <Link
-              href="#features"
+              href="#how-it-works"
               className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-7 py-3.5 text-base font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:bg-gray-50"
             >
               {t('secondaryCta')}

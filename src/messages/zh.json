@@ -1,16 +1,16 @@
 {
   "Metadata": {
     "home": {
-      "title": "NowBuild — 构建和扩展您业务的现代化平台",
-      "description": "NowBuild 提供强大的工具来启动、管理和发展您的 SaaS 产品。开箱即用的认证、支付和分析功能，让您快速开始构建。"
+      "title": "NowBuild — 30 天 GTM 获客行动日历，产品做完了这样推广",
+      "description": "产品做完了，不知道下一步怎么推广？NowBuild 把 15 分钟策略对话变成 30 天获客行动日历——AI 写好每天要发的内容，你只管审核和发布，构建自己的商业闭环。"
     },
     "blog": {
-      "title": "博客 — NowBuild 的洞察与更新",
-      "description": "阅读关于 SaaS 开发、产品管理、增长策略和工程最佳实践的最新文章。"
+      "title": "博客 — GTM 方法与冷启动实战",
+      "description": "关于 Go-to-Market、渠道选择、内容节奏和第一批用户获取的实战文章，帮第一次做推广的 Builder 把产品推向市场。"
     },
     "pricing": {
-      "title": "定价 — 适合每个阶段的简单透明方案",
-      "description": "选择适合您需求的方案。免费开始，随时升级。无隐藏费用，随时取消。"
+      "title": "定价 — 免费定策略，Pro $19/月起",
+      "description": "免费定市场策略，Pro $19/月或 $199/年解锁完整 30 天执行日历。无隐藏费用，随时取消。"
     },
     "privacy": {
       "title": "隐私政策 — 我们如何保护您的数据",
@@ -21,8 +21,8 @@
       "description": "阅读管辖您使用 NowBuild 平台和服务的条款和条件。"
     },
     "about": {
-      "title": "关于我们 — NowBuild 背后的团队",
-      "description": "认识正在构建 NowBuild 的团队。了解我们的使命、价值观和产品背后的故事。"
+      "title": "关于 — 帮 Builder 找到第一批真实用户 | nowbuild.ai",
+      "description": "NowBuild 的使命：让每一位能做出产品的 Builder，都能构建自己的商业闭环。Go-to-Market 是最重要的一步。"
     }
   },
   "Nav": {
@@ -34,122 +34,190 @@
     "getStarted": "免费开始"
   },
   "Hero": {
-    "badge": "公开测试中 — 免费体验",
-    "title": "构建和扩展您的 SaaS",
-    "titleHighlight": "快 10 倍",
-    "description": "集认证、支付、数据库和 SEO 于一体的全能框架。用天而非月来交付您的产品。",
-    "cta": "免费开始构建",
-    "secondaryCta": "查看在线演示",
-    "trustedBy": "受到以下团队的信赖",
-    "stat1Value": "10K+",
-    "stat1Label": "开发者",
-    "stat2Value": "99.9%",
-    "stat2Label": "正常运行",
-    "stat3Value": "50ms",
-    "stat3Label": "平均响应"
+    "badge": "nowbuild.ai · 公开测试中",
+    "title": "产品做完了，",
+    "titleHighlight": "现在构建你的商业闭环",
+    "description": "Go-to-Market 是最重要的一步。NowBuild 帮你用 15 分钟定好市场策略，再用 30 天行动日历驱动每日执行——AI 写好 80% 内容，你审核发布，轻量复盘让策略持续进化。",
+    "cta": "免费开始",
+    "secondaryCta": "看看如何运作",
+    "trustedBy": "受到以下 Builder 的信赖",
+    "stat1Value": "30天",
+    "stat1Label": "市场策略日历",
+    "stat2Value": "28+",
+    "stat2Label": "渠道 Skill",
+    "stat3Value": "80%",
+    "stat3Label": "内容预填"
   },
-  "Features": {
-    "title": "为什么团队选择 NowBuild",
-    "subtitle": "对比 NowBuild 与从零开始构建或使用其他方案的差异。",
-    "table": {
-      "feature": "功能",
-      "nowbuild": "NowBuild",
-      "diy": "自行构建",
-      "others": "其他框架"
-    },
-    "rows": {
-      "auth": "认证与单点登录",
-      "authSaas": "内置 (Clerk)",
-      "authDiy": "数周工作量",
-      "authOthers": "部分支持",
-      "payments": "支付集成",
-      "paymentsSaas": "Stripe 即用",
-      "paymentsDiy": "复杂配置",
-      "paymentsOthers": "基础功能",
-      "database": "数据库与 ORM",
-      "databaseSaas": "Supabase + 类型",
-      "databaseDiy": "手动配置",
-      "databaseOthers": "因框架而异",
-      "seo": "SEO 优化",
-      "seoSaas": "内置最佳实践",
-      "seoDiy": "常被忽略",
-      "seoOthers": "有限支持",
-      "i18n": "国际化",
-      "i18nSaas": "完整 i18n 支持",
-      "i18nDiy": "大量工作",
-      "i18nOthers": "需要插件",
-      "deploy": "一键部署",
-      "deploySaas": "Vercel 优化",
-      "deployDiy": "手动 CI/CD",
-      "deployOthers": "因框架而异",
-      "speed": "上线时间",
-      "speedSaas": "数天",
-      "speedDiy": "数月",
-      "speedOthers": "数周"
-    }
-  },
-  "Highlights": {
-    "title": "交付所需的一切",
-    "subtitle": "为快速构建和自信扩展而设计的强大功能。",
+  "Problem": {
+    "title": "你不是不会推广，是没人告诉你今天该做什么",
+    "subtitle": "AI 降低了「做出产品」的门槛，但没有降低「让市场知道你」的门槛。",
     "items": [
       {
-        "title": "安全认证",
-        "description": "企业级 Clerk 认证。社交登录、多因素认证、会话管理和用户资料 — 开箱即用。"
+        "title": "空白页恐惧",
+        "description": "知道要推广，但打开编辑器不知道第一条内容写什么。",
+        "solution": "AI 预写 80% 内容，你只管审核"
       },
       {
-        "title": "Stripe 支付",
-        "description": "订阅、一次性支付、发票和 Webhook 处理。从第一天开始变现。"
+        "title": "渠道选择瘫痪",
+        "description": "小红书、Product Hunt、Twitter 都听说过，不知道自己该押哪个。",
+        "solution": "系统按产品类型推荐 2–3 个主渠道"
       },
       {
-        "title": "Supabase 数据库",
-        "description": "PostgreSQL 实时订阅、行级安全、自动生成 API 和类型安全查询。"
+        "title": "执行断裂",
+        "description": "周一雄心勃勃列了计划，周三就断更，没有外部驱动。",
+        "solution": "30 天日历，每天打开就知道做什么"
       },
       {
-        "title": "SEO 优化",
-        "description": "服务端渲染、结构化数据、元标签、站点地图和性能最佳实践内置于每个页面。"
-      },
-      {
-        "title": "多语言就绪",
-        "description": "完整的国际化支持，包括区域路由、翻译内容和 SEO 友好的 hreflang 标签。"
-      },
-      {
-        "title": "一键部署",
-        "description": "针对 Vercel 优化，支持边缘函数、ISR、图片优化和自动 CI/CD 流水线。"
+        "title": "反馈黑洞",
+        "description": "发了内容，不知道有没有用，也不知道该不该换方向。",
+        "solution": "30 秒复盘 + 每周报告驱动调整"
       }
     ]
   },
-  "FAQ": {
-    "title": "常见问题",
-    "subtitle": "关于 NowBuild 您需要知道的一切。找不到答案？联系我们的团队。",
+  "HowItWorks": {
+    "title": "从「做完了」到「有人在用」，只需 3 步",
+    "subtitle": "15 分钟定策略，剩下的交给每天 15–30 分钟的执行节奏。",
+    "steps": [
+      {
+        "title": "对话定市场策略",
+        "description": "回答几个问题，和 GTM 顾问对话 15 分钟——确认你的目标用户、2–3 个主渠道和 30 天目标。"
+      },
+      {
+        "title": "日历驱动每日执行",
+        "description": "打开「今日视图」就知道今天发什么、去哪发。每个任务预填 80% 文案，标注渠道和目的，审核后即可发布。"
+      },
+      {
+        "title": "复盘让策略进化",
+        "description": "每天 30 秒标记市场反应，第 7 天出首周报告，第 30 天出月度复盘——什么渠道、什么内容有效，一目了然。"
+      }
+    ],
+    "cta": "开始你的 30 天计划"
+  },
+  "Features": {
+    "title": "不是又一个 AI 文案工具",
+    "subtitle": "NowBuild 把市场策略、每日执行和反馈进化串成一条你每天愿意打开的闭环。",
+    "table": {
+      "feature": "能力",
+      "nowbuild": "NowBuild",
+      "chatgpt": "ChatGPT",
+      "notion": "Notion 模板",
+      "buffer": "Buffer"
+    },
+    "rows": {
+      "strategy": "市场策略生成",
+      "strategyNowbuild": "结构化 Kickoff",
+      "strategyChatgpt": "聊完就忘",
+      "strategyNotion": "自己填",
+      "strategyBuffer": "不管策略",
+      "calendar": "30 天执行日历",
+      "calendarNowbuild": "策略绑定",
+      "calendarChatgpt": "无日历",
+      "calendarNotion": "空白待办",
+      "calendarBuffer": "只管排期",
+      "content": "内容预填",
+      "contentNowbuild": "80% 预写好",
+      "contentChatgpt": "每次重写",
+      "contentNotion": "无 AI",
+      "contentBuffer": "无生成",
+      "tracking": "执行与复盘",
+      "trackingNowbuild": "完成率 + 复盘闭环",
+      "trackingChatgpt": "无追踪",
+      "trackingNotion": "手动勾选",
+      "trackingBuffer": "只管发布",
+      "skills": "渠道 Skill 库",
+      "skillsNowbuild": "28+ 专业 Skill",
+      "skillsChatgpt": "通用对话",
+      "skillsNotion": "无",
+      "skillsBuffer": "无"
+    }
+  },
+  "Highlights": {
+    "title": "构建商业闭环，从 Go-to-Market 开始",
+    "subtitle": "内置 28+ 渠道 Skill，覆盖从策略制定到每日执行的完整路径。",
     "items": [
       {
-        "question": "什么是 NowBuild？",
-        "answer": "NowBuild 是一个生产就绪的 SaaS 框架，基于 Next.js 构建，集成了认证（Clerk）、支付（Stripe）、数据库（Supabase）和完整的 SEO 优化。它旨在帮助您在数天而非数月内启动产品。"
+        "title": "15 分钟定市场策略",
+        "description": "结构化 Kickoff 对话，确认你的产品类型、目标用户、主渠道和 30 天目标——不再对着空白页发呆。"
       },
       {
-        "question": "使用 NowBuild 需要了解 Next.js 吗？",
-        "answer": "建议具备 React 和 Next.js 的基础知识。NowBuild 遵循 Next.js 的最佳实践和惯例，因此熟悉 App Router 将帮助您根据需要自定义框架。"
+        "title": "30 天行动日历",
+        "description": "每天打开就知道该做什么、发什么、去哪发。每个任务绑定你的市场策略，不是孤立的待办事项。"
       },
       {
-        "question": "我可以使用 Stripe 以外的支付提供商吗？",
-        "answer": "NowBuild 默认使用 Stripe 作为支付提供商，但支付层是模块化的。您可以通过在支付服务模块中实现相同的接口来替换为任何支付提供商。"
+        "title": "AI 内容预填",
+        "description": "点进任务，80% 文案已经写好。支持对话改稿：更短、加案例、调语气——你审核，你发布。"
       },
       {
-        "question": "NowBuild 适合生产环境使用吗？",
-        "answer": "是的。NowBuild 基于生产最佳实践构建，包括类型安全、安全标头、SEO 优化、错误处理和性能监控。它旨在与您的业务一起从 MVP 扩展到企业级。"
+        "title": "28+ 渠道 Skill",
+        "description": "小红书、微信私域、公众号、Product Hunt、Twitter/X……系统根据你的产品类型推荐 2–3 个主渠道，按需启用专业 Skill。"
       },
       {
-        "question": "多语言支持是如何工作的？",
-        "answer": "NowBuild 使用 next-intl 进行国际化。所有内容存储在 JSON 翻译文件中，路由系统自动处理区域检测、URL 前缀和 SEO 的 hreflang 标签。"
+        "title": "30 秒每日复盘",
+        "description": "标记「发了没、有没有反应」，轻量收集市场信号。第 7 天出首周报告，第 30 天出月度复盘。"
       },
       {
-        "question": "我可以部署到 Vercel 以外的平台吗？",
-        "answer": "虽然 NowBuild 针对 Vercel 进行了优化，但它是一个标准的 Next.js 应用程序。您可以将其部署到任何支持 Next.js 的平台，包括 AWS、Netlify、Docker 容器或自托管服务器。"
+        "title": "策略持续进化",
+        "description": "根据你的执行反馈和市场反应，系统建议调整下周内容和渠道重心——让市场策略越跑越准。"
+      }
+    ]
+  },
+  "Qualifier": {
+    "title": "NowBuild 适合谁？",
+    "subtitle": "我们只服务一种人：做出了产品、还没做过系统推广的 Builder。",
+    "fitTitle": "✓ 适合你，如果",
+    "fit": [
+      "已有可展示的产品（链接、截图或 Demo）",
+      "从未系统性做过 30 天市场推广",
+      "愿意每天花 15–30 分钟执行推广动作",
+      "产品是小 SaaS、AI 工具、课程、模板或轻咨询"
+    ],
+    "notFitTitle": "✗ 暂时不适合，如果",
+    "notFit": [
+      "还在想法阶段，没有可展示的 MVP",
+      "已是增长老手，有稳定的获客渠道",
+      "只想全自动发布，不想自己审核动手",
+      "需要付费投放、SEO 或复杂 B2B 漏斗"
+    ],
+    "note": "还没有产品？先把它做出来——我们在这里等你迈出 Go-to-Market 这一步。"
+  },
+  "FinalCTA": {
+    "title": "产品做完了，市场还在等你开口",
+    "description": "15 分钟定好市场策略，今天就知道第一条内容写什么。现在开始构建你的商业闭环。",
+    "cta": "免费开始",
+    "note": "无需信用卡 · 公开测试中 · nowbuild.ai"
+  },
+  "FAQ": {
+    "title": "常见问题",
+    "subtitle": "关于 NowBuild 你需要知道的一切。找不到答案？欢迎通过 nowbuild.ai 联系我们。",
+    "items": [
+      {
+        "question": "NowBuild 是什么？",
+        "answer": "NowBuild（nowbuild.ai）是一套 GTM 执行行动台：对话定 30 天市场策略，日历驱动每日任务，AI 预写内容，你审核发布，轻量复盘让策略进化。帮你从现在开始构建商业闭环，Go-to-Market 是最重要的一步。"
+      },
+      {
+        "question": "和 ChatGPT 有什么区别？",
+        "answer": "ChatGPT 能聊策略但没有日历、没有追踪、每次重开。NowBuild 把策略→日历→执行→反馈做成你每天愿意打开的 GUI，还内置 28+ 渠道 Skill。"
+      },
+      {
+        "question": "我需要已经有产品吗？",
+        "answer": "需要。NowBuild 服务的是「做完了不知道怎么推向市场」的 Builder，不是「还在想点子」的阶段。"
+      },
+      {
+        "question": "AI 会帮我自动发帖吗？",
+        "answer": "不会。你审核后手动发布。我们降低的是「写什么、今天做什么」的摩擦，不是替你运营账号。"
+      },
+      {
+        "question": "28+ Skill 是什么意思？",
+        "answer": "每个渠道都有专属的执行 Skill——包含内容结构、发布节奏、话术模板等。系统根据你的产品类型推荐最合适的 2–3 个主渠道，不会一次性全开。"
+      },
+      {
+        "question": "能保证多少用户？",
+        "answer": "不能。我们承诺系统和节奏，帮你持续与市场对话。首周你就能获得可复盘的市场反馈，30 天后你知道什么渠道、什么内容对你有用。"
       }
     ]
   },
   "Footer": {
-    "description": "为快速交付的开发者打造的现代 SaaS 框架。",
+    "description": "nowbuild.ai — 帮 Builder 从现在开始构建商业闭环，Go-to-Market 是最重要的一步。",
     "product": "产品",
     "features": "功能",
     "pricing": "定价",
@@ -167,127 +235,127 @@
     "copyright": "© {year} NowBuild. 保留所有权利。"
   },
   "Pricing": {
-    "title": "简单透明的定价",
-    "subtitle": "免费开始，准备好时再升级。所有方案包含 14 天免费试用。",
+    "title": "简单透明，两档够用",
+    "subtitle": "免费定市场策略，准备好再升级。Pro 解锁完整 30 天执行计划。",
     "monthly": "月付",
     "yearly": "年付",
-    "yearlyDiscount": "节省 20%",
+    "yearlyDiscount": "省 $29",
     "perMonth": "/月",
     "perYear": "/年",
+    "yearlyEquivalent": "相当于 $16.6/月",
+    "valueAnchor": "一杯咖啡的价格，换一个 30 天市场搭档",
     "currentPlan": "当前方案",
     "getStarted": "免费开始",
     "subscribe": "立即订阅",
-    "contactSales": "联系销售",
-    "mostPopular": "最受欢迎",
+    "mostPopular": "推荐",
     "plans": {
       "free": {
         "name": "免费版",
-        "priceMonthly": "¥0",
-        "priceYearly": "¥0",
-        "description": "适合个人和小型项目入门使用。",
+        "priceMonthly": "$0",
+        "priceYearly": "$0",
+        "description": "定策略、看节奏，先搞清楚方向。",
         "features": [
-          "最多 100 名活跃用户",
-          "基础分析面板",
-          "社区支持",
-          "1 个项目",
-          "标准 API 访问"
+          "GTM Kickoff 策略对话",
+          "预览 7 天行动日历",
+          "3 篇 AI 内容生成",
+          "渠道推荐（2–3 个主渠道）",
+          "社区支持"
         ]
       },
       "pro": {
-        "name": "专业版",
-        "priceMonthly": "¥199",
-        "priceYearly": "¥1,899",
-        "description": "适合需要更多功能和灵活性的成长团队。",
+        "name": "Pro",
+        "priceMonthly": "$19",
+        "priceYearly": "$199",
+        "description": "完整 30 天市场策略执行，从开始到复盘。",
         "features": [
-          "最多 10,000 名活跃用户",
-          "高级分析与报告",
-          "优先邮件支持",
-          "无限项目",
-          "完整 API 访问",
-          "自定义域名",
-          "团队协作",
-          "Webhook 集成"
-        ]
-      },
-      "enterprise": {
-        "name": "企业版",
-        "priceMonthly": "定制",
-        "priceYearly": "定制",
-        "description": "适合有高级需求的大型组织。",
-        "features": [
-          "无限活跃用户",
-          "企业级分析套件",
-          "专属支持经理",
-          "无限一切",
-          "SSO / SAML 认证",
-          "自定义 SLA 保证",
-          "私有化部署选项",
-          "高级安全与合规",
-          "定制集成"
+          "完整 30 天行动日历",
+          "无限 AI 内容生成与改稿",
+          "28+ 渠道 Skill 按需启用",
+          "每日 30 秒复盘卡",
+          "第 7 天首周报告 + 第 30 天月度复盘",
+          "策略进化建议",
+          "优先邮件支持"
         ]
       }
+    },
+    "faq": {
+      "title": "定价常见问题",
+      "items": [
+        {
+          "question": "免费版够用吗？",
+          "answer": "够用来验证市场策略是否对你有用。要跑完整 30 天计划、拿复盘报告，需要 Pro。"
+        },
+        {
+          "question": "可以只买一个月吗？",
+          "answer": "可以，随时取消。建议至少跑满 30 天再看效果。"
+        },
+        {
+          "question": "年付值得吗？",
+          "answer": "年付 $199（相当于 $16.6/月），比月付省 $29，适合计划持续执行市场策略的 Builder。"
+        }
+      ]
     }
   },
   "Blog": {
     "title": "博客",
-    "subtitle": "来自 NowBuild 团队的洞察、教程和更新。",
+    "subtitle": "关于 Go-to-Market、渠道选择和第一批用户获取的实战文章。",
     "readMore": "阅读更多",
     "backToBlog": "← 返回博客",
     "publishedOn": "发布于 {date}",
     "minRead": "{minutes} 分钟阅读",
     "posts": [
       {
-        "slug": "getting-started-with-nowbuild",
-        "title": "NowBuild 入门完全指南",
-        "excerpt": "了解如何使用 NowBuild 从零开始搭建您的 SaaS 项目。本指南涵盖认证、支付和部署。",
-        "date": "2026-03-15",
+        "slug": "product-done-now-what",
+        "title": "产品做完了，然后呢？第一次推广的 30 天路线图",
+        "excerpt": "大多数 Builder 卡在的不是产品，而是上线后的第一步。这篇文章给你一张从第 1 天到第 30 天的市场行动路线图。",
+        "date": "2026-06-20",
         "author": "NowBuild 团队",
         "readTime": "8",
-        "content": "NowBuild 旨在帮助开发者快速启动 SaaS 产品，同时不牺牲质量或可扩展性。在本指南中，我们将完整介绍设置过程。\n\n## 前置条件\n\n在开始之前，请确保已安装 Node.js 18+，并在 Clerk、Stripe 和 Supabase 上注册了账户。\n\n## 步骤 1：克隆并安装\n\n克隆 NowBuild 仓库，使用 npm 或 yarn 安装依赖。\n\n## 步骤 2：配置环境\n\n复制 .env.example 文件，填入 Clerk、Stripe 和 Supabase 的 API 密钥。\n\n## 步骤 3：自定义您的品牌\n\n更新翻译文件中的主题颜色、标志和内容以匹配您的品牌。\n\n## 步骤 4：部署到 Vercel\n\n将仓库连接到 Vercel，一键部署。NowBuild 针对 Vercel 平台进行了优化。\n\n## 下一步？\n\n探索文档以了解 Webhook、自定义数据库模式和分析集成等高级功能。"
+        "content": "你周末用 AI 做出了一个工具，落地页也有了，发了三次朋友圈——7 天 12 个访客，0 注册。这不是产品问题，是节奏问题。\n\n## 为什么大多数首次推广会断掉\n\n不是不懂方法论，而是三件事叠加：不知道今天发什么（空白页恐惧）、不知道该押哪个渠道（选择瘫痪）、发了没反馈不知道要不要继续（反馈黑洞）。\n\n## 第 1 周：定策略、发首批内容\n\n先回答三个问题：你的产品和替代方案有什么不同？你的目标用户在哪个平台活跃？你每天能投入多少时间？然后选 2–3 个主渠道，把第一周的内容排进日历。\n\n## 第 2 周：根据反馈调话术\n\n看哪种内容有人点赞、评论、私信。有反应的内容类型加倍，没反应的换角度。这时候加上私信和私域触达。\n\n## 第 3 周：加码有效渠道\n\n用第 7 天和第 14 天的数据，砍掉无效动作，把时间集中到有市场信号的渠道。\n\n## 第 4 周：复盘并决定下一步\n\n30 天结束时你应该能回答：什么渠道对我有用？什么内容结构有转化？下个月是加深还是换阵地？\n\n## 关键不是完美，是节奏\n\n每天 15–30 分钟，持续 30 天，比一周爆发然后消失三周有效得多。市场奖励的是持续在场的人。"
       },
       {
-        "slug": "why-seo-matters-for-saas",
-        "title": "为什么 SEO 对 2026 年的 SaaS 产品至关重要",
-        "excerpt": "探索为什么从第一天开始投资 SEO 可以成为 SaaS 业务最具影响力的增长杠杆。",
-        "date": "2026-03-01",
+        "slug": "how-to-choose-first-channel",
+        "title": "第一个推广渠道怎么选？按产品类型对号入座",
+        "excerpt": "小红书、Product Hunt、Twitter、公众号……渠道太多是新手最大的敌人。这篇文章教你按产品类型和目标市场做减法。",
+        "date": "2026-06-05",
         "author": "NowBuild 团队",
         "readTime": "6",
-        "content": "许多 SaaS 创始人在早期阶段忽视了 SEO，转而专注于付费获客。但有机搜索流量是最可持续、最具成本效益的增长渠道之一。\n\n## 复利效应\n\n与付费广告不同，SEO 流量会随时间复合增长。一个优化良好的页面可以持续带来多年的流量。\n\n## 技术 SEO 基础\n\n从快速页面加载、正确的元标签、结构化数据和移动端优化开始。这些是基本要求。\n\n## 内容策略\n\n创建能回答目标受众问题的内容。在您的细分领域建立主题权威。\n\n## 衡量成功\n\n跟踪有机流量、关键词排名和来自有机访客的转化率。"
+        "content": "渠道选择的第一原则：不是选最热的，是选你的目标用户已经在的。第二原则：第一个月最多 2–3 个渠道。\n\n## 按产品类型对号入座\n\n**工具类（面向国内个人用户）**：小红书讲故事 + 私域承接转化。小红书的「side project 故事帖」天然适合展示做产品的过程。\n\n**工具类（面向海外开发者）**：Twitter/X 的 build in public + Product Hunt 集中发布。先积累两周的内容再上 PH，冷启动上 PH 大概率沉底。\n\n**课程和咨询类**：朋友圈私域 + 公众号长文。这类产品靠信任成交，转化路径短的私域比公域曝光更重要。\n\n**开源项目**：GitHub README 优化 + 技术社区首发。README 是你的落地页，先把它打磨到 3 秒能看懂再谈推广。\n\n## 判断渠道有没有效的信号\n\n两周内看三个指标：内容有没有互动（点赞评论）、有没有人主动私信或点链接、有没有一次真实的使用或咨询。三个全无，考虑换渠道；有其一，值得继续投入两周。\n\n## 最常见的错误\n\n全渠道齐开。每个渠道都有自己的内容格式和节奏，同时维护 5 个渠道的结果是每个都做不好。做减法，是首次推广最重要的策略。"
       },
       {
-        "slug": "building-multi-language-saas",
-        "title": "构建多语言 SaaS 应用程序",
-        "excerpt": "使用 next-intl 在 SaaS 产品中实现国际化的实用指南和最佳实践。",
-        "date": "2026-02-15",
+        "slug": "first-100-users-without-ads",
+        "title": "不花一分钱广告费，如何获得前 100 个用户",
+        "excerpt": "对于第一次推向市场的产品，付费投放几乎总是亏的。这篇文章讲零预算获取前 100 个用户的三条路径。",
+        "date": "2026-05-18",
         "author": "NowBuild 团队",
-        "readTime": "10",
-        "content": "走向全球是扩大 SaaS 用户群的最快方式之一。但正确实现国际化（i18n）需要仔细规划。\n\n## 为什么 i18n 重要\n\n超过 60% 的互联网用户更喜欢使用母语的内容。支持多种语言可以显著增加您的目标市场。\n\n## 选择 i18n 策略\n\nNowBuild 使用 next-intl 与基于区域的路由。每种语言都有自己的 URL 前缀以获得 SEO 优势。\n\n## 翻译工作流\n\n将翻译存储在 JSON 文件中，使用 ICU 消息语法处理动态内容，对于较大的团队考虑使用翻译管理平台。\n\n## SEO 考量\n\n实施 hreflang 标签，使用特定区域的站点地图，确保每个语言版本都有独特的元描述。"
+        "readTime": "7",
+        "content": "前 100 个用户的意义不是收入，是市场反馈：你的定位对不对、话术灵不灵、产品有没有留人的理由。这个阶段投广告，等于花钱放大一个还没验证过的信息。\n\n## 路径一：讲你自己的故事\n\n「我为什么做这个产品」永远是冷启动阶段最有效的内容。不是功能列表，是问题的第一现场：你遇到了什么麻烦、试过什么、为什么决定自己做。这类内容在小红书、Twitter、即刻上的互动率通常是功能介绍帖的 3–5 倍。\n\n## 路径二：一对一触达\n\n列出 20 个最可能需要你产品的人——同事、社群里问过相关问题的人、竞品的吐槽用户。一个个真诚地私信，不群发。前 10 个用户几乎总是这样来的，而且他们会给你最真实的反馈。\n\n## 路径三：去用户已经聚集的地方回答问题\n\n知乎、V2EX、Reddit、行业微信群——搜你产品解决的那个问题，认真回答，文末自然地提你的产品。一条高质量回答的长尾流量可以持续几个月。\n\n## 每天该花多少时间\n\n15–30 分钟足够：发一条内容，或私信三个人，或回答一个问题。关键是每天都做，连续 30 天。断更三天，前面的积累就开始蒸发。\n\n## 什么时候可以考虑投放\n\n当你能回答这三个问题：哪类内容转化最好？用户为什么留下来？一个用户值多少钱？在这之前，把钱省下来。"
       }
     ]
   },
   "About": {
     "title": "关于 NowBuild",
-    "subtitle": "我们的使命是让每位开发者都能轻松进行 SaaS 开发。",
+    "subtitle": "帮每一位能做出产品的 Builder，构建自己的商业闭环。",
     "story": {
       "title": "我们的故事",
-      "content": "NowBuild 诞生于一个简单的困扰：为每个新的 SaaS 项目编写相同的样板代码。认证、支付、数据库设置、SEO 优化 — 清单无穷无尽。我们构建 NowBuild，让开发者可以专注于让产品独特的部分，而不是底层基础设施。"
+      "content": "AI 让「做出产品」变得前所未有地简单——周末就能上线一个 MVP。但我们看到太多 Builder 卡在下一步：产品做完了，发了几条朋友圈，7 天 12 个访客，0 注册，然后不知道明天该做什么。问题不是他们不懂方法论，而是没有人把「策略 → 每日行动 → 市场反馈 → 策略进化」串成一条每天愿意打开的路径。NowBuild（nowbuild.ai）就是为此而生：对话定策略，日历驱动执行，AI 预写内容，复盘驱动进化。"
     },
     "mission": {
       "title": "我们的使命",
-      "content": "赋能全球开发者，提供他们所需的工具和框架，将创意在数天而非数月内转化为生产就绪的 SaaS 产品。"
+      "content": "让每一位能用 AI 做出产品的人，都能迈出 Go-to-Market 这最重要的一步——持续、有节奏地与市场对话，找到第一批真实用户。"
     },
     "values": {
       "title": "我们的价值观",
       "items": [
-        { "title": "开发者优先", "description": "我们做的每个决定都始于开发者体验。干净的 API、优秀的文档和合理的默认值。" },
-        { "title": "快速交付", "description": "速度很重要。我们优化快速开发，同时不牺牲代码质量或安全性。" },
-        { "title": "开放透明", "description": "我们的代码是开放的。我们的定价是清晰的。我们的路线图是公开的。没有意外。" },
-        { "title": "质量至上", "description": "我们注重细节 — 从类型安全到像素级完美的 UI 到全面的测试覆盖。" }
+        { "title": "执行大于方法论", "description": "用户不缺增长文章，缺「今天具体发什么」。我们交付的是每日可执行的行动，不是又一门 GTM 课。" },
+        { "title": "你审核，你发布", "description": "AI 写好 80%，但对市场开口的永远是你。我们降低摩擦，不替你运营账号。" },
+        { "title": "诚实的承诺", "description": "我们承诺系统和节奏，不承诺保证多少用户。首周你就能拿到可复盘的市场反馈。" },
+        { "title": "小而深", "description": "不做创业大全套。我们只把「第一次把产品推向市场的 30 天」这一件事做到极致。" }
       ]
     },
     "cta": {
-      "title": "准备好开始构建了吗？",
-      "description": "加入数千名使用 NowBuild 更快交付的开发者。",
+      "title": "准备好构建你的商业闭环了吗？",
+      "description": "产品做完了，Go-to-Market 是最重要的一步。15 分钟定好策略，今天就开始。",
       "button": "免费开始"
     }
   },
