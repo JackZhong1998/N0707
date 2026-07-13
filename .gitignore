@@ -32,3 +32,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# gingiris clone cache (skills live in vendor/gingiris-skills)
+/vendor/gingiris-skills-repo/

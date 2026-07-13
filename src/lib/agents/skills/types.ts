@@ -5,19 +5,19 @@ export interface SkillTemplate {
   description: string;
 }
 
-/** 展示给用户的方法论摘要，用于建立信任（不暴露来源名称） */
+/** 展示给用户的方法论摘要（从 Gingiris SKILL.md frontmatter 提取，非改写正文） */
 export interface SkillPlaybook {
-  /** 一句话来源背书，如"源自 30+ 次日榜第一发布的实战复盘" */
   credibility: string;
-  /** 3-5 条核心原则 */
   principles: string[];
-  /** 预期节奏与信号 */
   expectation: string;
 }
 
 export interface ChannelSkill {
   channelId: string;
+  /** 主 Gingiris skillId */
   skillId: string;
+  /** 挂载的全部 skillId（含主 + 辅助） */
+  skillIds: string[];
   name: string;
   nameEn: string;
   description: string;
@@ -26,8 +26,15 @@ export interface ChannelSkill {
   postsPerWeek: number;
   campaignDays: number;
   defaultTaskTypes: string[];
-  methodology: string;
-  reference: string;
+  /** SKILL.md 原文（含 references），直接注入 Agent */
+  fullContent: string;
   playbook: SkillPlaybook;
   templates: SkillTemplate[];
+}
+
+export interface GingirisSkillMeta {
+  skillId: string;
+  name?: string;
+  description?: string;
+  onWebsite?: boolean;
 }

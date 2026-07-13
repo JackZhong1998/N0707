@@ -1,0 +1,473 @@
+{
+  "source": "https://gingiris.tools/skills/",
+  "monorepo": "https://github.com/Gingiris-1031/gingiris-skills",
+  "websiteCount": 41,
+  "count": 60,
+  "fromMonorepo": [
+    "gingiris-launch",
+    "product-hunt-playbook",
+    "product-hunt-launch-guide",
+    "startup-launch",
+    "startup-launch-playbook",
+    "ai-launch-playbook",
+    "ai-product-launch",
+    "go-to-market-playbook",
+    "gingiris-seo-geo-agent",
+    "gingiris-seo-geo",
+    "gingiris-b2b-growth",
+    "saas-growth-playbook",
+    "plg-playbook",
+    "b2b-marketing-playbook",
+    "saas-marketing-playbook",
+    "gingiris-opensource",
+    "github-stars-playbook",
+    "gingiris-github-star-growth",
+    "open-source-marketing-playbook",
+    "gr-readme",
+    "gingiris-aso-growth",
+    "aso-playbook",
+    "hardware-saas-gtm",
+    "gingiris-kol-outreach",
+    "kol-outreach",
+    "gingiris-ugc-matrix",
+    "community-ambassador-playbook",
+    "community-building-playbook",
+    "devrel-playbook",
+    "developer-marketing-playbook",
+    "gingiris-twitter-agent-ops",
+    "gingiris-user-interview",
+    "competitor-research-playbook",
+    "startup-consultant",
+    "startup-growth-playbook",
+    "startup-marketing-playbook",
+    "viral-marketing-playbook",
+    "growth-hacking-playbook",
+    "gingiris-growth-finder",
+    "agent-workflow-playbook"
+  ],
+  "missingFromMonorepo": [
+    "gingiris-reddit-marketing"
+  ],
+  "skills": [
+    {
+      "skillId": "agent-workflow-playbook",
+      "path": "vendor/gingiris-skills/agent-workflow-playbook",
+      "hasReferences": true,
+      "sizeBytes": 1896,
+      "onWebsite": true
+    },
+    {
+      "skillId": "ai-launch-playbook",
+      "path": "vendor/gingiris-skills/ai-launch-playbook",
+      "hasReferences": true,
+      "sizeBytes": 5369,
+      "onWebsite": true
+    },
+    {
+      "skillId": "ai-product-launch",
+      "path": "vendor/gingiris-skills/ai-product-launch",
+      "hasReferences": true,
+      "sizeBytes": 4211,
+      "onWebsite": true
+    },
+    {
+      "skillId": "aso-playbook",
+      "path": "vendor/gingiris-skills/aso-playbook",
+      "hasReferences": true,
+      "sizeBytes": 1850,
+      "onWebsite": true
+    },
+    {
+      "skillId": "b2b-marketing-playbook",
+      "path": "vendor/gingiris-skills/b2b-marketing-playbook",
+      "hasReferences": true,
+      "sizeBytes": 4312,
+      "onWebsite": true
+    },
+    {
+      "skillId": "community-ambassador-playbook",
+      "path": "vendor/gingiris-skills/community-ambassador-playbook",
+      "hasReferences": false,
+      "sizeBytes": 13664,
+      "onWebsite": true
+    },
+    {
+      "skillId": "community-building-playbook",
+      "path": "vendor/gingiris-skills/community-building-playbook",
+      "hasReferences": true,
+      "sizeBytes": 18557,
+      "onWebsite": true
+    },
+    {
+      "skillId": "competitor-research-playbook",
+      "path": "vendor/gingiris-skills/competitor-research-playbook",
+      "hasReferences": false,
+      "sizeBytes": 8710,
+      "onWebsite": true
+    },
+    {
+      "skillId": "developer-marketing-playbook",
+      "path": "vendor/gingiris-skills/developer-marketing-playbook",
+      "hasReferences": true,
+      "sizeBytes": 1891,
+      "onWebsite": true
+    },
+    {
+      "skillId": "devrel-playbook",
+      "path": "vendor/gingiris-skills/devrel-playbook",
+      "hasReferences": true,
+      "sizeBytes": 1691,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-aso-growth",
+      "path": "vendor/gingiris-skills/gingiris-aso-growth",
+      "hasReferences": true,
+      "sizeBytes": 7189,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-b2b-growth",
+      "path": "vendor/gingiris-skills/gingiris-b2b-growth",
+      "hasReferences": true,
+      "sizeBytes": 11608,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-github-star-growth",
+      "path": "vendor/gingiris-skills/gingiris-github-star-growth",
+      "hasReferences": true,
+      "sizeBytes": 7251,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-go-global",
+      "path": "vendor/gingiris-skills/gingiris-go-global",
+      "hasReferences": true,
+      "sizeBytes": 11924,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gingiris-growth-finder",
+      "path": "vendor/gingiris-skills/gingiris-growth-finder",
+      "hasReferences": false,
+      "sizeBytes": 8364,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-kol-outreach",
+      "path": "vendor/gingiris-skills/gingiris-kol-outreach",
+      "hasReferences": true,
+      "sizeBytes": 14915,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-launch",
+      "path": "vendor/gingiris-skills/gingiris-launch",
+      "hasReferences": false,
+      "sizeBytes": 14039,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-opensource",
+      "path": "vendor/gingiris-skills/gingiris-opensource",
+      "hasReferences": false,
+      "sizeBytes": 9152,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-reddit-marketing",
+      "path": "vendor/gingiris-skills/gingiris-reddit-marketing",
+      "hasReferences": false,
+      "sizeBytes": 9849,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-seo-geo",
+      "path": "vendor/gingiris-skills/gingiris-seo-geo",
+      "hasReferences": true,
+      "sizeBytes": 17831,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-seo-geo-agent",
+      "path": "vendor/gingiris-skills/gingiris-seo-geo-agent",
+      "hasReferences": true,
+      "sizeBytes": 12494,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-twitter-agent-ops",
+      "path": "vendor/gingiris-skills/gingiris-twitter-agent-ops",
+      "hasReferences": true,
+      "sizeBytes": 17416,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-ugc-matrix",
+      "path": "vendor/gingiris-skills/gingiris-ugc-matrix",
+      "hasReferences": true,
+      "sizeBytes": 10892,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gingiris-user-interview",
+      "path": "vendor/gingiris-skills/gingiris-user-interview",
+      "hasReferences": true,
+      "sizeBytes": 11549,
+      "onWebsite": true
+    },
+    {
+      "skillId": "github-stars-playbook",
+      "path": "vendor/gingiris-skills/github-stars-playbook",
+      "hasReferences": true,
+      "sizeBytes": 1772,
+      "onWebsite": true
+    },
+    {
+      "skillId": "go-to-market-playbook",
+      "path": "vendor/gingiris-skills/go-to-market-playbook",
+      "hasReferences": true,
+      "sizeBytes": 4376,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gr",
+      "path": "vendor/gingiris-skills/gr",
+      "hasReferences": false,
+      "sizeBytes": 3432,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-aso",
+      "path": "vendor/gingiris-skills/gr-aso",
+      "hasReferences": true,
+      "sizeBytes": 3166,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-b2b-growth",
+      "path": "vendor/gingiris-skills/gr-b2b-growth",
+      "hasReferences": true,
+      "sizeBytes": 5138,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-backlinks",
+      "path": "vendor/gingiris-skills/gr-backlinks",
+      "hasReferences": false,
+      "sizeBytes": 14114,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-blog-post",
+      "path": "vendor/gingiris-skills/gr-blog-post",
+      "hasReferences": true,
+      "sizeBytes": 12401,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-community-ambassador",
+      "path": "vendor/gingiris-skills/gr-community-ambassador",
+      "hasReferences": true,
+      "sizeBytes": 8201,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-competitor",
+      "path": "vendor/gingiris-skills/gr-competitor",
+      "hasReferences": false,
+      "sizeBytes": 5018,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-competitor-research",
+      "path": "vendor/gingiris-skills/gr-competitor-research",
+      "hasReferences": true,
+      "sizeBytes": 8707,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-core",
+      "path": "vendor/gingiris-skills/gr-core",
+      "hasReferences": false,
+      "sizeBytes": 3442,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-geo-cite",
+      "path": "vendor/gingiris-skills/gr-geo-cite",
+      "hasReferences": false,
+      "sizeBytes": 13759,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-oss-marketing",
+      "path": "vendor/gingiris-skills/gr-oss-marketing",
+      "hasReferences": true,
+      "sizeBytes": 4422,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-ph-launch",
+      "path": "vendor/gingiris-skills/gr-ph-launch",
+      "hasReferences": true,
+      "sizeBytes": 5975,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-product-dev-ops",
+      "path": "vendor/gingiris-skills/gr-product-dev-ops",
+      "hasReferences": true,
+      "sizeBytes": 18865,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-readme",
+      "path": "vendor/gingiris-skills/gr-readme",
+      "hasReferences": false,
+      "sizeBytes": 28407,
+      "onWebsite": true
+    },
+    {
+      "skillId": "gr-seo-geo-agent",
+      "path": "vendor/gingiris-skills/gr-seo-geo-agent",
+      "hasReferences": true,
+      "sizeBytes": 888,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-seo-patrol",
+      "path": "vendor/gingiris-skills/gr-seo-patrol",
+      "hasReferences": false,
+      "sizeBytes": 12311,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-social-distill",
+      "path": "vendor/gingiris-skills/gr-social-distill",
+      "hasReferences": false,
+      "sizeBytes": 7675,
+      "onWebsite": false
+    },
+    {
+      "skillId": "gr-user-interview",
+      "path": "vendor/gingiris-skills/gr-user-interview",
+      "hasReferences": true,
+      "sizeBytes": 6019,
+      "onWebsite": false
+    },
+    {
+      "skillId": "growth-hacking-playbook",
+      "path": "vendor/gingiris-skills/growth-hacking-playbook",
+      "hasReferences": true,
+      "sizeBytes": 2292,
+      "onWebsite": true
+    },
+    {
+      "skillId": "hardware-saas-gtm",
+      "path": "vendor/gingiris-skills/hardware-saas-gtm",
+      "hasReferences": true,
+      "sizeBytes": 16359,
+      "onWebsite": true
+    },
+    {
+      "skillId": "kol-outreach",
+      "path": "vendor/gingiris-skills/kol-outreach",
+      "hasReferences": true,
+      "sizeBytes": 7358,
+      "onWebsite": true
+    },
+    {
+      "skillId": "open-source-marketing-playbook",
+      "path": "vendor/gingiris-skills/open-source-marketing-playbook",
+      "hasReferences": true,
+      "sizeBytes": 1797,
+      "onWebsite": true
+    },
+    {
+      "skillId": "plg-playbook",
+      "path": "vendor/gingiris-skills/plg-playbook",
+      "hasReferences": true,
+      "sizeBytes": 4230,
+      "onWebsite": true
+    },
+    {
+      "skillId": "product-hunt-launch-guide",
+      "path": "vendor/gingiris-skills/product-hunt-launch-guide",
+      "hasReferences": true,
+      "sizeBytes": 4725,
+      "onWebsite": true
+    },
+    {
+      "skillId": "product-hunt-launch-playbook-win-1-daily",
+      "path": "vendor/gingiris-skills/product-hunt-launch-playbook-win-1-daily",
+      "hasReferences": false,
+      "sizeBytes": 7217,
+      "onWebsite": false
+    },
+    {
+      "skillId": "product-hunt-playbook",
+      "path": "vendor/gingiris-skills/product-hunt-playbook",
+      "hasReferences": true,
+      "sizeBytes": 6723,
+      "onWebsite": true
+    },
+    {
+      "skillId": "saas-growth-playbook",
+      "path": "vendor/gingiris-skills/saas-growth-playbook",
+      "hasReferences": true,
+      "sizeBytes": 3725,
+      "onWebsite": true
+    },
+    {
+      "skillId": "saas-marketing-playbook",
+      "path": "vendor/gingiris-skills/saas-marketing-playbook",
+      "hasReferences": true,
+      "sizeBytes": 3417,
+      "onWebsite": true
+    },
+    {
+      "skillId": "startup-consultant",
+      "path": "vendor/gingiris-skills/startup-consultant",
+      "hasReferences": true,
+      "sizeBytes": 2246,
+      "onWebsite": true
+    },
+    {
+      "skillId": "startup-growth-playbook",
+      "path": "vendor/gingiris-skills/startup-growth-playbook",
+      "hasReferences": true,
+      "sizeBytes": 2770,
+      "onWebsite": true
+    },
+    {
+      "skillId": "startup-launch",
+      "path": "vendor/gingiris-skills/startup-launch",
+      "hasReferences": true,
+      "sizeBytes": 4232,
+      "onWebsite": true
+    },
+    {
+      "skillId": "startup-launch-playbook",
+      "path": "vendor/gingiris-skills/startup-launch-playbook",
+      "hasReferences": true,
+      "sizeBytes": 3956,
+      "onWebsite": true
+    },
+    {
+      "skillId": "startup-marketing-playbook",
+      "path": "vendor/gingiris-skills/startup-marketing-playbook",
+      "hasReferences": true,
+      "sizeBytes": 2811,
+      "onWebsite": true
+    },
+    {
+      "skillId": "viral-marketing-playbook",
+      "path": "vendor/gingiris-skills/viral-marketing-playbook",
+      "hasReferences": true,
+      "sizeBytes": 2785,
+      "onWebsite": true
+    }
+  ]
+}

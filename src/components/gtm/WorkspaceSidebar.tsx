@@ -5,6 +5,7 @@ import { UserButton } from '@clerk/nextjs';
 import { useLocale } from 'next-intl';
 import { useGtm } from '@/lib/gtm/storage';
 import { CAMPAIGN_DURATION_DAYS } from '@/lib/gtm/types';
+import { LogoMark } from '@/components/Logo';
 
 function IconToday({ className }: { className?: string }) {
   return (
@@ -105,9 +106,7 @@ export default function WorkspaceSidebar() {
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200/80 bg-white">
       {/* Brand */}
       <div className="flex items-center gap-2.5 border-b border-gray-100 px-5 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white">
-          N
-        </div>
+        <LogoMark size={32} />
         <div>
           <p className="font-display text-sm font-bold leading-tight text-gray-900">NowBuild</p>
           <p className="text-[11px] leading-tight text-gray-400">

@@ -11,6 +11,7 @@ import {
   KICKOFF_REQUIRED_SLOTS,
   KICKOFF_OPTIONAL_SLOTS,
 } from './prompts';
+import { getKickoffSkillContent } from './skills/registry';
 
 export interface KickoffResult {
   reply: string;
@@ -43,6 +44,9 @@ export async function runKickoffChat(
   const requiredMissing = missing.filter((m) => m.startsWith('[必填]'));
 
   const contextBlock = `${buildMemoryContext(memory)}
+
+【Go-to-Market Playbook 原文（Kickoff 方法论参考）】
+${getKickoffSkillContent()}
 
 【尚未收集的信息槽位】
 ${missing.length > 0 ? missing.join('\n') : '（全部收集完毕）'}

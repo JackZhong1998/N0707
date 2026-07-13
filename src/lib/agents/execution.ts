@@ -32,12 +32,10 @@ export async function runChannelStrategy(
       content: `${buildMemoryContext(memory)}
 
 【渠道】${channelId}（${skill.name}）
+【挂载 Skill】${skill.skillIds.join(', ')}
 
-【渠道方法论（来自实战 Playbook，严格遵循）】
-${skill.methodology}
-
-【渠道格式规范】
-${skill.reference}`,
+【渠道 Playbook 原文（严格遵循）】
+${skill.fullContent}`,
     },
   ];
 
@@ -122,7 +120,7 @@ export async function runTaskExecutor(
   const skill = loadSkill(task.channelId);
   if (!skill) throw new Error(`Skill not found: ${task.channelId}`);
 
-  const prompt = buildTaskExecutorPrompt(task.channelId, skill.methodology, skill.reference);
+  const prompt = buildTaskExecutorPrompt(task.channelId, skill.fullContent);
 
   const messages = [
     { role: 'system' as const, content: prompt },
@@ -170,8 +168,8 @@ export async function runContentAgent(
 正文：
 ${deliverable.body}
 
-【渠道格式约束】
-${skill?.reference ?? ''}`,
+【渠道 Playbook 原文】
+${skill?.fullContent ?? ''}`,
     },
     ...compactHistory(history, 8).map((m) => ({
       role: m.role as 'user' | 'assistant',

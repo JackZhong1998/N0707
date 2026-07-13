@@ -2,7 +2,7 @@ import { callOpenRouterJson } from '@/lib/openrouter';
 import type { CmoChannelRecommendation, StrategySummary } from '@/lib/gtm/types';
 import { buildMemoryContext, type MemoryPayload } from '@/lib/gtm/memory';
 import { CHANNEL_ROUTER_PROMPT } from './prompts';
-import { getSkillRegistryMeta } from './skills/registry';
+import { getSkillRegistryMeta, getRouterSkillContent } from './skills/registry';
 
 export async function runCmoRecommend(
   memory: MemoryPayload
@@ -13,6 +13,9 @@ export async function runCmoRecommend(
     {
       role: 'user' as const,
       content: `${buildMemoryContext(memory)}
+
+【Growth Finder + GTM Playbook 原文（渠道推荐方法论）】
+${getRouterSkillContent()}
 
 【可用渠道注册表】
 ${JSON.stringify(registry, null, 2)}`,

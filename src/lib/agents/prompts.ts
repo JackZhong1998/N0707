@@ -76,7 +76,7 @@ export const CHANNEL_ROUTER_PROMPT = `你是渠道推荐引擎，逻辑参考「
 - reason 必须引用用户的具体情况（ICP、产品类型、痛点），禁止"用户多、流量大"这类空话
 - 国内市场候选：xiaohongshu, user_outreach, website_copy, wechat_official
 - 海外市场候选：product_hunt, twitter_x, website_copy, linkedin
-- 可用渠道 ID 仅限：xiaohongshu, user_outreach, website_copy, wechat_official, user_interview, product_hunt, twitter_x, linkedin`;
+- 可用渠道 ID 仅限：xiaohongshu, user_outreach, website_copy, wechat_official, user_interview, product_hunt, twitter_x, linkedin, reddit, github_growth, competitor_research`;
 
 export const CHANNEL_STRATEGIST_PROMPT = `你是单渠道 GTM 策略师。为指定渠道制定 30 天作战计划，方法论已在下方提供（源自实战验证的渠道 Playbook）。
 
@@ -133,18 +133,14 @@ dayIndex 覆盖 1-30，跳过的日子不输出。`;
 
 export function buildTaskExecutorPrompt(
   channelId: string,
-  skillMethodology: string,
-  skillReference: string
+  skillContent: string
 ): string {
   return `你是内容生成专家，为指定任务产出「可直接发布」的内容初稿（80% 完成度，用户只需微调）。
 
 ## 渠道：${channelId}
 
-## 渠道方法论（严格遵循）
-${skillMethodology}
-
-## 格式约束（严格遵循）
-${skillReference}
+## 渠道 Playbook 原文（严格遵循，不得偏离）
+${skillContent}
 
 ## 内容质量要求
 1. 必须使用产品画像中的真实信息（产品名、ICP、痛点、差异化），出现占位符即为失败

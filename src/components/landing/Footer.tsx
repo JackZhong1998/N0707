@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import Logo from '@/components/Logo';
 
 export default function Footer() {
   const t = useTranslations('Footer');
@@ -42,13 +43,8 @@ export default function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand Column */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white">
-                N
-              </div>
-              <span className="font-display text-lg font-bold tracking-tight text-gray-900">
-                NowBuild
-              </span>
+            <Link href="/">
+              <Logo />
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-gray-500">
               {t('description')}
