@@ -1,8 +1,8 @@
 {
   "Metadata": {
     "home": {
-      "title": "NowBuild — 30-Day GTM Action Calendar to Get Your First Users",
-      "description": "You shipped with AI — now build your business loop. NowBuild turns a 15-minute strategy conversation into a 30-day go-to-market calendar: AI drafts daily content, you review and publish."
+      "title": "NowBuild — Ship Done. Find Your First Users in 30 Days",
+      "description": "You shipped the product — now get your first users. NowBuild turns a 15-minute strategy talk into a 30-day action calendar: AI drafts what to post each day, you review and publish."
     },
     "blog": {
       "title": "Blog — GTM Playbooks & First-User Growth",
@@ -22,7 +22,7 @@
     },
     "about": {
       "title": "About — Helping Builders Find Their First Real Users | nowbuild.ai",
-      "description": "NowBuild's mission: every builder who can ship a product should be able to build their business loop. Go-to-Market is the most important step."
+      "description": "NowBuild's mission: every builder who can ship a product should be able to find their first real users — with a steady 30-day rhythm."
     }
   },
   "Nav": {
@@ -31,26 +31,26 @@
     "blog": "Blog",
     "about": "About",
     "signIn": "Sign In",
-    "getStarted": "Get Started"
+    "getStarted": "Get first users"
   },
   "Hero": {
     "badge": "nowbuild.ai · Public Beta",
     "title": "You shipped the product.",
-    "titleHighlight": "Now build your business loop.",
-    "description": "Go-to-Market is the most important step. NowBuild helps you define a market strategy in 15 minutes, then drives daily execution with a 30-day action calendar — AI drafts 80% of the content, you review and publish, and lightweight reviews keep your strategy evolving.",
-    "cta": "Start for Free",
+    "titleHighlight": "Still missing your first users.",
+    "description": "Define your acquisition strategy in 15 minutes. A 30-day action calendar tells you what to post and where — AI drafts 80%, you review and publish, and you steadily find your first real users.",
+    "cta": "Start your 30-day plan",
     "secondaryCta": "See how it works",
     "trustedBy": "Trusted by builders at",
     "stat1Value": "30-day",
-    "stat1Label": "Strategy calendar",
+    "stat1Label": "Acquisition calendar",
     "stat2Value": "28+",
     "stat2Label": "Channel skills",
-    "stat3Value": "80%",
-    "stat3Label": "Content prefilled"
+    "stat3Value": "15–30m",
+    "stat3Label": "Daily effort"
   },
   "Problem": {
-    "title": "You're not bad at marketing — nobody tells you what to do today",
-    "subtitle": "AI lowered the bar for shipping a product. It didn't lower the bar for getting the market to notice.",
+    "title": "You don't lack theory — you lack what to do today",
+    "subtitle": "AI lowered the bar for shipping a product. It didn't lower the bar for finding your first users.",
     "items": [
       {
         "title": "Blank-page fear",
@@ -76,26 +76,26 @@
   },
   "HowItWorks": {
     "title": "From \"it's shipped\" to \"people use it\" — in 3 steps",
-    "subtitle": "15 minutes to define your strategy, then a 15–30 minute daily execution rhythm.",
+    "subtitle": "15 minutes to set your acquisition strategy, then 15–30 minutes a day to find your first users.",
     "steps": [
       {
-        "title": "Define strategy in conversation",
-        "description": "Answer a few questions and talk with your GTM advisor for 15 minutes — confirm your target users, 2–3 core channels, and 30-day goal."
+        "title": "Define acquisition strategy",
+        "description": "Answer a few questions and talk with your GTM advisor for 15 minutes — confirm your target users, 2–3 core channels, and 30-day acquisition goal."
       },
       {
         "title": "Execute daily from the calendar",
         "description": "Open the Today view and know exactly what to post and where. Every task comes 80% pre-drafted, tagged with its channel and purpose."
       },
       {
-        "title": "Review and evolve",
-        "description": "Mark market reactions in 30 seconds a day. Week-1 report on day 7, monthly review on day 30 — see exactly which channels and content work."
+        "title": "Review and get sharper",
+        "description": "Mark market reactions in 30 seconds a day. Week-1 report on day 7, monthly review on day 30 — see exactly which channels and content bring users."
       }
     ],
-    "cta": "Start your 30-day plan"
+    "cta": "Start your 30-day acquisition plan"
   },
   "Features": {
     "title": "Not another AI copywriting tool",
-    "subtitle": "NowBuild connects market strategy, daily execution, and feedback into one loop you'll open every day.",
+    "subtitle": "NowBuild connects acquisition strategy, daily execution, and feedback — so you can find your first users.",
     "table": {
       "feature": "Capability",
       "nowbuild": "NowBuild",
@@ -132,16 +132,16 @@
     }
   },
   "Highlights": {
-    "title": "Build your business loop — start with Go-to-Market",
-    "subtitle": "28+ channel skills covering the full path from strategy to daily execution.",
+    "title": "Find your first users — start by knowing what to do today",
+    "subtitle": "28+ channel skills that turn acquisition strategy into daily actions.",
     "items": [
       {
-        "title": "Define strategy in 15 minutes",
-        "description": "Structured kickoff conversation to confirm product type, target users, core channels, and 30-day goals — no more staring at a blank page."
+        "title": "Define acquisition strategy in 15 minutes",
+        "description": "Structured kickoff conversation to confirm product type, target users, core channels, and 30-day acquisition goals — no more staring at a blank page."
       },
       {
         "title": "30-day action calendar",
-        "description": "Open the app and know exactly what to do, what to post, and where to post today. Every task is tied to your market strategy."
+        "description": "Open the app and know exactly what to do, what to post, and where to post today. Every task points at getting your first users."
       },
       {
         "title": "AI content prefilled",
@@ -157,17 +157,17 @@
       },
       {
         "title": "Strategy that evolves",
-        "description": "Based on your execution and market signals, the system suggests adjustments to next week's content and channel focus."
+        "description": "Based on your execution and market signals, the system suggests adjustments to next week's content and channel focus — so acquisition gets sharper over time."
       }
     ]
   },
   "Qualifier": {
     "title": "Who is NowBuild for?",
-    "subtitle": "We serve one kind of person: builders who shipped a product but have never done systematic marketing.",
+    "subtitle": "We serve one kind of person: builders who shipped a product and still need their first users.",
     "fitTitle": "✓ It's for you if",
     "fit": [
       "You have a product you can show (link, screenshots, or demo)",
-      "You've never run a systematic 30-day marketing push",
+      "You've never run a systematic 30-day acquisition push",
       "You can spend 15–30 minutes a day on execution",
       "Your product is a small SaaS, AI tool, course, template, or light consulting"
     ],
@@ -178,12 +178,12 @@
       "You want fully automated posting with zero involvement",
       "You need paid ads, SEO, or complex B2B funnels"
     ],
-    "note": "No product yet? Ship it first — we'll be here when you're ready for the Go-to-Market step."
+    "note": "No product yet? Ship it first — we'll be here when you're ready to find your first users."
   },
   "FinalCTA": {
-    "title": "The product is done. The market is waiting to hear from you.",
-    "description": "Define your market strategy in 15 minutes and know what your first post says — today. Start building your business loop.",
-    "cta": "Start for Free",
+    "title": "The product is done. Your first users are waiting.",
+    "description": "Define your acquisition strategy in 15 minutes and know what your first post should say — today. Start your 30-day plan.",
+    "cta": "Start your 30-day plan",
     "note": "No credit card required · Public beta · nowbuild.ai"
   },
   "FAQ": {
@@ -192,15 +192,15 @@
     "items": [
       {
         "question": "What is NowBuild?",
-        "answer": "NowBuild (nowbuild.ai) is a GTM execution workspace: define a 30-day market strategy through conversation, drive daily tasks with a calendar, pre-draft content with AI, review and publish yourself, and evolve your strategy with lightweight reviews. Start building your business loop — Go-to-Market is the most important step."
+        "answer": "NowBuild (nowbuild.ai) is an acquisition execution workspace: define a 30-day strategy through conversation, drive daily tasks with a calendar, pre-draft content with AI, review and publish yourself, and evolve with lightweight reviews. Built for builders who shipped — to help them find their first real users."
       },
       {
         "question": "How is this different from ChatGPT?",
-        "answer": "ChatGPT can discuss strategy but has no calendar, no tracking, and no memory across sessions. NowBuild turns strategy → calendar → execution → feedback into a GUI you open every day, with 28+ channel skills built in."
+        "answer": "ChatGPT can discuss strategy but has no calendar, no tracking, and no memory across sessions. NowBuild turns strategy → calendar → execution → feedback into a GUI you open every day, with 28+ channel skills — aimed at getting your first users."
       },
       {
         "question": "Do I need an existing product?",
-        "answer": "Yes. NowBuild is for builders who shipped something but don't know how to take it to market — not for the idea stage."
+        "answer": "Yes. NowBuild is for builders who shipped something but don't know how to get users — not for the idea stage."
       },
       {
         "question": "Will AI post for me automatically?",
@@ -212,12 +212,12 @@
       },
       {
         "question": "Do you guarantee users?",
-        "answer": "No. We guarantee the system and the rhythm — helping you stay in conversation with the market. You'll have reviewable market feedback within the first week, and by day 30 you'll know which channels and content work for you."
+        "answer": "No. We guarantee the system and the rhythm — helping you stay in conversation with the market. You'll have reviewable acquisition feedback within the first week, and by day 30 you'll know which channels and content bring users."
       }
     ]
   },
   "Footer": {
-    "description": "nowbuild.ai — Help builders start their business loop. Go-to-Market is the most important step.",
+    "description": "nowbuild.ai — Help builders who shipped find their first real users with a 30-day action calendar.",
     "product": "Product",
     "features": "Features",
     "pricing": "Pricing",
@@ -236,16 +236,16 @@
   },
   "Pricing": {
     "title": "Simple pricing, two plans",
-    "subtitle": "Define your market strategy for free. Upgrade when you're ready for the full 30-day plan.",
+    "subtitle": "Define your acquisition strategy for free. Upgrade when you're ready for the full 30-day plan.",
     "monthly": "Monthly",
     "yearly": "Yearly",
     "yearlyDiscount": "Save $29",
     "perMonth": "/month",
     "perYear": "/year",
     "yearlyEquivalent": "≈ $16.6/month",
-    "valueAnchor": "Less than a coffee a day for a 30-day market partner",
+    "valueAnchor": "Less than a coffee a day to help find your first users",
     "currentPlan": "Current Plan",
-    "getStarted": "Start for Free",
+    "getStarted": "Get first users",
     "subscribe": "Subscribe",
     "mostPopular": "Recommended",
     "plans": {
@@ -335,28 +335,28 @@
   },
   "About": {
     "title": "About NowBuild",
-    "subtitle": "Helping every builder who can ship a product build their business loop.",
+    "subtitle": "Helping every builder who can ship a product find their first real users.",
     "story": {
       "title": "Our Story",
-      "content": "AI made shipping a product easier than ever — you can launch an MVP over a weekend. But we kept seeing builders stuck at the next step: product done, a few posts shared, 12 visitors in 7 days, zero signups, and no idea what to do tomorrow. The problem isn't that they lack theory. It's that nobody connected strategy → daily action → market feedback → strategy evolution into a path you actually want to open every day. That's why we built NowBuild (nowbuild.ai): strategy through conversation, execution driven by a calendar, content pre-drafted by AI, and reviews that evolve the plan."
+      "content": "AI made shipping a product easier than ever — you can launch an MVP over a weekend. But we kept seeing builders stuck at the next step: product done, a few posts shared, 12 visitors in 7 days, zero signups, and no idea what to do tomorrow. The problem isn't that they lack theory. It's that nobody connected acquisition strategy → daily action → market feedback → strategy evolution into a path you actually want to open every day. That's why we built NowBuild (nowbuild.ai): help you find your first real users in 30 days."
     },
     "mission": {
       "title": "Our Mission",
-      "content": "Enable everyone who can ship a product with AI to take the most important step — Go-to-Market — and stay in a steady, sustained conversation with the market until they find their first real users."
+      "content": "Enable everyone who can ship a product with AI to stay in a steady conversation with the market — until they find their first real users."
     },
     "values": {
       "title": "Our Values",
       "items": [
         { "title": "Execution over theory", "description": "Builders don't lack growth articles — they lack 'what exactly to post today'. We deliver daily actions, not another GTM course." },
         { "title": "You review, you publish", "description": "AI drafts 80%, but the voice facing the market is always yours. We reduce friction; we don't run your accounts." },
-        { "title": "Honest promises", "description": "We promise a system and a rhythm, not a guaranteed user count. You'll have reviewable market feedback within the first week." },
-        { "title": "Small and deep", "description": "No all-in-one startup suite. We do one thing extremely well: your first 30 days of taking a product to market." }
+        { "title": "Honest promises", "description": "We promise a system and a rhythm, not a guaranteed user count. You'll have reviewable acquisition feedback within the first week." },
+        { "title": "Small and deep", "description": "No all-in-one startup suite. We do one thing extremely well: your first 30 days of finding users." }
       ]
     },
     "cta": {
-      "title": "Ready to build your business loop?",
-      "description": "The product is done — Go-to-Market is the most important step. Define your strategy in 15 minutes and start today.",
-      "button": "Start for Free"
+      "title": "Ready to find your first users?",
+      "description": "The product is done. Define your acquisition strategy in 15 minutes and start your 30-day plan today.",
+      "button": "Start your 30-day plan"
     }
   },
   "Privacy": {
