@@ -5,8 +5,6 @@ import { UserButton } from '@clerk/nextjs';
 import { useLocale } from 'next-intl';
 import { useGtm } from '@/lib/gtm/storage';
 import { CAMPAIGN_DURATION_DAYS } from '@/lib/gtm/types';
-import { LogoMark } from '@/components/Logo';
-
 function IconToday({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
@@ -105,14 +103,11 @@ export default function WorkspaceSidebar() {
   return (
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200/80 bg-white">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 border-b border-gray-100 px-5 py-4">
-        <LogoMark size={32} />
-        <div>
-          <p className="font-display text-sm font-bold leading-tight text-gray-900">NowBuild</p>
-          <p className="text-[11px] leading-tight text-gray-400">
-            {isZh ? 'GTM 行动台' : 'GTM Action OS'}
-          </p>
-        </div>
+      <div className="border-b border-gray-100 px-5 py-4">
+        <p className="font-display text-sm font-bold leading-tight text-gray-900">NowBuild</p>
+        <p className="text-[11px] leading-tight text-gray-400">
+          {isZh ? 'GTM 行动台' : 'GTM Action OS'}
+        </p>
       </div>
 
       {/* Campaign progress */}
