@@ -68,16 +68,29 @@ export async function runChannelTodos(
 # 本次任务
 依据下方渠道方向性策略文档，编写未来 30 天（dayIndex 1-30）的 GTM To-Do 计划：
 1. 明确每个阶段（周）做什么、每天具体做什么
-2. 所有 To-Do 仅限编写文案、以文本形式做传播（不涉及投放、视频拍摄等）
-3. 每条 To-Do 给出 title（动作）和 brief（编写方向，之后你会按 brief 写全文）
-4. 节奏合理：不必每天都有，按渠道最佳频率排布（一般每周 3-5 条）
-5. time 用 HH:mm 表示该渠道最佳发布时间
+2. **排满 30 天：dayIndex 1 到 30 每天都必须至少有一条 To-Do，不允许出现空天。**
+   重内容（发帖/长文）按渠道最佳频率排布，其余的天安排轻量的**发布/新增类**动作
+   （发布一条轻量短内容、把已有内容改编成另一种形式发布、新增一条素材/案例、
+   引用转发热帖并附上自己的观点等），保证用户每天打开日历都有新东西产出
+3. **每条 To-Do 都必须是「发布内容 / 新增内容 / 建设动作」这类主动产出型任务。
+   禁止安排「回复评论」「回复私信」「回复讨论」「浏览找选题」「记录数据」这类被动维护任务
+   —— 那些是你作为渠道专员日常自动在做的事，不占用用户的行动日历。**
+4. 若渠道是官网/落地页类：To-Do 应是一个个具体的建设任务
+   （设计 Hero 区、编写某个模块的文案、写 SEO 标题与 meta、建设外链、新增 FAQ/案例页、
+   发布 SEO 博客等），而不是抽象的实验类任务（如 A/B test）
+5. 所有 To-Do 仅限编写文案、以文本形式做传播（不涉及投放、视频拍摄等）
+6. 每条 To-Do 给出 title（动作）和 brief（编写方向，之后你会按 brief 写全文）
+7. 每条 To-Do 必须标明 market（该条针对的目标市场，如「中国大陆」「United States」）
+   和 audience（针对的目标人群一句话，如「正在做 side project 的独立开发者」）。
+   目标市场从策略文档和用户档案推断；之后写正文时语言必须跟随 market
+   （英语市场→英文内容，中文市场→中文内容）
+8. time 用 HH:mm 表示该渠道最佳发布时间
 
-# 渠道方向性策略文档（策略生成 Agent 给定的方向，必须遵循）
+# 渠道方向性策略文档（必须遵循）
 ${input.channelStrategyMarkdown}
 
 # 输出格式（严格 JSON）
-{"todos": [{"dayIndex": 1, "title": "...", "brief": "...", "time": "09:00", "phase": "第 1 周 · 主题"}]}`;
+{"todos": [{"dayIndex": 1, "title": "...", "brief": "...", "time": "09:00", "phase": "第 1 周 · 主题", "market": "中国大陆", "audience": "..."}]}`;
 
   const messages: OpenRouterMessage[] = [
     { role: 'system', content: system },
@@ -89,11 +102,11 @@ ${input.channelStrategyMarkdown}
 
   const out = await callOpenRouterJson<ChannelTodosResponse>(messages, {
     temperature: 0.55,
-    maxTokens: 6144,
+    maxTokens: 8192,
   });
   out.todos = (out.todos ?? [])
     .filter((t) => t.dayIndex >= 1 && t.dayIndex <= 30 && t.title)
-    .slice(0, 40);
+    .slice(0, 45);
   if (out.todos.length === 0) {
     return mockChannelTodos({ channelId: input.channelId });
   }
@@ -105,7 +118,7 @@ ${input.channelStrategyMarkdown}
 /* ------------------------------------------------------------------ */
 
 export interface ChannelWriteInput {
-  todo: Pick<Todo, 'channelId' | 'title' | 'brief' | 'dayIndex' | 'phase'>;
+  todo: Pick<Todo, 'channelId' | 'title' | 'brief' | 'dayIndex' | 'phase' | 'market' | 'audience'>;
   channelStrategyMarkdown: string;
   userProfileDoc: string;
   projectProfileDoc: string;
@@ -132,6 +145,8 @@ export async function runChannelWrite(
 3. 具体、真实、有细节：真实经历 > 抽象道理；具体数字 > 模糊描述
 4. 符合该渠道的格式习惯（标题长度、正文结构、话题标签等按渠道 Skill 来）
 5. 直接可发布：用户复制粘贴即可发出
+6. **发布语言跟随目标市场**：面向英语市场（如 United States）→ 全文英文；
+   面向中文市场（如中国大陆）→ 全文中文
 
 # 渠道方向性策略文档
 ${input.channelStrategyMarkdown.slice(0, 4000)}
@@ -149,6 +164,8 @@ ${input.channelStrategyMarkdown.slice(0, 4000)}
 - 第 ${input.todo.dayIndex} 天${input.todo.phase ? `（${input.todo.phase}）` : ''}
 - 动作：${input.todo.title}
 - 编写方向：${input.todo.brief}
+- 目标市场：${input.todo.market ?? '（未标注，按用户档案判断）'}
+- 目标人群：${input.todo.audience ?? '（未标注，按渠道策略判断）'}
 
 请撰写发布内容。`,
     },
@@ -197,6 +214,7 @@ export async function runChannelChat(
       message: input.message,
       todoTitle: input.todo.title,
       currentBody: input.currentContent?.body,
+      channelId: input.todo.channelId,
     });
   }
 
@@ -225,8 +243,11 @@ ${input.channelTodosDigest}
 {
   "reply": "给用户的话",
   "rewrite_content": {"title":"...","body":"..."} 或 null,
-  "rewrite_plan": [{"dayIndex":1,"title":"...","brief":"...","time":"09:00","phase":"..."}] 或 null
-}`;
+  "rewrite_plan": [{"dayIndex":1,"title":"...","brief":"...","time":"09:00","phase":"...","market":"中国大陆","audience":"..."}] 或 null
+}
+注意：rewrite_plan 必须排满 30 天（每天至少一条），每条带 market 与 audience；
+所有 To-Do 必须是发布内容 / 新增内容 / 建设动作，禁止「回复评论 / 回复私信 / 回复讨论」类被动维护任务
+（那是渠道专员日常自动处理的）。官网/落地页渠道的 To-Do 应是具体建设任务（设计 Hero、写模块文案、SEO、外链等）。`;
 
   const messages: OpenRouterMessage[] = [
     { role: 'system', content: system },

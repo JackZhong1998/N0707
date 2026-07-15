@@ -13,7 +13,7 @@ export function AgentTaskCard({
   status: 'running' | 'done' | 'error';
 }) {
   return (
-    <div className="mt-2 inline-flex max-w-md items-center gap-3 border border-hairline bg-paper-dim px-4 py-3">
+    <div className="mt-2 inline-flex max-w-md items-center gap-3 rounded-2xl border border-hairline bg-paper-dim px-4 py-3">
       {status === 'running' && (
         <span className="relative flex h-2.5 w-2.5 shrink-0">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zinc-400 opacity-60" />
@@ -47,7 +47,7 @@ export function StrategyCard({
   return (
     <Link
       href="/app/strategy"
-      className="group mt-2 block max-w-md border border-ink bg-white transition-colors hover:bg-ink"
+      className="group mt-2 block max-w-md overflow-hidden rounded-2xl border border-ink bg-white transition-colors hover:bg-ink"
     >
       <div className="border-b border-hairline px-4 py-2.5 group-hover:border-zinc-700">
         <p className="index-label group-hover:!text-zinc-400">
@@ -76,8 +76,8 @@ export function CalendarCard({ title }: { title: string }) {
   const isZh = locale !== 'en';
   return (
     <Link
-      href="/app/calendar"
-      className="group mt-2 block max-w-md border border-ink bg-ink transition-colors hover:bg-white"
+      href="/app/calendar?view=week"
+      className="group mt-2 block max-w-md overflow-hidden rounded-2xl border border-ink bg-ink transition-colors hover:bg-white"
     >
       <div className="border-b border-zinc-700 px-4 py-2.5 group-hover:border-hairline">
         <p className="index-label !text-zinc-400">

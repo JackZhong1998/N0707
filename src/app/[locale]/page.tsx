@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/landing/Hero';
-import SystemBento from '@/components/landing/SystemBento';
+import Channels from '@/components/landing/Channels';
 import FlowSteps from '@/components/landing/FlowSteps';
 import CalendarGlimpse from '@/components/landing/CalendarGlimpse';
 import ClosingCta from '@/components/landing/ClosingCta';
@@ -55,7 +55,7 @@ export default async function HomePage({ params }: Props) {
     '@type': 'Organization',
     name: getSiteName(),
     url: getBaseUrl(),
-    logo: buildAbsoluteUrl('/logo.png'),
+    logo: buildAbsoluteUrl('/icon.svg'),
     sameAs: [],
   };
 
@@ -110,9 +110,9 @@ export default async function HomePage({ params }: Props) {
       <Navbar variant="dark" />
       <main>
         <Hero />
-        <SystemBento />
-        <FlowSteps />
         <CalendarGlimpse />
+        <FlowSteps />
+        <Channels />
         <FAQ />
         <ClosingCta />
       </main>

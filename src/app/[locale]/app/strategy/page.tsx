@@ -13,24 +13,17 @@ import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import { callStrategist } from '@/lib/gtm/api-client';
 import { Markdown } from '@/lib/gtm/markdown';
+import ChannelLogo from '@/components/ChannelLogo';
 
 export default function StrategyPage() {
   const gtm = useGtm();
-  const { store, hydrated } = gtm;
+  const { store } = gtm;
   const locale = useLocale();
   const isZh = locale !== 'en';
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [feedbackFor, setFeedbackFor] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState<string | null>(null);
-
-  if (!hydrated) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <span className="index-label animate-pulse-soft">Loading…</span>
-      </div>
-    );
-  }
 
   const channelDocs = Object.values(store.channelStrategies);
 
@@ -45,7 +38,7 @@ export default function StrategyPage() {
         </p>
         <Link
           href="/app/chat"
-          className="bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+          className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
         >
           {isZh ? '去对话 →' : 'Start talking →'}
         </Link>
@@ -103,8 +96,8 @@ export default function StrategyPage() {
 
       {/* 总体策略 */}
       {store.strategy && (
-        <section className="mt-8 border border-hairline">
-          <div className="border-b border-hairline bg-paper-dim px-5 py-3">
+        <section className="mt-8 overflow-hidden rounded-2xl border border-hairline">
+          <div className="bg-paper-dim px-5 py-3">
             <span className="index-label">{isZh ? '总体策略' : 'Overview'}</span>
           </div>
           <div className="px-5 py-5">
@@ -118,7 +111,7 @@ export default function StrategyPage() {
         <div className="mt-10 flex flex-wrap gap-1.5">
           <button
             onClick={() => setActiveChannel(null)}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               activeChannel === null ? 'bg-ink text-white' : 'border border-hairline text-ink-muted hover:text-ink'
             }`}
           >
@@ -128,12 +121,13 @@ export default function StrategyPage() {
             <button
               key={d.channelId}
               onClick={() => setActiveChannel(d.channelId)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeChannel === d.channelId
                   ? 'bg-ink text-white'
                   : 'border border-hairline text-ink-muted hover:text-ink'
               }`}
             >
+              <ChannelLogo channelId={d.channelId} size={14} />
               {d.channelName}
             </button>
           ))}
@@ -143,11 +137,12 @@ export default function StrategyPage() {
       {/* 各渠道方向性文档 */}
       <div className="mt-6 space-y-8 pb-16">
         {shown.map((doc) => (
-          <section key={doc.channelId} className="border border-hairline">
+          <section key={doc.channelId} className="overflow-hidden rounded-2xl border border-hairline">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-paper-dim px-5 py-3">
-              <div>
+              <div className="flex items-center gap-2">
+                <ChannelLogo channelId={doc.channelId} size={18} />
                 <span className="text-sm font-semibold text-ink">{doc.channelName}</span>
-                <span className="index-label ml-3">{doc.channelId}</span>
+                <span className="index-label ml-1">{doc.channelId}</span>
               </div>
               <button
                 onClick={() => {
@@ -155,7 +150,7 @@ export default function StrategyPage() {
                   setFeedback('');
                 }}
                 disabled={regenerating !== null}
-                className="border border-hairline bg-white px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink disabled:opacity-40"
+                className="rounded-full border border-hairline bg-white px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink disabled:opacity-40"
               >
                 {isZh ? '提意见修改' : 'Give feedback'}
               </button>
@@ -173,12 +168,12 @@ export default function StrategyPage() {
               </div>
             ) : (
               <>
-                <div className="grid gap-px bg-hairline sm:grid-cols-2">
-                  <div className="bg-white p-5">
+                <div className="grid gap-3 p-3 sm:grid-cols-2">
+                  <div className="rounded-xl bg-paper-dim p-4">
                     <p className="index-label">{isZh ? '账号定位' : 'Positioning'}</p>
                     <p className="mt-2 text-sm leading-relaxed text-ink">{doc.positioning}</p>
                   </div>
-                  <div className="bg-white p-5">
+                  <div className="rounded-xl bg-paper-dim p-4">
                     <p className="index-label">{isZh ? '内容支柱' : 'Content pillars'}</p>
                     <ul className="mt-2 space-y-1">
                       {doc.contentPillars.map((p) => (
@@ -190,7 +185,7 @@ export default function StrategyPage() {
                     </ul>
                   </div>
                 </div>
-                <div className="border-t border-hairline px-5 py-5">
+                <div className="px-5 pb-5 pt-2">
                   <Markdown text={doc.markdown} />
                 </div>
               </>
@@ -207,7 +202,7 @@ export default function StrategyPage() {
                       ? '例如：我是从产品经理转型的独立开发者，希望内容更多结合我的转型经历…'
                       : 'e.g. I moved from PM to indie dev — lean the content on that story…'
                   }
-                  className="w-full resize-none border border-hairline bg-white px-3.5 py-3 text-sm leading-relaxed outline-none focus:border-ink"
+                  className="w-full resize-none rounded-xl border border-hairline bg-white px-3.5 py-3 text-sm leading-relaxed outline-none focus:border-ink"
                 />
                 <div className="mt-2 flex justify-end gap-2">
                   <button
@@ -219,7 +214,7 @@ export default function StrategyPage() {
                   <button
                     onClick={() => void submitFeedback(doc.channelId)}
                     disabled={!feedback.trim()}
-                    className="bg-ink px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 disabled:bg-zinc-200"
+                    className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 disabled:bg-zinc-200"
                   >
                     {isZh ? '提交并重新生成' : 'Submit & regenerate'}
                   </button>

@@ -84,8 +84,11 @@ function useOptionalClerkUserId(): { userId: string | null; isLoaded: boolean } 
 
 export function GtmProvider({ children }: { children: React.ReactNode }) {
   const { userId, isLoaded } = useOptionalClerkUserId();
-  const [store, setStore] = useState<GtmStore>(createInitialStore);
-  const [hydrated, setHydrated] = useState(false);
+  const [store, setStore] = useState<GtmStore>(() => {
+    if (typeof window === 'undefined') return createInitialStore();
+    return loadStore(storageKey(null));
+  });
+  const [hydrated, setHydrated] = useState(() => typeof window !== 'undefined');
   const keyRef = useRef<string | null>(null);
 
   useEffect(() => {

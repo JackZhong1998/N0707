@@ -2,18 +2,18 @@
 
 /**
  * 产品内页外壳
- * - 顶部：Logo + 用户头像
- * - 分隔线下方：左右结构 — 左侧三个功能入口（市场总监对话 / 每日行动日历 / 市场策略文档）
- * - 移动端：底部标签栏
- * - 支付墙前置：未支付时锁定在日历页（模拟效果 + 蒙版）
+ * - 顶部：Logo + 用户头像（始终 fixed）
+ * - 模块化圆角布局，减少硬分割线
+ * - 未支付时：模拟日历 + 全屏蒙层触发支付墙
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { UserButton } from '@clerk/nextjs';
 import { Link, useRouter } from '@/i18n/navigation';
 import Logo from '@/components/Logo';
+import Paywall from '@/components/app/Paywall';
 import { GtmProvider, useGtm } from '@/lib/gtm/store';
 
 const isClerkConfigured =
@@ -57,7 +57,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const locale = useLocale();
   const isZh = locale !== 'en';
-  const { store, hydrated } = useGtm();
+  const { store, hydrated, setPaid } = useGtm();
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const items = [
     { key: 'chat', href: '/app/chat', label: isZh ? '市场总监' : 'Director', icon: 'chat' as const },
@@ -71,7 +72,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       ? 'strategy'
       : 'calendar';
 
-  // 支付墙前置：未支付时只能停在日历页（模拟效果页）
+  // 预取各页面，减少切换卡顿
+  useEffect(() => {
+    router.prefetch('/app/chat');
+    router.prefetch('/app/calendar');
+    router.prefetch('/app/strategy');
+  }, [router]);
+
+  // 支付墙前置：未支付时只能停在日历页
   useEffect(() => {
     if (!hydrated) return;
     if (!store.paid && activeKey !== 'calendar') {
@@ -79,10 +87,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, store.paid, activeKey, router]);
 
+  const locked = hydrated && !store.paid;
+
   return (
-    <div className="flex h-[100dvh] flex-col bg-white">
-      {/* 顶部导航栏：Logo + 头像 */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-hairline px-4 sm:px-6">
+    <div className="relative flex h-[100dvh] flex-col bg-paper-dim">
+      {/* 顶部导航栏 */}
+      <header className="flex h-14 shrink-0 items-center justify-between bg-white/90 px-4 backdrop-blur-xl sm:px-6">
         <Link href="/">
           <Logo />
         </Link>
@@ -96,51 +106,75 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* 导航栏下方：左右结构功能区 */}
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 gap-2 p-2 sm:gap-3 sm:p-3">
         {/* 左侧功能入口（桌面端） */}
-        <nav className="hidden w-52 shrink-0 flex-col border-r border-hairline md:flex">
-          <div className="flex-1 space-y-0.5 p-3">
-            {items.map((item) => {
-              const active = activeKey === item.key;
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${
-                    active
-                      ? 'bg-ink font-medium text-white'
-                      : 'text-ink-soft hover:bg-paper-dim hover:text-ink'
-                  }`}
-                >
-                  <NavIcon name={item.icon} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-          <div className="border-t border-hairline p-3">
-            <p className="index-label">NowBuild GTM</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
-              {isZh ? '对话 · 策略 · 执行' : 'Talk · Strategy · Execute'}
-            </p>
+        <nav className="hidden w-52 shrink-0 flex-col md:flex">
+          <div className="flex flex-1 flex-col rounded-2xl bg-white p-3 shadow-[0_2px_16px_rgba(0,0,0,0.04)]">
+            <div className="flex-1 space-y-1">
+              {items.map((item) => {
+                const active = activeKey === item.key;
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    onMouseEnter={() => router.prefetch(item.href)}
+                    className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                      active
+                        ? 'bg-ink font-medium text-white'
+                        : 'text-ink-soft hover:bg-paper-dim hover:text-ink'
+                    }`}
+                  >
+                    <NavIcon name={item.icon} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mt-3 rounded-xl bg-paper-dim p-3">
+              <p className="index-label">NowBuild GTM</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+                {isZh ? '对话 · 策略 · 执行' : 'Talk · Strategy · Execute'}
+              </p>
+            </div>
           </div>
         </nav>
 
         {/* 内容区 */}
-        <main className="min-w-0 flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>
+        <main className="min-w-0 flex-1 overflow-hidden rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.04)]">
+          <div className="h-full overflow-y-auto pb-16 md:pb-0">{children}</div>
+        </main>
       </div>
 
+      {/* 未支付：完全透明蒙层，点击任意处弹出付费墙；底层周视图日历清晰可见 */}
+      {locked && (
+        <button
+          aria-label={isZh ? '解锁' : 'Unlock'}
+          onClick={() => setPaywallOpen(true)}
+          className="absolute inset-x-0 bottom-0 top-14 z-50 block w-full cursor-pointer bg-transparent"
+        />
+      )}
+
+      <Paywall
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        onUnlock={() => {
+          setPaid(true);
+          setPaywallOpen(false);
+          router.push('/app/chat');
+        }}
+      />
+
       {/* 移动端底部标签栏 */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-hairline bg-white/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 mx-2 mb-2 grid grid-cols-3 rounded-2xl bg-white/95 p-1 shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
         {items.map((item) => {
           const active = activeKey === item.key;
           return (
             <Link
               key={item.key}
               href={item.href}
-              className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${
-                active ? 'text-ink' : 'text-zinc-400'
+              onMouseEnter={() => router.prefetch(item.href)}
+              className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-medium ${
+                active ? 'bg-paper-dim text-ink' : 'text-zinc-400'
               }`}
             >
               <NavIcon name={item.icon} className="h-5 w-5" />

@@ -29,10 +29,27 @@ export interface OptionCard {
   answered?: string[];
 }
 
+/* ---------- 冷启动问卷卡片（进入对话立即展示的固定多题卡） ---------- */
+
+export interface KickoffQuestion {
+  id: string;
+  question: string;
+  multi: boolean;
+  options: OptionItem[];
+}
+
+export interface KickoffCard {
+  title: string;
+  questions: KickoffQuestion[];
+  /** 用户提交后记录：questionId -> 所选 label 列表 */
+  answered?: Record<string, string[]>;
+}
+
 /* ---------- 消息卡片 ---------- */
 
 export type MessageCard =
   | { kind: 'options'; card: OptionCard }
+  | { kind: 'kickoff'; card: KickoffCard }
   | { kind: 'strategy'; title: string; channelIds: string[] }
   | { kind: 'calendar'; title: string }
   | { kind: 'agent-task'; label: string; status: 'running' | 'done' | 'error' };
@@ -90,6 +107,10 @@ export interface Todo {
   /** 编写方向（渠道专员写内容时的 brief） */
   brief: string;
   phase?: string;
+  /** 该 To-Do 针对的目标市场（如「中国大陆」「United States」）；决定产出内容的语言 */
+  market?: string;
+  /** 该 To-Do 针对的目标人群一句话 */
+  audience?: string;
   status: TodoStatus;
   content?: TodoContent;
   contentStatus: 'none' | 'writing' | 'ready';
@@ -182,6 +203,8 @@ export interface ChannelTodosResponse {
     brief: string;
     time?: string;
     phase?: string;
+    market?: string;
+    audience?: string;
   }>;
 }
 
@@ -201,5 +224,7 @@ export interface ChannelChatResponse {
     brief: string;
     time?: string;
     phase?: string;
+    market?: string;
+    audience?: string;
   }> | null;
 }

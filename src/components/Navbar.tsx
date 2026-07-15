@@ -22,11 +22,11 @@ function AuthButtons({
   dark: boolean;
 }) {
   const ghost = dark
-    ? 'px-3.5 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white'
-    : 'px-3.5 py-2 text-sm font-medium text-zinc-500 transition-colors hover:text-ink';
+    ? 'rounded-full px-3.5 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white'
+    : 'rounded-full px-3.5 py-2 text-sm font-medium text-zinc-500 transition-colors hover:text-ink';
   const solid = dark
-    ? 'bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-zinc-200'
-    : 'bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700';
+    ? 'rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-zinc-200'
+    : 'rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700';
 
   if (!isClerkConfigured) {
     return (
@@ -67,22 +67,22 @@ export default function Navbar({ variant = 'light' }: { variant?: 'dark' | 'ligh
   const dark = variant === 'dark';
 
   const navLinks = [
-    { href: '/#system', label: t('features') },
+    { href: '/#channels', label: t('features') },
     { href: '/pricing', label: t('pricing') },
     { href: '/blog', label: t('blog') },
     { href: '/about', label: t('about') },
   ];
 
   const linkCls = dark
-    ? 'px-3.5 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white'
-    : 'px-3.5 py-2 text-sm font-medium text-zinc-500 transition-colors hover:text-ink';
+    ? 'rounded-full px-3.5 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white'
+    : 'rounded-full px-3.5 py-2 text-sm font-medium text-zinc-500 transition-colors hover:text-ink';
 
   return (
     <header
       className={
         dark
-          ? 'absolute top-0 z-50 w-full border-b border-white/10 bg-transparent'
-          : 'sticky top-0 z-50 w-full border-b border-hairline bg-white/85 backdrop-blur-xl'
+          ? 'fixed top-0 z-50 w-full border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl'
+          : 'fixed top-0 z-50 w-full border-b border-hairline bg-white/85 backdrop-blur-xl'
       }
     >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
@@ -99,7 +99,7 @@ export default function Navbar({ variant = 'light' }: { variant?: 'dark' | 'ligh
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <LanguageSwitcher />
+          <LanguageSwitcher dark={dark} />
           <AuthButtons signInLabel={t('signIn')} getStartedLabel={t('getStarted')} dark={dark} />
         </div>
 
@@ -147,7 +147,7 @@ export default function Navbar({ variant = 'light' }: { variant?: 'dark' | 'ligh
               dark ? 'border-white/10' : 'border-hairline'
             }`}
           >
-            <LanguageSwitcher />
+            <LanguageSwitcher dark={dark} />
             <AuthButtons signInLabel={t('signIn')} getStartedLabel={t('getStarted')} dark={dark} />
           </div>
         </div>

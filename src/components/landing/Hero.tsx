@@ -3,51 +3,80 @@
 /**
  * Hero — “一个人打着灯，去寻找一群人”
  *
- * 深色画布上，鼠标（或手指）是一支手电筒：光照到哪里，
- * 哪里就显现出挂在世界地图上的一群人 — 他们看见你，正欣喜地望向你。
- * 无交互时光会自己缓慢巡游，保证移动端与首次进入也能看到效果。
+ * 布局：中间是一块常亮的“展板”——GTM 标题、副标题与 CTA 融在背景里；
+ * 两侧挂着来自世界各地的用户画像，鼠标（或手指）是一支手电筒，
+ * 只在左右两侧的区域内移动，照到哪里，哪里的人就显现出来。
+ *
+ * 性能：光斑与遮罩只靠 transform 移动（合成器合成，不触发整屏重绘）；
+ * 区块离开视口或页面隐藏时暂停动画。
  */
 
 import { useEffect, useRef } from 'react';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 
+/** 角色分布在左右两侧，覆盖不同地区与人种（中间留给常亮展板） */
 const CHARACTERS = [
-  { src: '/characters/char-woman-cat.webp', left: '6%', top: '14%', size: 150, rotate: -4 },
-  { src: '/characters/char-man-dog.webp', left: '22%', top: '58%', size: 165, rotate: 3 },
-  { src: '/characters/char-gardener-bird.webp', left: '40%', top: '10%', size: 140, rotate: 2 },
-  { src: '/characters/char-cyclist-fox.webp', left: '58%', top: '62%', size: 160, rotate: -3 },
-  { src: '/characters/char-painter-rabbit.webp', left: '74%', top: '16%', size: 150, rotate: 5 },
-  { src: '/characters/char-bench-friends.webp', left: '87%', top: '54%', size: 155, rotate: -2 },
-  { src: '/characters/char-fisherman-heron.webp', left: '12%', top: '78%', size: 135, rotate: 4 },
-  { src: '/characters/char-barista-dog.webp', left: '44%', top: '76%', size: 145, rotate: -5 },
-  { src: '/characters/char-stargazer-owl.webp', left: '68%', top: '38%', size: 140, rotate: 2 },
+  // 左侧 — 多元角色
+  { src: '/characters/color/char-founder-woman.webp', left: '3%', top: '8%', size: 150, rotate: -4 },
+  { src: '/characters/color/char-barista-dog.webp', left: '14%', top: '28%', size: 145, rotate: 3 },
+  { src: '/characters/color/char-gardener-bird.webp', left: '3%', top: '50%', size: 155, rotate: 2 },
+  { src: '/characters/color/char-coder-shiba.webp', left: '14%', top: '70%', size: 150, rotate: -3 },
+  { src: '/characters/color/char-painter-rabbit.webp', left: '5%', top: '78%', size: 130, rotate: 4 },
+  // 右侧 — 多元角色
+  { src: '/characters/color/char-woman-cat.webp', left: '84%', top: '10%', size: 150, rotate: 4 },
+  { src: '/characters/color/char-cyclist-fox.webp', left: '72%', top: '30%', size: 145, rotate: -3 },
+  { src: '/characters/color/char-maker-iguana.webp', left: '85%', top: '50%', size: 150, rotate: 3 },
+  { src: '/characters/color/char-bench-friends.webp', left: '71%', top: '68%', size: 155, rotate: -2 },
+  { src: '/characters/color/char-analyst-cat.webp', left: '86%', top: '78%', size: 135, rotate: 2 },
 ];
 
-/** 无交互时光斑巡游的锚点（大致对应角色位置） */
+/** 无交互时光斑巡游的锚点 — 只在左右两侧游走 */
 const ROAM_PATH: Array<[number, number]> = [
-  [0.12, 0.25], [0.3, 0.65], [0.46, 0.2], [0.63, 0.68],
-  [0.8, 0.28], [0.9, 0.6], [0.5, 0.82], [0.72, 0.45],
+  [0.09, 0.18], [0.2, 0.4], [0.08, 0.62], [0.2, 0.8],
+  [0.88, 0.78], [0.78, 0.55], [0.9, 0.32], [0.79, 0.16],
 ];
+
+const HOLE_SIZE = 8000;
+
+/** 手电筒只在两侧区域移动：中间是常亮展板，不需要照 */
+function clampTorch(x: number, y: number): [number, number] {
+  const cx = x < 0.5 ? Math.min(x, 0.3) : Math.max(x, 0.7);
+  return [Math.min(Math.max(cx, 0.03), 0.97), Math.min(Math.max(y, 0.06), 0.94)];
+}
 
 export default function Hero() {
   const locale = useLocale();
   const isZh = locale === 'zh';
   const sectionRef = useRef<HTMLElement>(null);
+  const holeRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
   const pointer = useRef<{ x: number; y: number; lastMove: number }>({
-    x: 0.5,
-    y: 0.45,
+    x: 0.12,
+    y: 0.35,
     lastMove: 0,
   });
 
   useEffect(() => {
     const el = sectionRef.current;
-    if (!el) return;
+    const hole = holeRef.current;
+    const glow = glowRef.current;
+    if (!el || !hole || !glow) return;
 
     let raf = 0;
-    let cur = { x: 0.5, y: 0.45 };
+    let running = false;
+    let visible = true;
+    let cur = { x: 0.12, y: 0.35 };
     let roamIndex = 0;
     let roamTarget = ROAM_PATH[0];
+    let torchR = 240;
+
+    const applyRadius = () => {
+      // 手电筒照亮范围收敛，突出两侧探照
+      torchR = Math.round(Math.min(Math.max(140, window.innerWidth * 0.16), 260));
+      el.style.setProperty('--torch-r', `${torchR}px`);
+    };
+    applyRadius();
 
     const tick = (now: number) => {
       const p = pointer.current;
@@ -66,14 +95,45 @@ export default function Hero() {
         tx = roamTarget[0];
         ty = roamTarget[1];
       }
+      [tx, ty] = clampTorch(tx, ty);
 
       const ease = idle ? 0.012 : 0.16;
       cur = { x: cur.x + (tx - cur.x) * ease, y: cur.y + (ty - cur.y) * ease };
-      el.style.setProperty('--torch-x', `${(cur.x * 100).toFixed(2)}%`);
-      el.style.setProperty('--torch-y', `${(cur.y * 100).toFixed(2)}%`);
+
+      const rect = el.getBoundingClientRect();
+      const px = cur.x * rect.width;
+      const py = cur.y * rect.height;
+      hole.style.transform = `translate3d(${(px - HOLE_SIZE / 2).toFixed(1)}px, ${(py - HOLE_SIZE / 2).toFixed(1)}px, 0)`;
+      glow.style.transform = `translate3d(${(px - torchR * 1.2).toFixed(1)}px, ${(py - torchR * 1.2).toFixed(1)}px, 0)`;
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+
+    const start = () => {
+      if (running || !visible || document.hidden) return;
+      running = true;
+      raf = requestAnimationFrame(tick);
+    };
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+    };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible) start();
+        else stop();
+      },
+      { threshold: 0.05 }
+    );
+    io.observe(el);
+
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('resize', applyRadius);
 
     const onMove = (clientX: number, clientY: number) => {
       const rect = el.getBoundingClientRect();
@@ -91,8 +151,13 @@ export default function Hero() {
     el.addEventListener('touchmove', onTouch, { passive: true });
     el.addEventListener('touchstart', onTouch, { passive: true });
 
+    start();
+
     return () => {
-      cancelAnimationFrame(raf);
+      stop();
+      io.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('resize', applyRadius);
       el.removeEventListener('mousemove', onMouse);
       el.removeEventListener('touchmove', onTouch);
       el.removeEventListener('touchstart', onTouch);
@@ -103,16 +168,17 @@ export default function Hero() {
     <section
       ref={sectionRef}
       className="relative min-h-[100svh] overflow-hidden bg-[#0a0a0a]"
-      style={{ '--torch-r': 'clamp(160px, 24vw, 300px)' } as React.CSSProperties}
+      style={{ '--torch-r': '240px' } as React.CSSProperties}
     >
-      {/* 底层：被手电筒照亮才可见 — 世界地图 + 挂在地图上的一群人 */}
-      <div className="flashlight-reveal absolute inset-0" aria-hidden>
+      {/* 底层：世界地图 + 挂在两侧的一群人（被手电筒照亮才清晰可见） */}
+      <div className="absolute inset-0" aria-hidden>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/characters/world-map-lines.webp"
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-40"
           draggable={false}
+          decoding="async"
         />
         <div className="bg-grid-dark absolute inset-0" />
         {CHARACTERS.map((c, i) => (
@@ -126,82 +192,72 @@ export default function Hero() {
               transform: `rotate(${c.rotate}deg)`,
             }}
           >
-            <div className="border border-zinc-700/80 bg-[#0d0d0d] p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
+            <div
+              className="char-card rounded-2xl border border-zinc-700/80 bg-[#0d0d0d] p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
+              style={{ '--tilt': `${c.rotate > 0 ? -5 : 5}deg` } as React.CSSProperties}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={c.src} alt="" className="block w-full" draggable={false} loading="lazy" />
+              <img src={c.src} alt="" className="block w-full rounded-xl" draggable={false} loading="lazy" decoding="async" />
             </div>
           </div>
         ))}
-        {/* 移动端：更少、更大的角色 */}
-        {CHARACTERS.slice(0, 4).map((c, i) => (
+        {/* 移动端：左右各两位角色 */}
+        {[CHARACTERS[0], CHARACTERS[3], CHARACTERS[5], CHARACTERS[8]].map((c, i) => (
           <div
             key={`m-${i}`}
             className="absolute sm:hidden"
             style={{
-              left: `${8 + i * 24}%`,
-              top: i % 2 === 0 ? '12%' : '68%',
-              width: 110,
+              left: i < 2 ? '4%' : '68%',
+              top: i % 2 === 0 ? '10%' : '72%',
+              width: 105,
               transform: `rotate(${c.rotate}deg)`,
             }}
           >
-            <div className="border border-zinc-700/80 bg-[#0d0d0d] p-1">
+            <div className="char-card rounded-xl border border-zinc-700/80 bg-[#0d0d0d] p-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={c.src} alt="" className="block w-full" draggable={false} loading="lazy" />
+              <img src={c.src} alt="" className="block w-full rounded-lg" draggable={false} loading="lazy" decoding="async" />
             </div>
           </div>
         ))}
       </div>
 
-      {/* 光晕 */}
-      <div className="flashlight-glow pointer-events-none absolute inset-0" aria-hidden />
+      {/* 遮罩（跟随手电筒的透明圆洞）+ 暖光光斑：只用 transform 移动 */}
+      <div ref={holeRef} className="torch-hole pointer-events-none" aria-hidden />
+      <div ref={glowRef} className="torch-glow pointer-events-none" aria-hidden />
 
-      {/* 文案层 */}
-      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-5 pb-24 pt-28 sm:px-8">
-        <p className="index-label animate-fade-in-up !text-zinc-500">
-          {isZh ? 'GO-TO-MARKET · 给一人公司与 AI 独立开发者' : 'Go to market for the lonely vibe builder'}
+      {/* 中央展板常亮光：让标题区始终照亮、与背景融为一体 */}
+      <div className="hero-board-light pointer-events-none" aria-hidden />
+
+      {/* 文案层 — 垂直居中，略向下偏移 */}
+      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[100svh] max-w-5xl translate-y-4 flex-col items-center justify-center px-6 pb-20 pt-24 text-center sm:px-10 sm:translate-y-6">
+        <p className="animate-fade-in-up index-label !text-[13px] !tracking-[0.18em] text-zinc-400 sm:!text-sm">
+          {isZh
+            ? '#一人公司 #Vibe Coder #每天 15–30 分钟'
+            : '#SoloFounder #VibeCoder #15–30 min a day'}
         </p>
 
-        <h1 className="display-tight animate-fade-in-up delay-100 mt-6 font-[family-name:var(--font-display)] text-[17vw] font-bold leading-[0.9] text-zinc-600 sm:text-[11rem] lg:text-[13rem]">
-          <span className="text-white">G</span>o to
-          <br />
-          <span className="text-white">M</span>arke<span className="text-white">t</span>
+        <h1 className="animate-fade-in-up delay-100 mt-10 whitespace-nowrap font-[family-name:var(--font-elegant)] text-[13vw] font-semibold leading-[0.95] tracking-[-0.02em] text-[#f5efe4] [text-shadow:0_0_80px_rgba(255,240,214,0.32)] sm:text-7xl lg:text-[5.75rem]">
+          Go To Market
         </h1>
 
-        <div className="animate-fade-in-up delay-300 mt-10 max-w-xl">
-          <p className="text-lg font-medium text-zinc-200 sm:text-xl">
-            {isZh ? 'Focus on your taste.' : 'Focus on your taste.'}
-          </p>
-          <p className="mt-2 text-base leading-relaxed text-zinc-400 sm:text-lg">
-            {isZh
-              ? '我带你找到与你共鸣的人 — 你的第一批真实用户。'
-              : "I'll find the people who resonate with what you build — your first hundred true users."}
-          </p>
-        </div>
+        <p className="animate-fade-in-up delay-200 mt-8 text-2xl font-medium leading-snug text-zinc-50 sm:mt-10 sm:text-3xl lg:text-4xl">
+          {isZh ? '建立个人影响力，触达付费用户' : 'Build personal influence. Reach paying users.'}
+        </p>
 
-        <div className="animate-fade-in-up delay-400 pointer-events-auto mt-10 flex flex-wrap items-center gap-4">
+        <p className="animate-fade-in-up delay-300 mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+          {isZh
+            ? '你做产品，AI 定渠道、想市场策略、每天生产获客内容'
+            : 'You build the product — AI picks channels, shapes strategy, and drafts daily content to win customers'}
+        </p>
+
+        <div className="animate-fade-in-up delay-400 pointer-events-auto mt-12 sm:mt-14">
           <Link
             href="/sign-in"
-            className="inline-flex h-12 items-center bg-white px-7 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+            className="inline-flex h-14 items-center rounded-full bg-white px-10 text-base font-semibold text-black transition-colors hover:bg-zinc-200"
           >
-            {isZh ? '开始 30 天冷启动' : 'Start your 30-day launch'}
+            {isZh ? '开启 30 天获客行动' : 'Start your 30-day customer acquisition plan'}
           </Link>
-          <a
-            href="#system"
-            className="inline-flex h-12 items-center border border-zinc-700 px-7 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-          >
-            {isZh ? '看看它如何工作' : 'See how it works'}
-          </a>
         </div>
-
-        <p className="animate-fade-in delay-500 mt-14 flex items-center gap-2 text-xs tracking-wide text-zinc-600">
-          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-          </svg>
-          {isZh
-            ? '移动你的手电筒 — 看看是谁在等你'
-            : 'Move your flashlight — see who is waiting for you'}
-        </p>
       </div>
     </section>
   );

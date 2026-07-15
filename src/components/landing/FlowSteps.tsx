@@ -7,29 +7,29 @@ export default async function FlowSteps() {
 
   const steps = isZh
     ? [
-        { n: '1', t: '和市场总监聊聊', d: '它会弄清你的产品、人群与价值，问该问的问题，不多不少。' },
-        { n: '2', t: '拿到 30 天市场策略', d: '总体方向 + 每个渠道的账号定位与内容规划，可以继续提意见修改。' },
-        { n: '3', t: '打开你的行动日历', d: '渠道专员把 30 天每天要做的事排好，内容初稿都已备好。' },
-        { n: '4', t: '过稿、发布、复盘', d: '不满意就和渠道专员对话改稿；满意就一键跳转到渠道发布页。' },
+        { n: '1', t: '说清楚你在做什么', d: '聊几句：产品、人群、市场。标准问题点选项就行，不用写小作文。' },
+        { n: '2', t: '拿到 30 天市场策略', d: '每个渠道怎么打、发什么内容，方向清清楚楚。不满意，随时改。' },
+        { n: '3', t: '打开行动日历', d: '30 天每天要做的事已经排好，要发的内容也写好了初稿。' },
+        { n: '4', t: '判断、发布、打勾', d: '用你的品味过一遍稿，一键跳到发布页；发完回来打个勾。' },
       ]
     : [
-        { n: '1', t: 'Talk to your director', d: 'It learns your product, audience and value — asking exactly what it needs.' },
-        { n: '2', t: 'Get your 30-day strategy', d: 'Overall direction plus per-channel positioning and content pillars. Editable.' },
-        { n: '3', t: 'Open your action calendar', d: 'Channel specialists schedule every day of the next 30 days, drafts included.' },
-        { n: '4', t: 'Review, publish, repeat', d: 'Chat with the specialist to revise, then jump straight to the publish page.' },
+        { n: '1', t: 'Say what you’re building', d: 'A short chat: product, audience, market. Standard questions are just clicks.' },
+        { n: '2', t: 'Get your 30-day strategy', d: 'How to play each channel and what to post. Not happy? Change it anytime.' },
+        { n: '3', t: 'Open your action calendar', d: 'Every day of the next 30 days is scheduled, with drafts already written.' },
+        { n: '4', t: 'Judge, publish, check off', d: 'Apply your taste, jump to the publish page, come back and tick it done.' },
       ];
 
   return (
-    <section className="border-t border-hairline bg-paper-dim">
+    <section className="bg-white">
       <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28">
         <p className="index-label">{isZh ? '流程' : 'The flow'}</p>
         <h2 className="mt-4 max-w-lg font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          {isZh ? '从对话到发布，30 天不断更' : 'From conversation to publish. 30 days, no gaps.'}
+          {isZh ? '从想法到行动，只隔一次对话' : 'From idea to action — one conversation away.'}
         </h2>
 
-        <div className="mt-14 grid gap-px border border-hairline bg-hairline md:grid-cols-4">
+        <div className="mt-14 grid gap-3 md:grid-cols-4">
           {steps.map((s) => (
-            <div key={s.n} className="bg-white p-7">
+            <div key={s.n} className="rounded-2xl bg-paper-dim p-7">
               <span className="font-[family-name:var(--font-display)] text-5xl font-bold tracking-tighter text-zinc-200">
                 {s.n}
               </span>

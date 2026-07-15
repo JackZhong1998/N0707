@@ -13,6 +13,7 @@ import type {
   StrategyResponse,
 } from '@/lib/gtm/types';
 import { channelName } from './catalog';
+import { getChannelDefinition } from './skills/channel-map';
 
 export function isMockMode(): boolean {
   return !process.env.OPENROUTER_API_KEY;
@@ -81,38 +82,18 @@ export async function mockDirector(input: {
   }
 
   // 冷启动问询阶段（按轮次推进）
-  if (assistantTurns === 0) {
+  // 进入对话时前端已本地插入：问候语 + 固定冷启动问卷卡（共 2 条 assistant 消息），
+  // 因此首条用户消息（问卷答案）到达时 assistantTurns 约为 2
+  if (assistantTurns <= 2) {
     return {
       reply:
-        '你好，我是你的市场总监。接下来 30 天，我会带着你把产品真正推向市场 — 你负责做产品，市场的事有我。\n\n先让我认识一下你的产品：它是什么？解决了什么问题？目前是还在规划中，还是已经上线了？',
-    };
-  }
-
-  if (assistantTurns === 1) {
-    return {
-      reply:
-        '明白了，这个方向有戏。再往深挖一层：你觉得最需要这个产品的是哪一类人？如果只能用一句话说服他们，你会说什么（也就是你的核心价值）？',
-    };
-  }
-
-  if (assistantTurns === 2) {
-    return {
-      reply: '很好，画像清楚了。接下来是市场偏好 — 直接勾选就行：',
-      optionCard: {
-        question: '你的目标市场主要在哪里？',
-        multi: false,
-        options: [
-          { id: 'cn', label: '国内市场', description: '小红书、公众号、私域为主' },
-          { id: 'global', label: '海外市场', description: 'Twitter/X、Product Hunt、Reddit 为主' },
-          { id: 'both', label: '国内外都要', description: '双线并行，节奏略慢但覆盖广' },
-        ],
-      },
+        '收到，你的基本盘我记下了。接着说说产品本身：**它是什么？解决了什么问题？** 如果只能用一句话说服你的目标用户，你会说什么？',
     };
   }
 
   if (assistantTurns === 3) {
     return {
-      reply: '收到。基于你的产品和市场，我建议优先做这几个渠道 — 选出你愿意投入的（可多选）：',
+      reply: '明白了，画像清楚了。基于你的市场和产品，我建议优先做这几个渠道 — 选出你愿意投入的（可多选）：',
       optionCard: {
         question: '首发渠道选哪些？',
         multi: true,
@@ -368,15 +349,30 @@ const TODO_PATTERNS: Record<string, Array<{ day: number; time: string; title: st
   ],
   twitter_x: [
     { day: 1, time: '21:00', title: 'Build in public 第 1 帖', brief: '晒 MVP + 数据基线，立 30 天 flag', phase: '第 1 周 · 定位与开张' },
-    { day: 3, time: '20:00', title: '回复 5 条同领域大 V 推文', brief: '带观点评论，不带链接', phase: '第 1 周 · 定位与开张' },
+    { day: 3, time: '20:00', title: '引用转发 1 条大 V 热帖并附观点', brief: '带你自己的判断，不带链接，先混脸熟', phase: '第 1 周 · 定位与开张' },
     { day: 5, time: '21:00', title: '发布产品背后的 why', brief: '为什么这个问题值得解决', phase: '第 1 周 · 定位与开张' },
     { day: 8, time: '21:00', title: '发布第 1 周数据复盘 thread', brief: '真实数字：曝光、私信、注册', phase: '第 2 周 · 内容放量' },
     { day: 11, time: '20:00', title: '发布产品演示短视频', brief: '30 秒屏录 + 字幕', phase: '第 2 周 · 内容放量' },
     { day: 14, time: '21:00', title: '发布半月里程碑', brief: '关键数据 + 学到的一件事', phase: '第 2 周 · 内容放量' },
-    { day: 17, time: '21:00', title: '邀请用户公开反馈', brief: '转发好评并认真回复', phase: '第 3 周 · 互动与转化' },
+    { day: 17, time: '21:00', title: '发布用户证言合集推文', brief: '3 张好评截图 + 1 句话总结，展示真实反馈', phase: '第 3 周 · 互动与转化' },
     { day: 21, time: '20:00', title: '发布行业观点 thread', brief: '一个有争议的判断 + 论据', phase: '第 3 周 · 互动与转化' },
     { day: 25, time: '21:00', title: '发布产品迭代路线图', brief: '根据反馈公布下一步，邀请投票', phase: '第 4 周 · 冲刺与沉淀' },
     { day: 30, time: '20:00', title: '发布收官 thread + 致谢', brief: '@帮助过你的人，宣布下个目标', phase: '第 4 周 · 冲刺与沉淀' },
+  ],
+  // 官网/落地页：一个个具体建设任务（设计、文案、SEO、外链），不是抽象实验
+  website_copy: [
+    { day: 1, time: '14:00', title: '设计落地页 Hero 区', brief: '一句话说清给谁解决什么问题，配真实产品截图', phase: '第 1 周 · 定位与开张' },
+    { day: 3, time: '14:00', title: '编写功能区文案', brief: '3 个核心功能各配一句结果导向的描述', phase: '第 1 周 · 定位与开张' },
+    { day: 5, time: '14:00', title: '编写 SEO 标题与 meta 描述', brief: '首页与核心页面各定一个目标关键词', phase: '第 1 周 · 定位与开张' },
+    { day: 7, time: '14:00', title: '新增 FAQ 模块并编写 6 条问答', brief: '把私信里被问最多的问题沉淀到落地页', phase: '第 1 周 · 定位与开张' },
+    { day: 9, time: '10:00', title: '提交站点到 5 个产品目录站', brief: '外链建设：BetaList、AlternativeTo 等逐个提交', phase: '第 2 周 · 内容放量' },
+    { day: 12, time: '14:00', title: '新增用户案例页', brief: '把第一个用户故事做成独立页面，配数据与截图', phase: '第 2 周 · 内容放量' },
+    { day: 14, time: '14:00', title: '发布第 1 篇 SEO 博客', brief: '瞄准一个用户真实会搜的长尾关键词', phase: '第 2 周 · 内容放量' },
+    { day: 17, time: '14:00', title: '编写「关于我们」页', brief: '创始人故事 + 产品理念，建立信任', phase: '第 3 周 · 互动与转化' },
+    { day: 19, time: '10:00', title: '建设内链与交换 3 条外链', brief: '博客互链 + 找相关站点交换外链', phase: '第 3 周 · 互动与转化' },
+    { day: 22, time: '14:00', title: '新增社会证明区', brief: '用户证言、数据、媒体报道放到首屏下方', phase: '第 4 周 · 冲刺与沉淀' },
+    { day: 26, time: '14:00', title: '用真实数据更新落地页', brief: '把占位文案换成真实用户数与证言', phase: '第 4 周 · 冲刺与沉淀' },
+    { day: 29, time: '14:00', title: '发布博客版 30 天复盘长文', brief: '沉淀成 SEO 长文，持续带来搜索流量', phase: '第 4 周 · 冲刺与沉淀' },
   ],
 };
 
@@ -391,11 +387,59 @@ const GENERIC_PATTERN = [
   { day: 29, time: '10:00', title: '发布 30 天复盘', brief: '数据与方法全公开', phase: '第 4 周 · 冲刺与沉淀' },
 ];
 
+/**
+ * 无重内容的日子用轻量的发布/新增类任务补位，保证 30 天每天都有新东西产出。
+ * 注意：回复评论、回复私信这类维护动作由渠道专员日常自动处理，不进日历。
+ */
+const LIGHT_TASKS = [
+  { title: '发布一条轻量短内容', brief: '一个今天的真实工作瞬间 + 一句感受，保持账号活跃' },
+  { title: '把表现最好的内容改编成新形式发布', brief: '换角度或换体裁重写一遍，复用已验证的选题' },
+  { title: '新增一条用户案例素材', brief: '整理一段用户对话或使用场景，发成图文素材' },
+  { title: '发布一条数据小结', brief: '公开今天的一个真实数字 + 一句解读，透明建立信任' },
+];
+
+function phaseForDay(day: number): string {
+  if (day <= 7) return '第 1 周 · 定位与开张';
+  if (day <= 14) return '第 2 周 · 内容放量';
+  if (day <= 21) return '第 3 周 · 互动与转化';
+  return '第 4 周 · 冲刺与沉淀';
+}
+
+function densifyPattern(
+  pattern: Array<{ day: number; time: string; title: string; brief: string; phase: string }>
+): Array<{ day: number; time: string; title: string; brief: string; phase: string }> {
+  const days = new Set(pattern.map((p) => p.day));
+  const filled = [...pattern];
+  let i = 0;
+  for (let d = 1; d <= 30; d++) {
+    if (!days.has(d)) {
+      const lt = LIGHT_TASKS[i % LIGHT_TASKS.length];
+      i++;
+      filled.push({ day: d, time: '21:30', title: lt.title, brief: lt.brief, phase: phaseForDay(d) });
+    }
+  }
+  return filled.sort((a, b) => a.day - b.day);
+}
+
+function channelMarketInfo(channelId: string): { market: string; audience: string } {
+  const def = getChannelDefinition(channelId);
+  const locales = def?.locales ?? ['zh'];
+  const enOnly = locales.length === 1 && locales[0] === 'en';
+  const zhOnly = locales.length === 1 && locales[0] === 'zh';
+  return {
+    market: enOnly ? 'United States' : zhOnly ? '中国大陆' : '中国大陆 / United States',
+    audience: enOnly
+      ? 'Indie hackers and solo founders shipping side projects'
+      : '正在做 side project 的独立开发者与一人公司创始人',
+  };
+}
+
 export async function mockChannelTodos(input: {
   channelId: string;
 }): Promise<ChannelTodosResponse> {
   await delay(1800);
-  const pattern = TODO_PATTERNS[input.channelId] ?? GENERIC_PATTERN;
+  const pattern = densifyPattern(TODO_PATTERNS[input.channelId] ?? GENERIC_PATTERN);
+  const { market, audience } = channelMarketInfo(input.channelId);
   return {
     todos: pattern.map((p) => ({
       dayIndex: p.day,
@@ -403,6 +447,8 @@ export async function mockChannelTodos(input: {
       brief: p.brief,
       time: p.time,
       phase: p.phase,
+      market,
+      audience,
     })),
   };
 }
@@ -437,20 +483,24 @@ export async function mockChannelChat(input: {
   message: string;
   todoTitle: string;
   currentBody?: string;
+  channelId?: string;
 }): Promise<ChannelChatResponse> {
   await delay(1200);
   const msg = input.message;
 
   if (/(整个|全部|30\s*天|计划|方向|重排)/.test(msg)) {
+    const { market, audience } = channelMarketInfo(input.channelId ?? '');
     return {
       reply:
         '明白，我把这个渠道整个 30 天的 To-Do 方向重新排了一版：前两周更侧重你刚才说的方向，后两周保持转化节奏。新的计划已经更新到日历里，你可以随时再叫我调整。',
-      rewritePlan: GENERIC_PATTERN.map((p) => ({
+      rewritePlan: densifyPattern(GENERIC_PATTERN).map((p) => ({
         dayIndex: p.day,
         title: p.title,
         brief: `${p.brief}（已按你的反馈调整方向）`,
         time: p.time,
         phase: p.phase,
+        market,
+        audience,
       })),
     };
   }

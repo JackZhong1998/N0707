@@ -115,6 +115,8 @@ export function callChannelWrite(input: {
       brief: input.todo.brief,
       dayIndex: input.todo.dayIndex,
       phase: input.todo.phase,
+      market: input.todo.market,
+      audience: input.todo.audience,
     },
     channelStrategyMarkdown:
       input.store.channelStrategies[input.todo.channelId]?.markdown ?? '',

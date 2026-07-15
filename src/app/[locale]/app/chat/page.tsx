@@ -10,20 +10,22 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useGtm } from '@/lib/gtm/store';
 import { useDirector } from '@/lib/gtm/use-director';
+import { buildKickoffCard } from '@/lib/gtm/kickoff';
 import { Markdown } from '@/lib/gtm/markdown';
 import OptionCardView from '@/components/app/chat/OptionCardView';
+import KickoffCardView from '@/components/app/chat/KickoffCardView';
 import { AgentTaskCard, CalendarCard, StrategyCard } from '@/components/app/chat/MessageCards';
 
 export default function ChatPage() {
   const { store, hydrated, addDirectorMessage } = useGtm();
-  const { send, submitOptions, sending, busy } = useDirector();
+  const { send, submitOptions, submitKickoff, sending, busy } = useDirector();
   const locale = useLocale();
   const isZh = locale !== 'en';
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const greetedRef = useRef(false);
 
-  // 首次进入：市场总监开场白（本地插入，不耗一次 API）
+  // 首次进入：市场总监开场白 + 固定冷启动问卷卡（本地插入，不耗 API）
   useEffect(() => {
     if (!hydrated || greetedRef.current) return;
     greetedRef.current = true;
@@ -31,8 +33,13 @@ export default function ChatPage() {
       addDirectorMessage({
         role: 'assistant',
         content: isZh
-          ? '你好，我是你的市场总监。接下来 30 天，我会带着你把产品真正推向市场 — 你专注做产品，市场的事，我们一起扛。\n\n先让我认识一下你的产品：**它是什么？解决了什么问题？** 目前是还在规划中，还是已经上线了？'
-          : "Hi, I'm your marketing director. For the next 30 days I'll walk you to market — you focus on the product, we carry the marketing together.\n\nFirst, tell me about your product: **what is it, and what problem does it solve?** Is it still in planning, or already live?",
+          ? '你好，我是你的市场总监。接下来 30 天，我会带着你把产品真正推向市场 — 你专注做产品，市场的事，我们一起扛。\n\n先花 30 秒勾选下面几个基本问题，我的每个建议才会踩在你的实际情况上。答完之后，再用一两句话告诉我：**你的产品是什么？解决了什么问题？**'
+          : "Hi, I'm your marketing director. For the next 30 days I'll walk you to market — you focus on the product, we carry the marketing together.\n\nTake 30 seconds on the questions below so my advice actually fits you. Then tell me in a sentence or two: **what is your product, and what problem does it solve?**",
+      });
+      addDirectorMessage({
+        role: 'assistant',
+        content: '',
+        card: { kind: 'kickoff', card: buildKickoffCard(isZh) },
       });
     }
   }, [hydrated, store.directorChat.length, addDirectorMessage, isZh]);
@@ -48,14 +55,6 @@ export default function ChatPage() {
     void send(text);
   };
 
-  if (!hydrated) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <span className="index-label animate-pulse-soft">Loading…</span>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col">
       {/* 消息流 */}
@@ -70,13 +69,30 @@ export default function ChatPage() {
                 <div
                   className={
                     m.role === 'user'
-                      ? 'inline-block bg-ink px-4 py-3 text-left text-sm leading-relaxed text-white'
-                      : 'inline-block border border-hairline bg-white px-4 py-3 text-sm leading-relaxed text-ink'
+                      ? 'inline-block rounded-2xl rounded-br-md bg-ink px-4 py-3 text-left text-sm leading-relaxed text-white'
+                      : 'inline-block rounded-2xl rounded-bl-md border border-hairline bg-white px-4 py-3 text-sm leading-relaxed text-ink'
                   }
                 >
-                  <Markdown text={m.content} className="doc-prose !text-inherit [&_p]:m-0 [&_p+p]:mt-2" />
+                  <Markdown
+                    text={m.content}
+                    className={`doc-prose !text-inherit [&_p]:m-0 [&_p+p]:mt-2 ${
+                      m.role === 'user' ? 'doc-prose-invert' : ''
+                    }`}
+                  />
                 </div>
               )}
+
+              {m.card?.kind === 'kickoff' &&
+                (() => {
+                  const kickoffCard = m.card.card;
+                  return (
+                    <KickoffCardView
+                      card={kickoffCard}
+                      disabled={sending}
+                      onSubmit={(answers) => submitKickoff(m.id, kickoffCard, answers)}
+                    />
+                  );
+                })()}
 
               {m.card?.kind === 'options' &&
                 (() => {
@@ -104,7 +120,7 @@ export default function ChatPage() {
 
         {sending && (
           <div className="flex justify-start">
-            <div className="border border-hairline bg-white px-4 py-3">
+            <div className="rounded-2xl border border-hairline bg-white px-4 py-3">
               <span className="index-label animate-pulse-soft">
                 {isZh ? '市场总监正在思考…' : 'Director is thinking…'}
               </span>
@@ -133,12 +149,12 @@ export default function ChatPage() {
             }}
             rows={2}
             placeholder={isZh ? '告诉市场总监你的想法…' : 'Tell your director…'}
-            className="max-h-40 min-h-[52px] flex-1 resize-none border border-hairline px-3.5 py-3 text-sm leading-relaxed outline-none transition-colors focus:border-ink"
+            className="max-h-40 min-h-[52px] flex-1 resize-none rounded-2xl border border-hairline px-3.5 py-3 text-sm leading-relaxed outline-none transition-colors focus:border-ink"
           />
           <button
             onClick={handleSend}
             disabled={sending || !input.trim()}
-            className="flex h-[52px] w-[52px] shrink-0 items-center justify-center bg-ink text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200"
+            className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-ink text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200"
             aria-label={isZh ? '发送' : 'Send'}
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">

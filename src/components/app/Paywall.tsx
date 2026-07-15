@@ -39,7 +39,7 @@ export default function Paywall({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md animate-fade-in-up bg-white p-8 sm:border sm:border-hairline"
+        className="w-full max-w-md animate-fade-in-up rounded-t-3xl bg-white p-8 sm:rounded-3xl sm:border sm:border-hairline"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="index-label">NowBuild Pro</p>
@@ -72,7 +72,7 @@ export default function Paywall({
 
         <button
           onClick={onUnlock}
-          className="mt-6 flex h-12 w-full items-center justify-center bg-ink text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+          className="mt-6 flex h-12 w-full items-center justify-center rounded-full bg-ink text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
         >
           {isZh ? '立即解锁（演示：直接解锁）' : 'Unlock now (demo: instant)'}
         </button>

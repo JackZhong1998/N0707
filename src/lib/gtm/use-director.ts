@@ -19,10 +19,12 @@ import {
   callStrategist,
 } from './api-client';
 import { addDays, todayStr } from './dates';
+import { formatKickoffAnswers } from './kickoff';
 import {
   CONTEXT_SYNC_INTERVAL,
   type DirectorAction,
   type GtmStore,
+  type KickoffCard,
   type OptionCard,
   type Todo,
 } from './types';
@@ -98,6 +100,40 @@ export function useDirector() {
             channelIds: res.channels.map((c) => c.channelId),
           },
         });
+
+        // 策略生成后：总结各渠道关键策略点，引导用户确认或提意见 —
+        // 用户确认通过后才排 30 天 To-Do
+        const isZh = locale !== 'en';
+        const channelSummary = res.channels
+          .map(
+            (c) =>
+              `**${c.channelName}**\n- ${isZh ? '定位' : 'Positioning'}：${c.positioning}\n- ${isZh ? '主打内容' : 'Pillars'}：${c.contentPillars.slice(0, 3).join(' / ')}`
+          )
+          .join('\n\n');
+        gtm.addDirectorMessage({
+          role: 'assistant',
+          content: isZh
+            ? `策略出来了，先给你划一下每个渠道的关键打法：\n\n${channelSummary}\n\n完整文档在「市场策略」页，可以点上面的卡片细看。**你先过一遍** — 哪里不对味直接告诉我（比如「小红书想更偏个人故事」），我让策略组改；方向没问题的话，我就安排各渠道把 30 天每日 To-Do 排进你的行动日历。`
+            : `Strategy is ready. Here are the key plays per channel:\n\n${channelSummary}\n\nFull docs live on the Strategy page (tap the card above). **Review it first** — tell me anything that feels off and I'll have it revised; if it looks right, I'll schedule your 30-day daily to-dos.`,
+          card: {
+            kind: 'options',
+            card: {
+              question: isZh ? '这份策略方向可以吗？' : 'Happy with this direction?',
+              multi: false,
+              options: [
+                {
+                  id: 'confirm_strategy',
+                  label: isZh ? '确认，开始排 30 天 To-Do' : 'Confirm — schedule my 30 days',
+                },
+                {
+                  id: 'adjust_strategy',
+                  label: isZh ? '我要调整（在下方说明想改哪里）' : 'I want changes (tell me below)',
+                },
+              ],
+              allowCustom: true,
+            },
+          },
+        });
       } catch (err) {
         gtm.patchDirectorMessage(cardMsg.id, {
           card: {
@@ -153,6 +189,8 @@ export function useDirector() {
               title: t.title,
               brief: t.brief,
               phase: t.phase,
+              market: t.market,
+              audience: t.audience,
               status: 'pending',
               contentStatus: 'none',
             }));
@@ -189,11 +227,13 @@ export function useDirector() {
         if (action.type === 'generate_strategy') {
           await runGenerateStrategy(action.channelIds, action.feedback);
         } else if (action.type === 'generate_todos') {
-          const ids =
-            action.channelIds.length > 0
-              ? action.channelIds
-              : storeRef.current.channels;
-          await runGenerateTodos(ids);
+          // 首次排期必须覆盖用户已确认的全部渠道（LLM 只带部分渠道时补全）；
+          // 已有 To-Do 后（新增/调整渠道）只处理指定渠道
+          const hasTodos = storeRef.current.todos.length > 0;
+          const ids = hasTodos && action.channelIds.length > 0
+            ? action.channelIds
+            : [...new Set([...action.channelIds, ...storeRef.current.channels])];
+          if (ids.length > 0) await runGenerateTodos(ids);
         }
       }
     },
@@ -202,7 +242,15 @@ export function useDirector() {
 
   /** 发送文字消息（或提交选项卡答案） */
   const send = useCallback(
-    async (text: string, meta?: { fromOptionCard?: boolean; selectedIds?: string[] }) => {
+    async (
+      text: string,
+      meta?: {
+        fromOptionCard?: boolean;
+        selectedIds?: string[];
+        /** 用户在「策略确认卡」里选择了确认 */
+        confirmStrategy?: boolean;
+      }
+    ) => {
       if (sending) return;
       setSending(true);
       gtm.addDirectorMessage({ role: 'user', content: text });
@@ -230,8 +278,20 @@ export function useDirector() {
           card: res.optionCard ? { kind: 'options', card: res.optionCard } : undefined,
         });
         void syncContext();
-        if (res.actions && res.actions.length > 0) {
-          void runActions(res.actions);
+        let actions = res.actions ?? [];
+        // 兜底：用户已明确确认策略，但模型没有派发排期动作 → 前端补上，保证流程不断
+        if (
+          meta?.confirmStrategy &&
+          storeRef.current.todos.length === 0 &&
+          !actions.some((a) => a.type === 'generate_todos')
+        ) {
+          actions = [
+            ...actions,
+            { type: 'generate_todos', channelIds: storeRef.current.channels },
+          ];
+        }
+        if (actions.length > 0) {
+          void runActions(actions);
         }
       } catch (err) {
         gtm.addDirectorMessage({
@@ -258,14 +318,27 @@ export function useDirector() {
       void send(`我的选择：${labels.join('、')}`, {
         fromOptionCard: true,
         selectedIds: selected,
+        confirmStrategy: selected.includes('confirm_strategy'),
       });
     },
     [gtm, send]
   );
 
+  /** 提交冷启动问卷（多题固定卡片） */
+  const submitKickoff = useCallback(
+    (messageId: string, card: KickoffCard, answers: Record<string, string[]>) => {
+      gtm.patchDirectorMessage(messageId, {
+        card: { kind: 'kickoff', card: { ...card, answered: answers } },
+      });
+      void send(formatKickoffAnswers(card, answers, locale !== 'en'));
+    },
+    [gtm, locale, send]
+  );
+
   return {
     send,
     submitOptions,
+    submitKickoff,
     sending,
     busy: sending || backgroundTasks.length > 0,
     backgroundTasks,

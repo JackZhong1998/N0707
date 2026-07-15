@@ -151,30 +151,73 @@
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
 
-/* 手电筒 Hero：底层画面由 CSS mask 按光标位置揭示 */
-.flashlight-reveal {
-  -webkit-mask-image: radial-gradient(
-    circle var(--torch-r, 240px) at var(--torch-x, 50%) var(--torch-y, 45%),
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.85) 55%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  mask-image: radial-gradient(
-    circle var(--torch-r, 240px) at var(--torch-x, 50%) var(--torch-y, 45%),
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.85) 55%,
-    rgba(0, 0, 0, 0) 100%
+/*
+ * 手电筒 Hero（性能版）
+ * 旧实现每帧改 CSS 变量驱动全屏 mask/background 渐变 → 每帧整屏重绘导致卡顿。
+ * 新实现：两个仅靠 transform 移动的图层（合成器处理，不触发重绘）：
+ * - .torch-hole：巨大黑色遮罩，中心挖一个透明圆洞
+ * - .torch-glow：暖白光斑
+ */
+.torch-hole {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8000px;
+  height: 8000px;
+  will-change: transform;
+  background: radial-gradient(
+    circle var(--torch-r, 320px) at center,
+    rgba(10, 10, 10, 0) 0%,
+    rgba(10, 10, 10, 0.04) 50%,
+    rgba(10, 10, 10, 0.6) 80%,
+    rgba(10, 10, 10, 0.94) 100%
   );
 }
 
-/* 光晕本体（暖白色圆形光斑） */
-.flashlight-glow {
+.torch-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--torch-r, 320px) * 2.4);
+  height: calc(var(--torch-r, 320px) * 2.4);
+  border-radius: 9999px;
+  will-change: transform;
+  mix-blend-mode: screen;
   background: radial-gradient(
-    circle var(--torch-r, 240px) at var(--torch-x, 50%) var(--torch-y, 45%),
-    rgba(255, 253, 245, 0.14) 0%,
-    rgba(255, 253, 245, 0.05) 55%,
+    circle closest-side,
+    rgba(255, 248, 235, 0.32) 0%,
+    rgba(255, 248, 235, 0.12) 55%,
     transparent 100%
   );
+}
+
+/* Hero 中央展板的常亮光：标题区始终被照亮，与背景融为一体 */
+.hero-board-light {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(1080px, 94vw);
+  height: min(720px, 88%);
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    ellipse closest-side,
+    rgba(255, 246, 228, 0.24) 0%,
+    rgba(255, 246, 228, 0.1) 50%,
+    transparent 100%
+  );
+}
+
+/* 挂在墙上的画：目光（鼠标）扫过时轻轻晃动 */
+.char-card {
+  transform-origin: 50% -10px;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.55s ease;
+}
+.char-card:hover {
+  transform: rotate(var(--tilt, 4deg)) translateY(4px) scale(1.04);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.65);
 }
 
 /* Markdown 文档正文（策略文档 / to-do 内容） */
@@ -230,3 +273,35 @@
   text-align: left;
 }
 .doc-prose th { background: var(--color-paper-dim); font-weight: 600; }
+
+/*
+ * 深色气泡内的 Markdown：doc-prose 默认把 strong / 标题写死为墨色（#0a0a0a），
+ * 在黑色用户气泡里会变成"黑底黑字"。加上 doc-prose-invert 后全部继承气泡文字色。
+ */
+.doc-prose-invert,
+.doc-prose-invert strong,
+.doc-prose-invert h1,
+.doc-prose-invert h2,
+.doc-prose-invert h3,
+.doc-prose-invert h4,
+.doc-prose-invert blockquote {
+  color: inherit;
+}
+.doc-prose-invert code {
+  color: inherit;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.doc-prose-invert blockquote {
+  border-left-color: rgba(255, 255, 255, 0.5);
+}
+.doc-prose-invert hr {
+  border-top-color: rgba(255, 255, 255, 0.25);
+}
+.doc-prose-invert th,
+.doc-prose-invert td {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.doc-prose-invert th {
+  background: rgba(255, 255, 255, 0.08);
+}

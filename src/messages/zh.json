@@ -2,7 +2,7 @@
   "Metadata": {
     "home": {
       "title": "NowBuild — Go to Market：给一人公司的 30 天冷启动系统",
-      "description": "Focus on your taste。市场总监带你对话定策略，渠道专员写好每天要发的内容 — 30 天行动日历，带你找到与你共鸣的第一批真实用户。"
+      "description": "AI 时代不缺想法，缺的是行动。NowBuild 把你的产品变成一份 30 天行动日历：每天做什么、发什么都提前备好，你只负责用自己的品味做判断，找到第一批真实用户。"
     },
     "blog": {
       "title": "博客 — GTM 方法与冷启动实战",
@@ -217,7 +217,7 @@
     ]
   },
   "Footer": {
-    "description": "nowbuild.ai — 帮 Builder 从现在开始构建商业闭环，Go-to-Market 是最重要的一步。",
+    "description": "帮 Builder 从现在开始构建商业闭环，Go-to-Market 是最重要的一步。",
     "product": "产品",
     "features": "功能",
     "pricing": "定价",

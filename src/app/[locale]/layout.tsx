@@ -4,7 +4,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { ClerkProvider } from '@clerk/nextjs';
-import { Inter, Inter_Tight, IBM_Plex_Mono } from 'next/font/google';
+import { Inter, Inter_Tight, IBM_Plex_Mono, Playfair_Display } from 'next/font/google';
 import { routing } from '@/i18n/routing';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { getBaseUrl, getSiteName } from '@/lib/seo';
@@ -31,6 +31,14 @@ const plexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   variable: '--font-plex-mono',
+  display: 'swap',
+});
+
+/** 优雅的衬线展示字体：只用于 Hero 的 “Go To Market” 等标志性大字 */
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-elegant',
   display: 'swap',
 });
 
@@ -100,7 +108,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <div className={`${inter.variable} ${interTight.variable} ${plexMono.variable} min-h-screen bg-white antialiased`}>
+    <div className={`${inter.variable} ${interTight.variable} ${plexMono.variable} ${playfair.variable} min-h-screen bg-white antialiased`}>
       <GoogleAnalytics />
       {isClerkConfigured ? (
         <ClerkProvider>

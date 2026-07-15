@@ -7,7 +7,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-b border-gray-100">
+    <div className="rounded-2xl border border-hairline bg-white px-5 transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.05)]">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between py-5 text-left transition-colors hover:text-primary-600"
@@ -56,7 +56,7 @@ export default function FAQ() {
         </div>
 
         {/* FAQ List */}
-        <div className="mt-12">
+        <div className="mt-12 space-y-3">
           {items.map((item, index) => (
             <FAQItem key={index} question={item.question} answer={item.answer} />
           ))}

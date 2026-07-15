@@ -66,20 +66,37 @@ export default function TaskDetailPage({
   };
 
   useEffect(() => {
-    if (!hydrated || !todo) return;
-    if (todo.contentStatus !== 'none' || writeStartedRef.current === id) return;
-    startWrite(todo);
+    if (!todo || todo.contentStatus !== 'none' || writeStartedRef.current === id) return;
+    // 先进页面、再异步触发 AI 撰写，避免导航卡顿
+    const timer = window.setTimeout(() => {
+      if (writeStartedRef.current === id) return;
+      startWrite(todo);
+    }, 0);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, todo?.contentStatus, id]);
+  }, [todo?.contentStatus, id, todo?.id]);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chat.length, chatBusy]);
 
-  if (!hydrated) {
+  if (!todo && !hydrated) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <span className="index-label animate-pulse-soft">Loading…</span>
+      <div className="flex h-full flex-col">
+        <div className="flex shrink-0 items-center px-4 py-2.5 sm:px-5">
+          <Link
+            href="/app/calendar"
+            className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-ink"
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            {isZh ? '返回日历' : 'Back to calendar'}
+          </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <span className="index-label animate-pulse-soft">{isZh ? '加载中…' : 'Loading…'}</span>
+        </div>
       </div>
     );
   }
@@ -134,6 +151,8 @@ export default function TaskDetailPage({
             title: t.title,
             brief: t.brief,
             phase: t.phase,
+            market: t.market ?? todo.market,
+            audience: t.audience ?? todo.audience,
             status: keepCurrent ? todo.status : 'pending',
             content: keepCurrent ? todo.content : undefined,
             contentStatus: keepCurrent ? todo.contentStatus : 'none',
@@ -153,6 +172,7 @@ export default function TaskDetailPage({
     }
   };
 
+  // 注意：打开发布页 ≠ 任务完成。是否完成由用户点「标记完成」自行决定。
   const handlePublish = async () => {
     const text = todo.content ? `${todo.content.title}\n\n${todo.content.body}` : '';
     const ok = await publishTo(todo.channelId, text);
@@ -160,15 +180,13 @@ export default function TaskDetailPage({
       setCopied(true);
       setTimeout(() => setCopied(false), 2400);
     }
-    gtm.updateTodo(id, { status: 'done' });
   };
 
   const contentPane = (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {/* 内容头 */}
-      <div className="shrink-0 border-b border-hairline px-5 py-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+      <div className="shrink-0 rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="bg-ink px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white">
+          <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] font-medium text-ink">
             {todo.channelName}
           </span>
           <span className="index-label">
@@ -180,10 +198,25 @@ export default function TaskDetailPage({
           {todo.title}
         </h1>
         <p className="mt-1 text-sm text-zinc-400">{todo.brief}</p>
+        {(todo.market || todo.audience) && (
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {todo.market && (
+              <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] text-ink-soft">
+                {isZh ? '目标市场：' : 'Market: '}
+                {todo.market}
+              </span>
+            )}
+            {todo.audience && (
+              <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] text-ink-soft">
+                {isZh ? '目标人群：' : 'Audience: '}
+                {todo.audience}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 内容主体 */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         {todo.contentStatus === 'writing' && (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <span className="relative flex h-3 w-3">
@@ -209,7 +242,7 @@ export default function TaskDetailPage({
           <div className="flex h-full items-center justify-center">
             <button
               onClick={() => startWrite(todo)}
-              className="border border-hairline px-5 py-2.5 text-sm text-ink-soft hover:border-ink"
+              className="rounded-full bg-paper-dim px-5 py-2.5 text-sm text-ink-soft hover:bg-zinc-200"
             >
               {isZh ? '内容生成失败，点击重试' : 'Failed to write. Retry'}
             </button>
@@ -217,13 +250,12 @@ export default function TaskDetailPage({
         )}
       </div>
 
-      {/* 发布操作 */}
-      <div className="shrink-0 border-t border-hairline px-5 py-3">
+      <div className="shrink-0 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handlePublish}
             disabled={todo.contentStatus !== 'ready'}
-            className="flex h-10 items-center gap-2 bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200"
+            className="flex h-10 items-center gap-2 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200"
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -236,7 +268,7 @@ export default function TaskDetailPage({
                 status: todo.status === 'done' ? 'pending' : 'done',
               })
             }
-            className="flex h-10 items-center border border-hairline px-4 text-sm text-ink-soft transition-colors hover:border-ink"
+            className="flex h-10 items-center rounded-full bg-paper-dim px-4 text-sm text-ink-soft transition-colors hover:bg-zinc-200"
           >
             {todo.status === 'done'
               ? isZh ? '已完成 ✓' : 'Done ✓'
@@ -250,24 +282,27 @@ export default function TaskDetailPage({
         </div>
         <p className="mt-2 text-[11px] text-zinc-400">
           {target.prefills
-            ? isZh ? '内容会自动带入发布框' : 'Content will be prefilled'
-            : isZh ? '该渠道不支持自动带入，内容已复制，粘贴即可发布' : "This channel can't prefill — content is copied for pasting"}
+            ? isZh ? '内容会自动带入发布框。' : 'Content will be prefilled. '
+            : isZh ? '该渠道不支持自动带入，内容已复制，粘贴即可发布。' : "This channel can't prefill — content is copied for pasting. "}
+          {isZh
+            ? '打开发布页不代表任务完成 — 真正发出去之后，回来点「标记完成」。'
+            : 'Opening the publisher doesn’t complete the task — after you actually post, come back and mark it done.'}
         </p>
       </div>
     </div>
   );
 
   const chatPane = (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 border-b border-hairline px-4 py-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+      <div className="shrink-0 rounded-2xl bg-white px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <p className="index-label">{isZh ? `${todo.channelName} 渠道专员` : `${todo.channelName} Specialist`}</p>
         <p className="mt-0.5 text-[11px] text-zinc-400">
           {isZh ? '对话仅针对这条 To-Do · 可改内容，也可重排整渠道计划' : 'Scoped to this to-do · revise copy or replan the channel'}
         </p>
       </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         {chat.length === 0 && (
-          <div className="border border-hairline bg-paper-dim p-4">
+          <div className="rounded-2xl bg-paper-dim p-4">
             <p className="text-[13px] leading-relaxed text-ink-soft">
               {isZh
                 ? '内容哪里不对味？直接告诉我，比如「太官方了」「开头太啰嗦」「换个角度写」。想调整这个渠道整个 30 天的方向也可以说。'
@@ -280,11 +315,16 @@ export default function TaskDetailPage({
             <div
               className={
                 m.role === 'user'
-                  ? 'max-w-[88%] bg-ink px-3.5 py-2.5 text-[13px] leading-relaxed text-white'
-                  : 'max-w-[88%] border border-hairline bg-white px-3.5 py-2.5 text-[13px] leading-relaxed text-ink'
+                  ? 'max-w-[88%] rounded-2xl rounded-br-md bg-ink px-3.5 py-2.5 text-[13px] leading-relaxed text-white'
+                  : 'max-w-[88%] rounded-2xl rounded-bl-md bg-paper-dim px-3.5 py-2.5 text-[13px] leading-relaxed text-ink'
               }
             >
-              <Markdown text={m.content} className="doc-prose !text-inherit text-[13px] [&_p]:m-0 [&_p+p]:mt-2" />
+              <Markdown
+                text={m.content}
+                className={`doc-prose !text-inherit text-[13px] [&_p]:m-0 [&_p+p]:mt-2 ${
+                  m.role === 'user' ? 'doc-prose-invert' : ''
+                }`}
+              />
             </div>
           </div>
         ))}
@@ -295,7 +335,7 @@ export default function TaskDetailPage({
         )}
         <div ref={chatBottomRef} />
       </div>
-      <div className="shrink-0 border-t border-hairline p-3">
+      <div className="shrink-0 rounded-2xl bg-white p-3 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="flex items-end gap-2">
           <textarea
             value={chatInput}
@@ -308,12 +348,12 @@ export default function TaskDetailPage({
             }}
             rows={2}
             placeholder={isZh ? '和渠道专员说说你的想法…' : 'Tell the specialist…'}
-            className="max-h-32 min-h-[44px] flex-1 resize-none border border-hairline px-3 py-2.5 text-[13px] leading-relaxed outline-none focus:border-ink"
+            className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl bg-paper-dim px-3 py-2.5 text-[13px] leading-relaxed outline-none focus:ring-2 focus:ring-zinc-200"
           />
           <button
             onClick={() => void sendChat()}
             disabled={chatBusy || !chatInput.trim()}
-            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center bg-ink text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200"
+            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full bg-ink text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200"
             aria-label="send"
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -326,9 +366,8 @@ export default function TaskDetailPage({
   );
 
   return (
-    <div className="flex h-full flex-col">
-      {/* 顶部返回条 + 移动端窗格切换 */}
-      <div className="flex shrink-0 items-center justify-between border-b border-hairline px-4 py-2.5 sm:px-5">
+    <div className="flex h-full flex-col gap-3 bg-paper-dim p-3">
+      <div className="flex shrink-0 items-center justify-between rounded-2xl bg-white px-4 py-2.5 shadow-[0_1px_8px_rgba(0,0,0,0.04)] sm:px-5">
         <Link
           href="/app/calendar"
           className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-ink"
@@ -338,12 +377,12 @@ export default function TaskDetailPage({
           </svg>
           {isZh ? '返回日历' : 'Back to calendar'}
         </Link>
-        <div className="flex border border-hairline lg:hidden">
+        <div className="flex rounded-full bg-paper-dim p-0.5 lg:hidden">
           {(['content', 'chat'] as MobilePane[]).map((p) => (
             <button
               key={p}
               onClick={() => setMobilePane(p)}
-              className={`px-3 py-1 text-xs font-medium ${
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
                 mobilePane === p ? 'bg-ink text-white' : 'text-ink-muted'
               }`}
             >
@@ -353,22 +392,19 @@ export default function TaskDetailPage({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1">
-        {/* 中间偏左：当天 To-Do 列表（桌面端） */}
-        <aside className="hidden w-60 shrink-0 flex-col border-r border-hairline lg:flex">
-          <div className="shrink-0 border-b border-hairline px-4 py-3">
+      <div className="flex min-h-0 flex-1 gap-3">
+        <aside className="hidden w-60 shrink-0 flex-col gap-2 lg:flex">
+          <div className="shrink-0 rounded-2xl bg-white px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
             <p className="index-label">{isZh ? '当天任务' : "Today's tasks"}</p>
             <p className="mt-0.5 font-mono text-xs text-zinc-400">{todo.date}</p>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto rounded-2xl bg-white p-2 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
             {dayTodos.map((t) => (
               <Link
                 key={t.id}
                 href={`/app/calendar/task/${t.id}`}
-                className={`mb-1 block border p-3 transition-colors ${
-                  t.id === id
-                    ? 'border-ink bg-paper-dim'
-                    : 'border-transparent hover:border-hairline'
+                className={`block rounded-xl p-3 transition-colors ${
+                  t.id === id ? 'bg-paper-dim' : 'hover:bg-paper-dim/70'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -389,14 +425,12 @@ export default function TaskDetailPage({
           </div>
         </aside>
 
-        {/* 中间：内容 */}
         <div className={`min-w-0 flex-1 flex-col ${mobilePane === 'content' ? 'flex' : 'hidden'} lg:flex`}>
           {contentPane}
         </div>
 
-        {/* 最右：渠道专员对话区 */}
         <div
-          className={`w-full flex-col border-l border-hairline lg:w-[360px] lg:shrink-0 ${
+          className={`w-full flex-col lg:w-[360px] lg:shrink-0 ${
             mobilePane === 'chat' ? 'flex' : 'hidden'
           } lg:flex`}
         >
