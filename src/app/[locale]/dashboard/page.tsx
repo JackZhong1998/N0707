@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 
@@ -18,11 +17,5 @@ type Props = {
 export default async function DashboardPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-
-  const { userId } = await auth();
-  if (!userId) {
-    redirect(`/${locale}/sign-in`);
-  }
-
-  redirect(`/${locale}/workspace`);
+  redirect(`/${locale}/app`);
 }

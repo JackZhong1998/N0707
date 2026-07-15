@@ -1,44 +1,36 @@
-'use client';
-
-import Image from 'next/image';
-
-type LogoProps = {
-  showText?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-};
-
-const sizeMap = {
-  sm: { icon: 28, text: 'text-base' },
-  md: { icon: 32, text: 'text-lg' },
-  lg: { icon: 40, text: 'text-xl' },
-} as const;
-
-function LogoMark({ size }: { size: number }) {
+/**
+ * NowBuild 文字 Logo
+ * - “NowBuild” 两词合写，N 与 B 用不同灰阶区分
+ * - “Your business” 作为小号副标题跟随其后
+ */
+export default function Logo({
+  dark = false,
+  showTagline = true,
+}: {
+  dark?: boolean;
+  showTagline?: boolean;
+}) {
   return (
-    <Image
-      src="/logo.png"
-      alt=""
-      width={size}
-      height={size}
-      aria-hidden
-    />
-  );
-}
-
-export default function Logo({ showText = true, size = 'md', className = '' }: LogoProps) {
-  const { icon, text } = sizeMap[size];
-
-  return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <LogoMark size={icon} />
-      {showText && (
-        <span className={`font-display font-bold tracking-tight text-gray-900 ${text}`}>
-          NowBuild
+    <span className="inline-flex items-baseline gap-2 select-none">
+      <span
+        className={`font-[family-name:var(--font-display)] text-lg font-bold tracking-tight ${
+          dark ? 'text-white' : 'text-ink'
+        }`}
+      >
+        <span className={dark ? 'text-white' : 'text-ink'}>N</span>
+        <span>ow</span>
+        <span className={dark ? 'text-zinc-500' : 'text-zinc-400'}>B</span>
+        <span>uild</span>
+      </span>
+      {showTagline && (
+        <span
+          className={`hidden text-[11px] font-medium tracking-wide sm:inline ${
+            dark ? 'text-zinc-500' : 'text-zinc-400'
+          }`}
+        >
+          Your business
         </span>
       )}
     </span>
   );
 }
-
-export { LogoMark };

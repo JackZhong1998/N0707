@@ -1,27 +1,43 @@
 @import "tailwindcss";
 
+/*
+ * NowBuild 设计系统 — 数字化瑞士现代主义
+ * 骨架：瑞士网格 / 无衬线字体 / 不对称布局
+ * 视觉：黑白灰、去装饰化、依赖排版与留白建立层次
+ */
 @theme {
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
-  --color-primary-950: #1e1b4b;
+  /* 灰阶即品牌色：primary 全部映射到 ink 灰阶，旧页面自动降为黑白灰 */
+  --color-primary-50: #fafafa;
+  --color-primary-100: #f4f4f5;
+  --color-primary-200: #e4e4e7;
+  --color-primary-300: #d4d4d8;
+  --color-primary-400: #a1a1aa;
+  --color-primary-500: #52525b;
+  --color-primary-600: #18181b;
+  --color-primary-700: #101012;
+  --color-primary-800: #0c0c0e;
+  --color-primary-900: #09090b;
+  --color-primary-950: #050506;
+
+  --color-ink: #0a0a0a;
+  --color-ink-soft: #3f3f46;
+  --color-ink-muted: #71717a;
+  --color-ink-faint: #a1a1aa;
+  --color-paper: #ffffff;
+  --color-paper-dim: #fafafa;
+  --color-hairline: #e4e4e7;
+  --color-hairline-dark: #26262a;
 
   --color-surface: #fafafa;
   --color-surface-elevated: #ffffff;
-  --color-border: #e5e7eb;
-  --color-text-primary: #0a0a0b;
-  --color-text-secondary: #52525b;
-  --color-text-muted: #a1a1aa;
+  --color-border: #e4e4e7;
+  --color-text-primary: #0a0a0a;
+  --color-text-secondary: #3f3f46;
+  --color-text-muted: #71717a;
 
-  --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), 'Helvetica Neue', ui-sans-serif, system-ui, 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-body: var(--font-inter), 'Helvetica Neue', ui-sans-serif, system-ui, 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, 'SF Mono', monospace;
 }
 
 @layer base {
@@ -33,39 +49,47 @@
 
   body {
     font-family: var(--font-body);
-    color: var(--color-text-primary);
-    background: var(--color-surface-elevated);
+    color: var(--color-ink);
+    background: var(--color-paper);
+    font-feature-settings: 'ss01' on, 'cv01' on;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    font-weight: 700;
-    letter-spacing: -0.025em;
+    font-weight: 600;
+    letter-spacing: -0.03em;
   }
 
   ::selection {
-    background: var(--color-primary-200);
-    color: var(--color-primary-900);
+    background: var(--color-ink);
+    color: var(--color-paper);
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    background: linear-gradient(135deg, var(--color-primary-600), #7c3aed);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
+  /* 瑞士风格 hairline 网格背景 */
   .bg-grid {
     background-image:
-      linear-gradient(to right, #e5e7eb33 1px, transparent 1px),
-      linear-gradient(to bottom, #e5e7eb33 1px, transparent 1px);
-    background-size: 64px 64px;
+      linear-gradient(to right, rgba(10, 10, 10, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(10, 10, 10, 0.05) 1px, transparent 1px);
+    background-size: 72px 72px;
   }
 
-  .bg-gradient-radial {
-    background: radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-primary-100), transparent);
+  .bg-grid-dark {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 72px 72px;
+  }
+
+  /* 大标题的紧排版 */
+  .display-tight {
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+  }
+
+  .text-gradient {
+    color: var(--color-ink);
   }
 
   .scrollbar-none {
@@ -75,10 +99,24 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d8 transparent;
+  }
+
+  /* 数字化编号（瑞士编目风格）*/
+  .index-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+  }
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -88,24 +126,107 @@
 }
 
 @keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(24px); }
+  from { opacity: 0; transform: translateX(20px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out both;
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out both;
+@keyframes blink-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
-.animate-slide-in-right {
-  animation: slide-in-right 0.5s ease-out both;
-}
+.animate-fade-in-up { animation: fade-in-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-in { animation: fade-in 0.45s ease-out both; }
+.animate-slide-in-right { animation: slide-in-right 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-pulse-soft { animation: pulse-soft 1.6s ease-in-out infinite; }
 
 .delay-100 { animation-delay: 100ms; }
 .delay-200 { animation-delay: 200ms; }
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
+
+/* 手电筒 Hero：底层画面由 CSS mask 按光标位置揭示 */
+.flashlight-reveal {
+  -webkit-mask-image: radial-gradient(
+    circle var(--torch-r, 240px) at var(--torch-x, 50%) var(--torch-y, 45%),
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.85) 55%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: radial-gradient(
+    circle var(--torch-r, 240px) at var(--torch-x, 50%) var(--torch-y, 45%),
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.85) 55%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* 光晕本体（暖白色圆形光斑） */
+.flashlight-glow {
+  background: radial-gradient(
+    circle var(--torch-r, 240px) at var(--torch-x, 50%) var(--torch-y, 45%),
+    rgba(255, 253, 245, 0.14) 0%,
+    rgba(255, 253, 245, 0.05) 55%,
+    transparent 100%
+  );
+}
+
+/* Markdown 文档正文（策略文档 / to-do 内容） */
+.doc-prose {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--color-ink-soft);
+}
+.doc-prose h1, .doc-prose h2, .doc-prose h3, .doc-prose h4 {
+  color: var(--color-ink);
+  margin-top: 1.75em;
+  margin-bottom: 0.6em;
+}
+.doc-prose h1 { font-size: 1.25rem; }
+.doc-prose h2 { font-size: 1.125rem; }
+.doc-prose h3 { font-size: 1rem; }
+.doc-prose h4 { font-size: 0.9375rem; }
+.doc-prose > :first-child { margin-top: 0; }
+.doc-prose p { margin: 0.75em 0; }
+.doc-prose ul, .doc-prose ol { margin: 0.75em 0; padding-left: 1.375em; }
+.doc-prose ul { list-style: disc; }
+.doc-prose ol { list-style: decimal; }
+.doc-prose li { margin: 0.3em 0; }
+.doc-prose strong { color: var(--color-ink); font-weight: 600; }
+.doc-prose blockquote {
+  border-left: 2px solid var(--color-ink);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--color-ink-muted);
+}
+.doc-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-paper-dim);
+  border: 1px solid var(--color-hairline);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.doc-prose hr {
+  border: none;
+  border-top: 1px solid var(--color-hairline);
+  margin: 1.5em 0;
+}
+.doc-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.875rem;
+}
+.doc-prose th, .doc-prose td {
+  border: 1px solid var(--color-hairline);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.doc-prose th { background: var(--color-paper-dim); font-weight: 600; }

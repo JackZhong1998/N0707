@@ -4,7 +4,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { ClerkProvider } from '@clerk/nextjs';
-import { Plus_Jakarta_Sans, DM_Sans } from 'next/font/google';
+import { Inter, Inter_Tight, IBM_Plex_Mono } from 'next/font/google';
 import { routing } from '@/i18n/routing';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { getBaseUrl, getSiteName } from '@/lib/seo';
@@ -13,18 +13,25 @@ const isClerkConfigured =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
   !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('xxxxx');
 
-const jakarta = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-display',
+  variable: '--font-inter',
   display: 'swap',
   preload: true,
 });
 
-const dmSans = DM_Sans({
+const interTight = Inter_Tight({
   subsets: ['latin'],
-  variable: '--font-body',
+  variable: '--font-inter-tight',
   display: 'swap',
   preload: true,
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
+  display: 'swap',
 });
 
 export function generateStaticParams() {
@@ -93,7 +100,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <div className={`${jakarta.variable} ${dmSans.variable} min-h-screen bg-white antialiased`}>
+    <div className={`${inter.variable} ${interTight.variable} ${plexMono.variable} min-h-screen bg-white antialiased`}>
       <GoogleAnalytics />
       {isClerkConfigured ? (
         <ClerkProvider>

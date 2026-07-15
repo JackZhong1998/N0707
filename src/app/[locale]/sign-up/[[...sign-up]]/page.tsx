@@ -1,6 +1,11 @@
 import { SignUp } from '@clerk/nextjs';
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
+
+const isClerkConfigured =
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('xxxxx');
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -30,11 +35,15 @@ export default async function SignUpPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  if (!isClerkConfigured) {
+    redirect(`/${locale}/sign-in`);
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
+    <div className="flex min-h-screen items-center justify-center bg-paper-dim px-4">
       <SignUp
-        fallbackRedirectUrl={`/${locale}/workspace`}
-        signInFallbackRedirectUrl={`/${locale}/workspace`}
+        fallbackRedirectUrl={`/${locale}/app`}
+        signInFallbackRedirectUrl={`/${locale}/app`}
         appearance={{
           elements: {
             rootBox: 'mx-auto',
