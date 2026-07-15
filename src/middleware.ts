@@ -1,9 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { routing } from '@/i18n/routing';
 
 const handleI18nRouting = createMiddleware(routing);
+
+const isClerkConfigured =
+  !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('xxxxx');
 
 const isProtectedRoute = createRouteMatcher([
   '/:locale/dashboard(.*)',
@@ -12,11 +16,7 @@ const isProtectedRoute = createRouteMatcher([
   '/workspace(.*)',
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
-  if (isProtectedRoute(request)) {
-    await auth.protect();
-  }
-
+function handleLocaleRouting(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const hasLocalePrefix = routing.locales.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
@@ -44,7 +44,19 @@ export default clerkMiddleware(async (auth, request) => {
   }
 
   return handleI18nRouting(request);
-});
+}
+
+const middleware = isClerkConfigured
+  ? clerkMiddleware(async (auth, request) => {
+      if (isProtectedRoute(request)) {
+        await auth.protect();
+      }
+
+      return handleLocaleRouting(request);
+    })
+  : handleLocaleRouting;
+
+export default middleware;
 
 export const config = {
   matcher: [
