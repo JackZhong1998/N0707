@@ -88,11 +88,15 @@ export function callChannelTodos(input: {
   channelId: string;
   store: GtmStore;
   locale: string;
+  /** 策略刚生成、React 状态尚未刷新时的最新文档 */
+  strategyMarkdownOverride?: string;
 }): Promise<ChannelTodosResponse> {
   return post('/api/agents/channel-todos', {
     channelId: input.channelId,
     channelStrategyMarkdown:
-      input.store.channelStrategies[input.channelId]?.markdown ?? '',
+      input.strategyMarkdownOverride ??
+      input.store.channelStrategies[input.channelId]?.markdown ??
+      '',
     userProfileDoc: input.store.userProfileDoc,
     projectProfileDoc: input.store.projectProfileDoc,
     locale: input.locale,

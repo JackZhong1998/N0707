@@ -35,6 +35,8 @@ export function useDirector() {
   // store 的最新引用（后台任务链中避免闭包读到旧值）
   const storeRef = useRef<GtmStore>(gtm.store);
   storeRef.current = gtm.store;
+  // React 状态落盘前的同步缓存：策略生成后立即派发 To-Do 时使用
+  const freshStrategiesRef = useRef<Record<string, { markdown: string; name: string }>>({});
 
   const syncContext = useCallback(async () => {
     const store = storeRef.current;
@@ -70,6 +72,10 @@ export function useDirector() {
           updatedAt: Date.now(),
         });
         for (const c of res.channels) {
+          freshStrategiesRef.current[c.channelId] = {
+            markdown: c.markdown,
+            name: c.channelName,
+          };
           gtm.upsertChannelStrategy({
             channelId: c.channelId,
             channelName: c.channelName,
@@ -131,12 +137,16 @@ export function useDirector() {
               channelId,
               store: storeRef.current,
               locale,
+              strategyMarkdownOverride: freshStrategiesRef.current[channelId]?.markdown,
             });
             const channelDoc = storeRef.current.channelStrategies[channelId];
             const todos: Todo[] = res.todos.map((t, i) => ({
               id: `${channelId}-${t.dayIndex}-${i}-${Date.now()}`,
               channelId,
-              channelName: channelDoc?.channelName ?? channelId,
+              channelName:
+                channelDoc?.channelName ??
+                freshStrategiesRef.current[channelId]?.name ??
+                channelId,
               dayIndex: t.dayIndex,
               date: addDays(startDate, t.dayIndex - 1),
               time: t.time,

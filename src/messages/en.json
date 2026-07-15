@@ -1,8 +1,8 @@
 {
   "Metadata": {
     "home": {
-      "title": "NowBuild — 30-Day GTM Action Calendar to Get Your First Users",
-      "description": "You shipped with AI — now build your business loop. NowBuild turns a 15-minute strategy conversation into a 30-day go-to-market calendar: AI drafts daily content, you review and publish."
+      "title": "NowBuild — Go to Market for the Lonely Vibe Builder",
+      "description": "Focus on your taste. An AI marketing director, strategist and channel specialists turn one conversation into a 30-day action calendar — and find the first users who resonate with what you build."
     },
     "blog": {
       "title": "Blog — GTM Playbooks & First-User Growth",
@@ -347,10 +347,22 @@
     "values": {
       "title": "Our Values",
       "items": [
-        { "title": "Execution over theory", "description": "Builders don't lack growth articles — they lack 'what exactly to post today'. We deliver daily actions, not another GTM course." },
-        { "title": "You review, you publish", "description": "AI drafts 80%, but the voice facing the market is always yours. We reduce friction; we don't run your accounts." },
-        { "title": "Honest promises", "description": "We promise a system and a rhythm, not a guaranteed user count. You'll have reviewable market feedback within the first week." },
-        { "title": "Small and deep", "description": "No all-in-one startup suite. We do one thing extremely well: your first 30 days of taking a product to market." }
+        {
+          "title": "Execution over theory",
+          "description": "Builders don't lack growth articles — they lack 'what exactly to post today'. We deliver daily actions, not another GTM course."
+        },
+        {
+          "title": "You review, you publish",
+          "description": "AI drafts 80%, but the voice facing the market is always yours. We reduce friction; we don't run your accounts."
+        },
+        {
+          "title": "Honest promises",
+          "description": "We promise a system and a rhythm, not a guaranteed user count. You'll have reviewable market feedback within the first week."
+        },
+        {
+          "title": "Small and deep",
+          "description": "No all-in-one startup suite. We do one thing extremely well: your first 30 days of taking a product to market."
+        }
       ]
     },
     "cta": {
