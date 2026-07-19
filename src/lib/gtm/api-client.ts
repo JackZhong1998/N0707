@@ -11,12 +11,22 @@ import type {
   StrategyResponse,
   Todo,
 } from './types';
+import { buildPerformanceContext } from './post-metrics';
+import type { ViewContext } from './view-context';
+import type { ProductResearchResult } from '@/lib/agents/researcher';
+import type { WeeklyReflectionResult } from '@/lib/agents/reflection';
+import type { TopicPlanResponse } from '@/lib/agents/topic-planner';
 
-async function post<T>(url: string, body: unknown): Promise<T> {
+async function post<T>(
+  url: string,
+  body: unknown,
+  options?: { signal?: AbortSignal }
+): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal: options?.signal,
   });
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -30,24 +40,35 @@ export function callDirector(input: {
   history: ChatMessage[];
   store: GtmStore;
   locale: string;
+  viewContext?: ViewContext;
+  signal?: AbortSignal;
 }): Promise<DirectorResponse> {
-  return post('/api/agents/director', {
-    message: input.message,
-    history: input.history,
-    userProfileDoc: input.store.userProfileDoc,
-    projectProfileDoc: input.store.projectProfileDoc,
-    hasStrategy: Boolean(input.store.strategy),
-    hasTodos: input.store.todos.length > 0,
-    channels: input.store.channels,
-    todos: input.store.todos.map((t) => ({
-      date: t.date,
-      time: t.time,
-      title: t.title,
-      channelName: t.channelName,
-      status: t.status,
-    })),
-    locale: input.locale,
-  });
+  return post(
+    '/api/agents/director',
+    {
+      message: input.message,
+      history: input.history,
+      userProfileDoc: input.store.userProfileDoc,
+      projectProfileDoc: input.store.projectProfileDoc,
+      conversationSummary: input.store.conversationSummary,
+      memoryFacts: input.store.memoryFacts,
+      hasStrategy: Boolean(input.store.strategy),
+      hasTodos: input.store.todos.length > 0,
+      channels: input.store.channels,
+      todos: input.store.todos.map((t) => ({
+        id: t.id,
+        date: t.date,
+        time: t.time,
+        title: t.title,
+        channelName: t.channelName,
+        status: t.status,
+      })),
+      performanceContext: buildPerformanceContext(input.store.todos),
+      viewContext: input.viewContext,
+      locale: input.locale,
+    },
+    { signal: input.signal }
+  );
 }
 
 export function callStrategist(input: {
@@ -66,6 +87,7 @@ export function callStrategist(input: {
     projectProfileDoc: input.store.projectProfileDoc,
     conversationDigest: digest,
     feedback: input.feedback,
+    performanceContext: buildPerformanceContext(input.store.todos),
     existingOverview: input.store.strategy?.overviewMarkdown,
     locale: input.locale,
   });
@@ -80,6 +102,8 @@ export function callContextAgent(input: {
     recentMessages: input.recentMessages,
     userProfileDoc: input.store.userProfileDoc,
     projectProfileDoc: input.store.projectProfileDoc,
+    conversationSummary: input.store.conversationSummary,
+    memoryFacts: input.store.memoryFacts,
     locale: input.locale,
   });
 }
@@ -155,6 +179,49 @@ export function callChannelChat(input: {
       .join('\n'),
     userProfileDoc: input.store.userProfileDoc,
     projectProfileDoc: input.store.projectProfileDoc,
+    locale: input.locale,
+  });
+}
+
+export function callProductResearch(input: {
+  websiteUrl: string;
+  locale: string;
+}): Promise<ProductResearchResult> {
+  return post('/api/agents/research', input);
+}
+
+export function callWeeklyReflection(input: {
+  store: GtmStore;
+  locale: string;
+}): Promise<WeeklyReflectionResult> {
+  return post('/api/agents/reflection', {
+    userProfileDoc: input.store.userProfileDoc,
+    projectProfileDoc: input.store.projectProfileDoc,
+    strategyMarkdown: input.store.strategy?.overviewMarkdown ?? '',
+    performanceContext: buildPerformanceContext(input.store.todos),
+    locale: input.locale,
+  });
+}
+
+export function callTopicPlanner(input: {
+  channelIds: string[];
+  count: number;
+  store: GtmStore;
+  locale: string;
+}): Promise<TopicPlanResponse> {
+  return post('/api/agents/topics', {
+    channelIds: input.channelIds,
+    count: input.count,
+    userProfileDoc: input.store.userProfileDoc,
+    projectProfileDoc: input.store.projectProfileDoc,
+    strategyMarkdown: input.store.strategy?.overviewMarkdown ?? '',
+    channelStrategyMarkdown: Object.fromEntries(
+      input.channelIds.map((channelId) => [
+        channelId,
+        input.store.channelStrategies[channelId]?.markdown ?? '',
+      ])
+    ),
+    performanceContext: buildPerformanceContext(input.store.todos),
     locale: input.locale,
   });
 }

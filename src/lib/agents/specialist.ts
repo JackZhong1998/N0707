@@ -28,6 +28,12 @@ import {
   mockChannelWrite,
 } from './mock';
 
+function text(value: unknown, maxLength: number, fallback = ''): string {
+  return typeof value === 'string'
+    ? value.trim().slice(0, maxLength) || fallback
+    : fallback;
+}
+
 function specialistIdentity(channelId: string, locale: string): string {
   const isZh = locale !== 'en';
   return `你是 NowBuild 的「${channelName(channelId)} 渠道专员」，一位深耕该渠道的 Go-to-Market 执行专家。你服务的用户是一人公司创始人 / 独立开发者。${isZh ? '始终用中文输出。' : 'Always output in English.'}
@@ -104,12 +110,41 @@ ${input.channelStrategyMarkdown}
     temperature: 0.55,
     maxTokens: 8192,
   });
-  out.todos = (out.todos ?? [])
-    .filter((t) => t.dayIndex >= 1 && t.dayIndex <= 30 && t.title)
-    .slice(0, 45);
-  if (out.todos.length === 0) {
-    return mockChannelTodos({ channelId: input.channelId });
+  out.todos = (Array.isArray(out.todos) ? out.todos : []).flatMap((todo) => {
+    if (!todo || typeof todo !== 'object') return [];
+    const dayIndex =
+      typeof todo.dayIndex === 'number' && Number.isFinite(todo.dayIndex)
+        ? Math.trunc(todo.dayIndex)
+        : 0;
+    const title = text(todo.title, 500);
+    const brief = text(todo.brief, 2_000);
+    if (dayIndex < 1 || dayIndex > 30 || !title || !brief) return [];
+    const time = text(todo.time, 10);
+    return [
+      {
+        dayIndex,
+        title,
+        brief,
+        time: /^\d{2}:\d{2}$/.test(time) ? time : undefined,
+        phase: text(todo.phase, 300) || undefined,
+        market: text(todo.market, 300) || undefined,
+        audience: text(todo.audience, 500) || undefined,
+      },
+    ];
+  });
+
+  // “30 天计划”必须真的覆盖每天。模型漏天时只补漏掉的日期，
+  // 不丢弃已经生成的高质量任务。
+  const coveredDays = new Set(out.todos.map((todo) => todo.dayIndex));
+  if (coveredDays.size < 30) {
+    const fallback = await mockChannelTodos({ channelId: input.channelId });
+    out.todos.push(
+      ...fallback.todos.filter((todo) => !coveredDays.has(todo.dayIndex))
+    );
   }
+  out.todos = out.todos
+    .sort((a, b) => a.dayIndex - b.dayIndex)
+    .slice(0, 45);
   return out;
 }
 
@@ -171,10 +206,20 @@ ${input.channelStrategyMarkdown.slice(0, 4000)}
     },
   ];
 
-  return callOpenRouterJson<ChannelWriteResponse>(messages, {
+  const output = await callOpenRouterJson<ChannelWriteResponse>(messages, {
     temperature: 0.8,
     maxTokens: 4096,
   });
+  const title = text(output.title, 1_000);
+  const body = text(output.body, 60_000);
+  if (!title || !body) {
+    return mockChannelWrite({
+      title: input.todo.title,
+      brief: input.todo.brief,
+      channelId: input.todo.channelId,
+    });
+  }
+  return { title, body };
 }
 
 /* ------------------------------------------------------------------ */
@@ -267,10 +312,46 @@ ${input.channelTodosDigest}
     maxTokens: 4096,
   });
 
+  const rewriteTitle = text(out.rewrite_content?.title, 1_000);
+  const rewriteBody = text(out.rewrite_content?.body, 60_000);
+  const rewritePlan = (Array.isArray(out.rewrite_plan)
+    ? out.rewrite_plan
+    : []
+  ).flatMap((todo) => {
+    if (!todo || typeof todo !== 'object') return [];
+    const dayIndex =
+      typeof todo.dayIndex === 'number' && Number.isFinite(todo.dayIndex)
+        ? Math.trunc(todo.dayIndex)
+        : 0;
+    const title = text(todo.title, 500);
+    const brief = text(todo.brief, 2_000);
+    if (dayIndex < 1 || dayIndex > 30 || !title || !brief) return [];
+    const time = text(todo.time, 10);
+    return [
+      {
+        dayIndex,
+        title,
+        brief,
+        time: /^\d{2}:\d{2}$/.test(time) ? time : undefined,
+        phase: text(todo.phase, 300) || undefined,
+        market: text(
+          (todo as typeof todo & { market?: unknown }).market,
+          300
+        ) || undefined,
+        audience: text(
+          (todo as typeof todo & { audience?: unknown }).audience,
+          500
+        ) || undefined,
+      },
+    ];
+  });
+
   return {
-    reply: out.reply ?? '收到，你具体想怎么调整？',
-    rewriteContent: out.rewrite_content ?? null,
-    rewritePlan:
-      out.rewrite_plan?.filter((t) => t.dayIndex >= 1 && t.dayIndex <= 30) ?? null,
+    reply: text(out.reply, 12_000, '收到，你具体想怎么调整？'),
+    rewriteContent:
+      rewriteTitle && rewriteBody
+        ? { title: rewriteTitle, body: rewriteBody }
+        : null,
+    rewritePlan: rewritePlan.length > 0 ? rewritePlan : null,
   };
 }

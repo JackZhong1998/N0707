@@ -27,9 +27,17 @@ export interface StrategistInput {
   conversationDigest: string;
   /** 用户对已有策略的反馈（重新生成时携带） */
   feedback?: string;
+  /** 已发布内容的数据反馈，用于策略迭代 */
+  performanceContext?: string;
   /** 已有总体策略（增量补渠道时保持一致性） */
   existingOverview?: string;
   locale: string;
+}
+
+function text(value: unknown, maxLength: number, fallback = ''): string {
+  return typeof value === 'string'
+    ? value.trim().slice(0, maxLength) || fallback
+    : fallback;
 }
 
 /** 第一阶段：从目录中挑选要精读的 skill */
@@ -53,8 +61,9 @@ async function pickSkills(input: StrategistInput): Promise<string[]> {
       ],
       { temperature: 0.2, maxTokens: 512 }
     );
-    const valid = (out.skillIds ?? []).filter((id) =>
-      catalog.some((c) => c.skillId === id)
+    const valid = (Array.isArray(out.skillIds) ? out.skillIds : []).filter(
+      (id): id is string =>
+        typeof id === 'string' && catalog.some((c) => c.skillId === id)
     );
     if (valid.length > 0) return [...new Set([...valid, ...defaults])].slice(0, 5);
   } catch {
@@ -86,6 +95,7 @@ ${skillContent || '（无 skill 可用，凭最佳实践输出）'}
    与**目标人群**，并注明内容语言（英语市场→英文内容，中文市场→中文内容）
 6. ${isZh ? '全部用中文输出' : 'Output in English'}
 ${input.feedback ? `7. 用户对上一版策略的反馈（必须据此调整）：${input.feedback}` : ''}
+${input.performanceContext ? `\n# 已发布内容表现（策略调整必须引用这些证据，不可臆测）\n${input.performanceContext.slice(0, 10000)}` : ''}
 ${input.existingOverview ? `\n# 已有总体策略（增量补渠道时保持一致，不要推翻）\n${input.existingOverview.slice(0, 3000)}` : ''}
 
 # 输出格式（严格 JSON）
@@ -128,15 +138,53 @@ ${input.channelIds.map((id) => `- ${id}（${channelName(id)}）`).join('\n')}
     maxTokens: 8192,
   });
 
-  // 兜底：确保每个请求的渠道都有产出
-  const covered = new Set(out.channels?.map((c) => c.channelId) ?? []);
+  // 模型输出永远先经过白名单和长度校验，再进入持久化业务数据。
+  const requested = new Set(input.channelIds);
+  const seen = new Set<string>();
+  out.channels = (Array.isArray(out.channels) ? out.channels : []).flatMap(
+    (channel) => {
+      if (!channel || typeof channel !== 'object') return [];
+      const channelId = text(channel.channelId, 80);
+      if (!requested.has(channelId) || seen.has(channelId)) return [];
+      seen.add(channelId);
+      return [
+        {
+          channelId,
+          channelName: channelName(channelId, input.locale),
+          positioning: text(channel.positioning, 1_000),
+          direction: text(channel.direction, 4_000),
+          contentPillars: (Array.isArray(channel.contentPillars)
+            ? channel.contentPillars
+            : []
+          )
+            .filter((pillar): pillar is string => typeof pillar === 'string')
+            .map((pillar) => pillar.trim().slice(0, 500))
+            .filter(Boolean)
+            .slice(0, 10),
+          markdown: text(channel.markdown, 30_000),
+        },
+      ];
+    }
+  );
+
+  // 兜底：确保每个请求的渠道都有产出。
+  const covered = new Set(out.channels.map((channel) => channel.channelId));
   const missing = input.channelIds.filter((id) => !covered.has(id));
   if (missing.length > 0) {
     const fallback = await mockStrategy({ channelIds: missing });
-    out.channels = [...(out.channels ?? []), ...fallback.channels];
+    out.channels = [...out.channels, ...fallback.channels];
   }
-  for (const c of out.channels) {
-    if (!c.channelName) c.channelName = channelName(c.channelId);
-  }
-  return out;
+  return {
+    goal: text(
+      out.goal,
+      1_000,
+      isZh ? '在 30 天内验证可重复的市场获客路径' : 'Validate a repeatable GTM path in 30 days'
+    ),
+    overviewMarkdown: text(
+      out.overviewMarkdown,
+      50_000,
+      isZh ? '# 30 天冷启动策略\n\n请先按渠道计划开始执行。' : '# 30-day GTM strategy'
+    ),
+    channels: out.channels,
+  };
 }

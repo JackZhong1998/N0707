@@ -1,24 +1,28 @@
 'use client';
 
 /**
- * To-Do 详情页 — 三栏布局
- * 左（layout 提供全局导航）｜中间偏左：当天 To-Do 列表｜中间：渠道专员输出的内容｜最右：与渠道专员的对话区
- *
- * 渠道专员对话上下文以单个 to-do 为界，相互独立。
- * 专员有两套工具：重写当前内容 / 重写该渠道整个 30 天计划。
+ * To-Do 详情页只负责左侧执行工作区：任务、内容、发布和数据。
+ * 所有讨论与修改指令统一交给 AppShell 右侧常驻的市场合伙人；
+ * 页面通过 ViewContext 把当前 To-Do 的精确上下文传给主 Agent。
  */
 
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
-import { callChannelChat, callChannelWrite } from '@/lib/gtm/api-client';
-import { getPublishTarget, publishTo } from '@/lib/gtm/publish-links';
-import { addDays } from '@/lib/gtm/dates';
-import { Markdown } from '@/lib/gtm/markdown';
-import type { Todo } from '@/lib/gtm/types';
+import { publishTo } from '@/lib/gtm/publish-links';
+import PostMetricsPanel from '@/components/app/PostMetricsPanel';
+import { useViewContext } from '@/lib/gtm/view-context-provider';
 
-type MobilePane = 'content' | 'chat';
+const PUBLISH_HOSTS: Record<string, string[]> = {
+  xiaohongshu: ['xiaohongshu.com', 'xhslink.com'],
+  twitter_x: ['x.com', 'twitter.com'],
+  linkedin: ['linkedin.com', 'lnkd.in'],
+  reddit: ['reddit.com', 'redd.it'],
+  wechat_official: ['mp.weixin.qq.com'],
+  product_hunt: ['producthunt.com'],
+  github_growth: ['github.com'],
+};
 
 export default function TaskDetailPage({
   params,
@@ -30,12 +34,11 @@ export default function TaskDetailPage({
   const { store, hydrated } = gtm;
   const locale = useLocale();
   const isZh = locale !== 'en';
-  const [chatInput, setChatInput] = useState('');
-  const [chatBusy, setChatBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [mobilePane, setMobilePane] = useState<MobilePane>('content');
-  const writeStartedRef = useRef<string | null>(null);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [urlError, setUrlError] = useState('');
+  const [manualUrl, setManualUrl] = useState('');
+  const writeRequestedRef = useRef<string | null>(null);
+  const { setViewContext, clearViewContext } = useViewContext();
 
   const todo = store.todos.find((t) => t.id === id);
   const dayTodos = useMemo(
@@ -45,40 +48,52 @@ export default function TaskDetailPage({
         .sort((a, b) => (a.time ?? '99').localeCompare(b.time ?? '99')),
     [store.todos, todo?.date]
   );
-  const chat = store.todoChats[id] ?? [];
 
-  // 首次打开：渠道专员 one-shot 撰写内容
-  const startWrite = (target: Todo) => {
-    writeStartedRef.current = target.id;
-    gtm.updateTodo(target.id, { contentStatus: 'writing' });
-    void (async () => {
-      try {
-        const res = await callChannelWrite({ todo: target, store, locale });
-        gtm.updateTodo(target.id, {
-          content: { title: res.title, body: res.body },
-          contentStatus: 'ready',
-        });
-      } catch {
-        gtm.updateTodo(target.id, { contentStatus: 'none' });
-        writeStartedRef.current = null;
-      }
-    })();
+  const requestWrite = () => {
+    writeRequestedRef.current = id;
+    window.dispatchEvent(
+      new CustomEvent('nowbuild:write-todo', {
+        detail: { todoId: id },
+      })
+    );
   };
 
   useEffect(() => {
-    if (!todo || todo.contentStatus !== 'none' || writeStartedRef.current === id) return;
-    // 先进页面、再异步触发 AI 撰写，避免导航卡顿
+    if (
+      !hydrated ||
+      !store.paid ||
+      !todo ||
+      !['none', 'writing'].includes(todo.contentStatus) ||
+      writeRequestedRef.current === id
+    ) {
+      return;
+    }
+    // Content generation is dispatched into the same durable Agent job queue
+    // as every other mutation, so a refresh can resume it safely.
     const timer = window.setTimeout(() => {
-      if (writeStartedRef.current === id) return;
-      startWrite(todo);
-    }, 0);
+      if (writeRequestedRef.current === id) return;
+      requestWrite();
+    }, 150);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todo?.contentStatus, id, todo?.id]);
+  }, [hydrated, store.paid, todo?.contentStatus, id, todo?.id]);
 
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chat.length, chatBusy]);
+    if (!todo) return;
+    setViewContext({
+      view: 'todo_detail',
+      entityType: 'todo',
+      entityId: todo.id,
+      title: todo.content?.title || todo.title,
+      channelId: todo.channelId,
+      revision: todo.contentStatus === 'ready' ? todo.content?.body.length ?? 0 : 0,
+    });
+    return clearViewContext;
+  }, [
+    clearViewContext,
+    setViewContext,
+    todo,
+  ]);
 
   if (!todo && !hydrated) {
     return (
@@ -112,74 +127,67 @@ export default function TaskDetailPage({
     );
   }
 
-  const target = getPublishTarget(todo.channelId);
+  const getContentText = () => {
+    if (!todo.content) return '';
+    return `${todo.content.title}\n\n${todo.content.body}`;
+  };
 
-  const sendChat = async () => {
-    const text = chatInput.trim();
-    if (!text || chatBusy) return;
-    setChatInput('');
-    setChatBusy(true);
-    gtm.addTodoChatMessage(id, { role: 'user', content: text });
+  const handleCopyContent = async () => {
+    const text = getContentText();
+    if (!text) return;
     try {
-      const res = await callChannelChat({
-        todo,
-        history: chat,
-        message: text,
-        store,
-        locale,
-      });
-      gtm.addTodoChatMessage(id, { role: 'assistant', content: res.reply });
-      if (res.rewriteContent) {
-        gtm.updateTodo(id, {
-          content: res.rewriteContent,
-          contentStatus: 'ready',
-        });
-      }
-      if (res.rewritePlan && res.rewritePlan.length > 0 && store.startDate) {
-        const startDate = store.startDate;
-        const channelDoc = store.channelStrategies[todo.channelId];
-        const newTodos: Todo[] = res.rewritePlan.map((t, i) => {
-          // 当前这条 to-do 保留 id 与已写内容（若日索引仍存在）
-          const keepCurrent = t.dayIndex === todo.dayIndex;
-          return {
-            id: keepCurrent ? todo.id : `${todo.channelId}-${t.dayIndex}-${i}-${Date.now()}`,
-            channelId: todo.channelId,
-            channelName: channelDoc?.channelName ?? todo.channelName,
-            dayIndex: t.dayIndex,
-            date: addDays(startDate, t.dayIndex - 1),
-            time: t.time,
-            title: t.title,
-            brief: t.brief,
-            phase: t.phase,
-            market: t.market ?? todo.market,
-            audience: t.audience ?? todo.audience,
-            status: keepCurrent ? todo.status : 'pending',
-            content: keepCurrent ? todo.content : undefined,
-            contentStatus: keepCurrent ? todo.contentStatus : 'none',
-          };
-        });
-        gtm.replaceChannelTodos(todo.channelId, newTodos);
-      }
-    } catch (err) {
-      gtm.addTodoChatMessage(id, {
-        role: 'assistant',
-        content: isZh
-          ? `抱歉，出了点问题（${err instanceof Error ? err.message : '未知错误'}），再试一次？`
-          : `Something went wrong (${err instanceof Error ? err.message : 'unknown'}). Try again?`,
-      });
-    } finally {
-      setChatBusy(false);
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard may be unavailable in some contexts; ignore quietly.
     }
   };
 
-  // 注意：打开发布页 ≠ 任务完成。是否完成由用户点「标记完成」自行决定。
-  const handlePublish = async () => {
-    const text = todo.content ? `${todo.content.title}\n\n${todo.content.body}` : '';
-    const ok = await publishTo(todo.channelId, text);
-    if (ok) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2400);
+  const recordPublished = (postUrl: string) => {
+    const expectedHosts = PUBLISH_HOSTS[todo.channelId];
+    const pastedUrl = postUrl.trim().match(/https?:\/\/[^\s]+/)?.[0] ?? postUrl.trim();
+    const normalizedUrl = pastedUrl.replace(/[),.;，。；）]+$/, '');
+    let valid = false;
+    try {
+      const url = new URL(normalizedUrl);
+      valid =
+        ['http:', 'https:'].includes(url.protocol) &&
+        (!expectedHosts ||
+          expectedHosts.some(
+            (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
+          ));
+    } catch {
+      valid = false;
     }
+    if (!valid) {
+      setUrlError(
+        isZh ? '请输入该渠道的有效帖子地址。' : 'Enter a valid post URL for this channel.'
+      );
+      return false;
+    }
+    gtm.updateTodo(id, {
+      status: 'done',
+      publishStatus: 'published',
+      publishedUrl: normalizedUrl,
+      publishedAt: Date.now(),
+      publishError: undefined,
+      trackingStatus: 'active',
+      metricSnapshots: todo.metricSnapshots ?? [],
+    });
+    setUrlError('');
+    setManualUrl('');
+    return true;
+  };
+
+  const handlePublish = async () => {
+    if (!todo.content) return;
+    const text = getContentText();
+    await publishTo(todo.channelId, text);
+    gtm.updateTodo(id, {
+      publishStatus: 'needs_user_action',
+      publishError: undefined,
+    });
   };
 
   const contentPane = (
@@ -230,9 +238,25 @@ export default function TaskDetailPage({
         )}
         {todo.contentStatus === 'ready' && todo.content && (
           <article>
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-ink">
-              {todo.content.title}
-            </h2>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-ink">
+                {todo.content.title}
+              </h2>
+              <button
+                type="button"
+                onClick={() => void handleCopyContent()}
+                className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-paper-dim px-3 text-xs font-medium text-ink transition-colors hover:bg-zinc-200"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
+                  />
+                </svg>
+                {copied ? (isZh ? '已复制' : 'Copied') : isZh ? '复制' : 'Copy'}
+              </button>
+            </div>
             <div className="mt-4 whitespace-pre-wrap text-[15px] leading-[1.85] text-ink-soft">
               {todo.content.body}
             </div>
@@ -241,7 +265,7 @@ export default function TaskDetailPage({
         {todo.contentStatus === 'none' && (
           <div className="flex h-full items-center justify-center">
             <button
-              onClick={() => startWrite(todo)}
+              onClick={requestWrite}
               className="rounded-full bg-paper-dim px-5 py-2.5 text-sm text-ink-soft hover:bg-zinc-200"
             >
               {isZh ? '内容生成失败，点击重试' : 'Failed to write. Retry'}
@@ -251,116 +275,84 @@ export default function TaskDetailPage({
       </div>
 
       <div className="shrink-0 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handlePublish}
-            disabled={todo.contentStatus !== 'ready'}
-            className="flex h-10 items-center gap-2 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200"
-          >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-            </svg>
-            {isZh ? `发布 · ${target.label}` : `Publish · ${target.labelEn}`}
-          </button>
-          <button
-            onClick={() =>
-              gtm.updateTodo(id, {
-                status: todo.status === 'done' ? 'pending' : 'done',
-              })
-            }
-            className="flex h-10 items-center rounded-full bg-paper-dim px-4 text-sm text-ink-soft transition-colors hover:bg-zinc-200"
-          >
-            {todo.status === 'done'
-              ? isZh ? '已完成 ✓' : 'Done ✓'
-              : isZh ? '标记完成' : 'Mark done'}
-          </button>
-          {copied && (
-            <span className="animate-fade-in text-xs text-zinc-400">
-              {isZh ? '内容已复制到剪贴板，直接粘贴即可' : 'Copied — just paste it'}
-            </span>
-          )}
-        </div>
-        <p className="mt-2 text-[11px] text-zinc-400">
-          {target.prefills
-            ? isZh ? '内容会自动带入发布框。' : 'Content will be prefilled. '
-            : isZh ? '该渠道不支持自动带入，内容已复制，粘贴即可发布。' : "This channel can't prefill — content is copied for pasting. "}
-          {isZh
-            ? '打开发布页不代表任务完成 — 真正发出去之后，回来点「标记完成」。'
-            : 'Opening the publisher doesn’t complete the task — after you actually post, come back and mark it done.'}
-        </p>
-      </div>
-    </div>
-  );
-
-  const chatPane = (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-      <div className="shrink-0 rounded-2xl bg-white px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        <p className="index-label">{isZh ? `${todo.channelName} 渠道专员` : `${todo.channelName} Specialist`}</p>
-        <p className="mt-0.5 text-[11px] text-zinc-400">
-          {isZh ? '对话仅针对这条 To-Do · 可改内容，也可重排整渠道计划' : 'Scoped to this to-do · revise copy or replan the channel'}
-        </p>
-      </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        {chat.length === 0 && (
-          <div className="rounded-2xl bg-paper-dim p-4">
-            <p className="text-[13px] leading-relaxed text-ink-soft">
-              {isZh
-                ? '内容哪里不对味？直接告诉我，比如「太官方了」「开头太啰嗦」「换个角度写」。想调整这个渠道整个 30 天的方向也可以说。'
-                : 'Tell me what feels off — “too formal”, “boring opener”, “different angle”. You can also ask me to replan the whole 30 days for this channel.'}
-            </p>
-          </div>
-        )}
-        {chat.map((m) => (
-          <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-            <div
-              className={
-                m.role === 'user'
-                  ? 'max-w-[88%] rounded-2xl rounded-br-md bg-ink px-3.5 py-2.5 text-[13px] leading-relaxed text-white'
-                  : 'max-w-[88%] rounded-2xl rounded-bl-md bg-paper-dim px-3.5 py-2.5 text-[13px] leading-relaxed text-ink'
-              }
-            >
-              <Markdown
-                text={m.content}
-                className={`doc-prose !text-inherit text-[13px] [&_p]:m-0 [&_p+p]:mt-2 ${
-                  m.role === 'user' ? 'doc-prose-invert' : ''
-                }`}
+        {todo.publishedUrl ? (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-ink">
+                  {isZh ? '已发布并记录帖子' : 'Published and saved'}
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  {todo.publishedAt
+                    ? new Date(todo.publishedAt).toLocaleString(isZh ? 'zh-CN' : 'en-US')
+                    : ''}
+                </p>
+              </div>
+              <a
+                href={todo.publishedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white hover:bg-zinc-800"
+              >
+                {isZh ? '查看原帖' : 'View post'}
+              </a>
+            </div>
+            <p className="mt-2 truncate text-[11px] text-zinc-400">{todo.publishedUrl}</p>
+            <div className="border-t border-zinc-100 pt-4">
+              <PostMetricsPanel
+                todo={todo}
+                onSnapshot={(snapshot) =>
+                  gtm.updateTodo(id, {
+                    trackingStatus: 'active',
+                    metricSnapshots: [...(todo.metricSnapshots ?? []), snapshot],
+                  })
+                }
               />
             </div>
           </div>
-        ))}
-        {chatBusy && (
-          <span className="index-label animate-pulse-soft">
-            {isZh ? '专员正在处理…' : 'Working on it…'}
-          </span>
+        ) : (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => void handlePublish()}
+              disabled={todo.contentStatus !== 'ready'}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200 sm:w-auto"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+              {isZh ? `前往${todo.channelName}发布` : `Open ${todo.channelName} to publish`}
+            </button>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={manualUrl}
+                onChange={(event) => {
+                  setManualUrl(event.target.value);
+                  setUrlError('');
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && manualUrl.trim()) {
+                    recordPublished(manualUrl);
+                  }
+                }}
+                placeholder={
+                  isZh ? `粘贴${todo.channelName}帖子链接` : `Paste the ${todo.channelName} post URL`
+                }
+                className="h-10 min-w-0 flex-1 rounded-full bg-paper-dim px-4 text-xs text-ink outline-none focus:ring-2 focus:ring-zinc-200"
+              />
+              <button
+                type="button"
+                onClick={() => recordPublished(manualUrl)}
+                disabled={!manualUrl.trim()}
+                className="h-10 rounded-full bg-paper-dim px-4 text-xs font-medium text-ink disabled:text-zinc-300"
+              >
+                {isZh ? '确认已发布' : 'Confirm published'}
+              </button>
+            </div>
+            {urlError && <p className="text-xs text-red-500">{urlError}</p>}
+          </div>
         )}
-        <div ref={chatBottomRef} />
-      </div>
-      <div className="shrink-0 rounded-2xl bg-white p-3 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        <div className="flex items-end gap-2">
-          <textarea
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                void sendChat();
-              }
-            }}
-            rows={2}
-            placeholder={isZh ? '和渠道专员说说你的想法…' : 'Tell the specialist…'}
-            className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl bg-paper-dim px-3 py-2.5 text-[13px] leading-relaxed outline-none focus:ring-2 focus:ring-zinc-200"
-          />
-          <button
-            onClick={() => void sendChat()}
-            disabled={chatBusy || !chatInput.trim()}
-            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full bg-ink text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200"
-            aria-label="send"
-          >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-            </svg>
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -377,19 +369,9 @@ export default function TaskDetailPage({
           </svg>
           {isZh ? '返回日历' : 'Back to calendar'}
         </Link>
-        <div className="flex rounded-full bg-paper-dim p-0.5 lg:hidden">
-          {(['content', 'chat'] as MobilePane[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setMobilePane(p)}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                mobilePane === p ? 'bg-ink text-white' : 'text-ink-muted'
-              }`}
-            >
-              {p === 'content' ? (isZh ? '内容' : 'Content') : isZh ? '对话' : 'Chat'}
-            </button>
-          ))}
-        </div>
+        <span className="text-[10px] text-zinc-400">
+          {isZh ? '在右侧与市场合伙人讨论当前内容' : 'Discuss this content with your partner on the right'}
+        </span>
       </div>
 
       <div className="flex min-h-0 flex-1 gap-3">
@@ -425,16 +407,8 @@ export default function TaskDetailPage({
           </div>
         </aside>
 
-        <div className={`min-w-0 flex-1 flex-col ${mobilePane === 'content' ? 'flex' : 'hidden'} lg:flex`}>
+        <div className="flex min-w-0 flex-1 flex-col">
           {contentPane}
-        </div>
-
-        <div
-          className={`w-full flex-col lg:w-[360px] lg:shrink-0 ${
-            mobilePane === 'chat' ? 'flex' : 'hidden'
-          } lg:flex`}
-        >
-          {chatPane}
         </div>
       </div>
     </div>

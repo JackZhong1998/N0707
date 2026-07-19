@@ -143,6 +143,7 @@ export default function CalendarBoard({
   initialView = 'week',
   previewMode = false,
   onToggleStatus,
+  onViewStateChange,
 }: {
   todos: Todo[];
   interactive: boolean;
@@ -150,6 +151,12 @@ export default function CalendarBoard({
   /** 付费墙预览：锁定周视图，每天展示完整 To-Do */
   previewMode?: boolean;
   onToggleStatus?: (id: string) => void;
+  onViewStateChange?: (state: {
+    mode: ViewMode;
+    date?: string;
+    rangeStart?: string;
+    rangeEnd?: string;
+  }) => void;
 }) {
   const locale = useLocale();
   const isZh = locale !== 'en';
@@ -196,6 +203,29 @@ export default function CalendarBoard({
       : weekDates.includes(today)
         ? today
         : weekDates[0];
+
+  useEffect(() => {
+    if (!onViewStateChange) return;
+    if (view === 'day') {
+      onViewStateChange({ mode: view, date: anchor });
+      return;
+    }
+    if (view === 'week') {
+      onViewStateChange({
+        mode: view,
+        date: weekFocus,
+        rangeStart: weekDates[0],
+        rangeEnd: weekDates[6],
+      });
+      return;
+    }
+    const first = startOfMonth(anchor);
+    onViewStateChange({
+      mode: view,
+      rangeStart: first,
+      rangeEnd: addDays(first, daysInMonth(anchor) - 1),
+    });
+  }, [anchor, onViewStateChange, view, weekDates, weekFocus]);
 
   const shift = (dir: 1 | -1) => {
     if (view === 'day') setAnchor(addDays(anchor, dir));

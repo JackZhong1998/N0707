@@ -10,19 +10,20 @@
  * 视图：从导航栏进来默认日视图；从市场总监的日历卡片进来（?view=week）显示周视图。
  */
 
-import { Suspense, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
-import { Link } from '@/i18n/navigation';
 import CalendarBoard from '@/components/app/CalendarBoard';
 import { useGtm } from '@/lib/gtm/store';
 import { buildDemoTodos } from '@/lib/gtm/demo-calendar';
+import { useViewContext } from '@/lib/gtm/view-context-provider';
 
 function CalendarPageInner() {
   const { store, updateTodo } = useGtm();
   const locale = useLocale();
   const isZh = locale !== 'en';
   const searchParams = useSearchParams();
+  const { setViewContext, clearViewContext } = useViewContext();
   const isPreview = !store.paid;
   const initialView = isPreview
     ? 'week'
@@ -36,6 +37,39 @@ function CalendarPageInner() {
   const usingDemo = isPreview || !store.planReady || store.todos.length === 0;
   const todos = usingDemo ? demoTodos : store.todos;
 
+  useEffect(() => clearViewContext, [clearViewContext]);
+
+  const handleViewStateChange = useCallback(
+    (state: {
+      mode: 'day' | 'week' | 'month';
+      date?: string;
+      rangeStart?: string;
+      rangeEnd?: string;
+    }) => {
+      const modeLabel =
+        state.mode === 'day'
+          ? isZh
+            ? '日视图'
+            : 'Day view'
+          : state.mode === 'week'
+            ? isZh
+              ? '周视图'
+              : 'Week view'
+            : isZh
+              ? '月视图'
+              : 'Month view';
+      setViewContext({
+        view: 'action_calendar',
+        entityType: 'calendar_period',
+        entityId: state.date ?? state.rangeStart,
+        title: `${isZh ? '行动日历' : 'Action calendar'} · ${modeLabel}`,
+        section: [state.rangeStart, state.rangeEnd].filter(Boolean).join(' → '),
+        revision: store.todos.length,
+      });
+    },
+    [isZh, setViewContext, store.todos.length]
+  );
+
   return (
     <div className="relative h-full">
       {/* 已支付未生成：引导去对话 */}
@@ -46,12 +80,15 @@ function CalendarPageInner() {
               ? '这是一份示例日历。去和市场总监聊聊，生成真正属于你的 30 天计划。'
               : 'This is a sample calendar. Talk to your director to generate your own 30-day plan.'}
           </p>
-          <Link
-            href="/app/chat"
+          <button
+            type="button"
+            onClick={() =>
+              window.dispatchEvent(new Event('nowbuild:open-agent'))
+            }
             className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
           >
             {isZh ? '开始对话 →' : 'Start talking →'}
-          </Link>
+          </button>
         </div>
       )}
 
@@ -61,6 +98,7 @@ function CalendarPageInner() {
           interactive={store.planReady && !usingDemo}
           initialView={initialView}
           previewMode={isPreview}
+          onViewStateChange={handleViewStateChange}
           onToggleStatus={(id) => {
             const t = store.todos.find((x) => x.id === id);
             if (t) updateTodo(id, { status: t.status === 'done' ? 'pending' : 'done' });

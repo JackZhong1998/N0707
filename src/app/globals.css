@@ -305,3 +305,60 @@
 .doc-prose-invert th {
   background: rgba(255, 255, 255, 0.08);
 }
+
+/*
+ * 产品工作台深色语义层。
+ * 落在 .agent-workspace 内的旧页面仍可继续使用 ink / paper / hairline
+ * 这些语义类，不需要每个数据组件各维护一套深色 JSX。
+ */
+.agent-workspace {
+  --color-ink: #f4f4f5;
+  --color-ink-soft: #d4d4d8;
+  --color-ink-muted: #a1a1aa;
+  --color-ink-faint: #71717a;
+  --color-paper: #111216;
+  --color-paper-dim: #18191d;
+  --color-hairline: #2a2c31;
+  --color-hairline-dark: #35373d;
+  --color-surface: #101114;
+  --color-surface-elevated: #15161a;
+  --color-border: #2a2c31;
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #d4d4d8;
+  --color-text-muted: #8b8b95;
+  color-scheme: dark;
+}
+
+.agent-workspace .bg-white {
+  background-color: #121316 !important;
+}
+
+.agent-workspace .bg-white.text-black {
+  background-color: #f4f4f5 !important;
+  color: #09090b !important;
+}
+
+.agent-workspace .bg-white.text-black * {
+  color: #09090b !important;
+}
+
+.agent-workspace .bg-white\/80 {
+  background-color: rgba(18, 19, 22, 0.84) !important;
+}
+
+.agent-workspace .bg-white\/50 {
+  background-color: rgba(18, 19, 22, 0.56) !important;
+}
+
+.agent-workspace .bg-ink,
+.agent-workspace .bg-ink *,
+.agent-workspace .bg-ink.text-white,
+.agent-workspace .bg-ink .text-white {
+  color: #09090b !important;
+}
+
+.agent-workspace input,
+.agent-workspace textarea,
+.agent-workspace select {
+  color-scheme: dark;
+}

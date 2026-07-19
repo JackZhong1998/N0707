@@ -9,8 +9,8 @@
       "description": "关于 Go-to-Market、渠道选择、内容节奏和第一批用户获取的实战文章，帮第一次做推广的 Builder 把产品推向市场。"
     },
     "pricing": {
-      "title": "定价 — 免费定策略，Pro $19/月起",
-      "description": "免费定市场策略，Pro $19/月或 $199/年解锁完整 30 天执行日历。无隐藏费用，随时取消。"
+      "title": "定价 — 免费定策略，Pro $19.90/月起",
+      "description": "免费定市场策略，Pro $19.90/月或 $199/年解锁完整 30 天执行日历。无隐藏费用，随时取消。"
     },
     "privacy": {
       "title": "隐私政策 — 我们如何保护您的数据",
@@ -239,10 +239,10 @@
     "subtitle": "免费定市场策略，准备好再升级。Pro 解锁完整 30 天执行计划。",
     "monthly": "月付",
     "yearly": "年付",
-    "yearlyDiscount": "省 $29",
+    "yearlyDiscount": "省 $39.80",
     "perMonth": "/月",
     "perYear": "/年",
-    "yearlyEquivalent": "相当于 $16.6/月",
+    "yearlyEquivalent": "相当于 $16.58/月",
     "valueAnchor": "一杯咖啡的价格，换一个 30 天市场搭档",
     "currentPlan": "当前方案",
     "getStarted": "免费开始",
@@ -264,7 +264,7 @@
       },
       "pro": {
         "name": "Pro",
-        "priceMonthly": "$19",
+        "priceMonthly": "$19.90",
         "priceYearly": "$199",
         "description": "完整 30 天市场策略执行，从开始到复盘。",
         "features": [
@@ -291,7 +291,7 @@
         },
         {
           "question": "年付值得吗？",
-          "answer": "年付 $199（相当于 $16.6/月），比月付省 $29，适合计划持续执行市场策略的 Builder。"
+          "answer": "年付 $199（相当于 $16.58/月），比月付省 $39.80，适合计划持续执行市场策略的 Builder。"
         }
       ]
     }

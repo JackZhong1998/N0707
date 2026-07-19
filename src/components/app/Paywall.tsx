@@ -1,23 +1,54 @@
 'use client';
 
 /**
- * 支付墙弹窗（暂不接入 Stripe，模拟支付解锁）
+ * 支付墙弹窗：创建 Stripe Checkout 订阅会话。
  */
 
+import { useState } from 'react';
 import { useLocale } from 'next-intl';
 
 export default function Paywall({
   open,
   onClose,
-  onUnlock,
 }: {
   open: boolean;
   onClose: () => void;
-  onUnlock: () => void;
 }) {
   const locale = useLocale();
   const isZh = locale !== 'en';
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   if (!open) return null;
+
+  const startCheckout = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'pro', billingCycle: 'monthly', locale }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? `Checkout failed (${response.status})`);
+      }
+      window.location.assign(payload.url);
+    } catch (checkoutError) {
+      setError(
+        checkoutError instanceof Error
+          ? checkoutError.message
+          : isZh
+            ? '无法发起支付'
+            : 'Unable to start checkout'
+      );
+      setLoading(false);
+    }
+  };
 
   const bullets = isZh
     ? [
@@ -65,17 +96,25 @@ export default function Paywall({
 
         <div className="mt-8 flex items-baseline gap-2">
           <span className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight text-ink">
-            $19
+            $19.90
           </span>
           <span className="text-sm text-zinc-400">/ {isZh ? '月' : 'month'}</span>
         </div>
 
         <button
-          onClick={onUnlock}
-          className="mt-6 flex h-12 w-full items-center justify-center rounded-full bg-ink text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+          onClick={startCheckout}
+          disabled={loading}
+          className="mt-6 flex h-12 w-full items-center justify-center rounded-full bg-ink text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-wait disabled:bg-zinc-500"
         >
-          {isZh ? '立即解锁（演示：直接解锁）' : 'Unlock now (demo: instant)'}
+          {loading
+            ? isZh
+              ? '正在前往安全支付页…'
+              : 'Opening secure checkout…'
+            : isZh
+              ? '使用 Stripe 安全解锁'
+              : 'Unlock securely with Stripe'}
         </button>
+        {error && <p className="mt-3 text-center text-xs text-red-600">{error}</p>}
         <button
           onClick={onClose}
           className="mt-2 flex h-10 w-full items-center justify-center text-sm text-zinc-400 transition-colors hover:text-ink"

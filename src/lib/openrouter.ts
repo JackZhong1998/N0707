@@ -1,10 +1,10 @@
+import { getAiBudget, recordAiUsage } from '@/lib/ai-budget';
+
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const DEFAULT_FALLBACK_MODELS = [
-  'deepseek/deepseek-chat',
-  'google/gemini-2.5-flash-preview',
-  'meta-llama/llama-3.3-70b-instruct',
-  'qwen/qwen-2.5-72b-instruct',
+  'openai/gpt-5-mini',
+  'deepseek/deepseek-v4-pro',
 ] as const;
 
 export interface OpenRouterMessage {
@@ -17,11 +17,12 @@ export interface OpenRouterOptions {
   temperature?: number;
   maxTokens?: number;
   jsonMode?: boolean;
+  reasoningEffort?: 'none' | 'minimal' | 'low' | 'medium' | 'high';
 }
 
 function getModelCandidates(preferred?: string): string[] {
   const primary =
-    preferred ?? process.env.OPENROUTER_MODEL ?? 'deepseek/deepseek-chat';
+    preferred ?? process.env.OPENROUTER_MODEL ?? 'anthropic/claude-sonnet-5';
   const fallbacks = (process.env.OPENROUTER_FALLBACK_MODELS ?? '')
     .split(',')
     .map((m) => m.trim())
@@ -50,7 +51,7 @@ function formatOpenRouterError(status: number, body: string): string {
   if (status === 403 && lower.includes('terms of service')) {
     return (
       'OpenRouter 403：当前模型提供商未授权。请到 https://openrouter.ai/settings/privacy 开启对应 Provider，' +
-      '或将 OPENROUTER_MODEL 改为 deepseek/deepseek-chat。' +
+      '或检查 OPENROUTER_FALLBACK_MODELS 中的模型是否可用。' +
       ` 原始错误：${body}`
     );
   }
@@ -66,7 +67,18 @@ export async function callOpenRouter(
     throw new Error('OPENROUTER_API_KEY is not configured');
   }
 
-  const models = getModelCandidates(options.model);
+  const budget = await getAiBudget();
+  if (budget.isBlocked) {
+    throw new Error(
+      `Monthly AI usage limit reached ($${budget.hardLimitUsd.toFixed(2)}). ` +
+        'Your allowance resets at the beginning of next month.'
+    );
+  }
+
+  const budgetModel = process.env.AI_BUDGET_FALLBACK_MODEL ?? 'openai/gpt-5-mini';
+  const models = getModelCandidates(
+    budget.shouldDowngrade ? budgetModel : options.model
+  );
   let lastError = 'No models available';
 
   for (const model of models) {
@@ -83,24 +95,58 @@ export async function callOpenRouter(
         messages,
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxTokens ?? 4096,
+        // GTM strategy/copy tasks need the final answer, not hidden reasoning.
+        // Explicitly disabling it also prevents reasoning-first models from
+        // exhausting max_tokens before producing message.content.
+        reasoning: { effort: options.reasoningEffort ?? 'none' },
         ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
     });
 
     if (response.ok) {
       const data = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
+        id?: string;
+        model?: string;
+        choices?: Array<{
+          finish_reason?: string;
+          message?: {
+            content?: string | Array<{ type?: string; text?: string }>;
+          };
+        }>;
+        usage?: {
+          prompt_tokens?: number;
+          completion_tokens?: number;
+          cost?: number;
+        };
       };
-      const content = data.choices?.[0]?.message?.content;
+      const rawContent = data.choices?.[0]?.message?.content;
+      const content =
+        typeof rawContent === 'string'
+          ? rawContent
+          : rawContent
+              ?.filter((part) => part.type === 'text' && part.text)
+              .map((part) => part.text)
+              .join('');
       if (!content) {
-        lastError = `OpenRouter (${model}) returned empty response`;
+        lastError =
+          `OpenRouter (${model}) returned empty response` +
+          ` (finish_reason=${data.choices?.[0]?.finish_reason ?? 'unknown'})`;
+        console.warn(lastError);
         continue;
       }
+      await recordAiUsage(budget, {
+        requestId: data.id,
+        model: data.model ?? model,
+        promptTokens: data.usage?.prompt_tokens ?? 0,
+        completionTokens: data.usage?.completion_tokens ?? 0,
+        providerCostUsd: data.usage?.cost ?? 0,
+      });
       return content;
     }
 
     const errorText = await response.text();
     lastError = formatOpenRouterError(response.status, errorText);
+    console.warn(`OpenRouter model ${model} failed: ${lastError}`);
 
     if (!isRetryableOpenRouterError(response.status, errorText)) {
       throw new Error(lastError);

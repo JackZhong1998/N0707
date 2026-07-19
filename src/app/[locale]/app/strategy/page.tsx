@@ -7,25 +7,36 @@
  * - 支持对单个渠道提出反馈 → 策略 Agent 重新生成该渠道策略
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
-import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
-import { callStrategist } from '@/lib/gtm/api-client';
 import { Markdown } from '@/lib/gtm/markdown';
+import { useViewContext } from '@/lib/gtm/view-context-provider';
 import ChannelLogo from '@/components/ChannelLogo';
 
 export default function StrategyPage() {
-  const gtm = useGtm();
-  const { store } = gtm;
+  const { store } = useGtm();
+  const { setViewContext, clearViewContext } = useViewContext();
   const locale = useLocale();
   const isZh = locale !== 'en';
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState('');
-  const [feedbackFor, setFeedbackFor] = useState<string | null>(null);
-  const [regenerating, setRegenerating] = useState<string | null>(null);
 
   const channelDocs = Object.values(store.channelStrategies);
+
+  useEffect(() => {
+    setViewContext({
+      view: 'market_strategy',
+      entityType: 'strategy',
+      title: isZh ? '30 天冷启动市场策略' : '30-day market strategy',
+      revision: store.strategy?.updatedAt,
+    });
+    return clearViewContext;
+  }, [
+    clearViewContext,
+    isZh,
+    setViewContext,
+    store.strategy?.updatedAt,
+  ]);
 
   if (!store.strategy && channelDocs.length === 0) {
     return (
@@ -36,46 +47,18 @@ export default function StrategyPage() {
             ? '策略还没生成。先和市场总监聊聊你的产品，它会安排策略 Agent 为你产出 30 天冷启动策略。'
             : 'No strategy yet. Talk to your director first — it will have the strategist draft your 30-day plan.'}
         </p>
-        <Link
-          href="/app/chat"
+        <button
+          type="button"
+          onClick={() =>
+            window.dispatchEvent(new Event('nowbuild:open-agent'))
+          }
           className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
         >
           {isZh ? '去对话 →' : 'Start talking →'}
-        </Link>
+        </button>
       </div>
     );
   }
-
-  const submitFeedback = async (channelId: string) => {
-    const text = feedback.trim();
-    if (!text || regenerating) return;
-    setRegenerating(channelId);
-    setFeedbackFor(null);
-    setFeedback('');
-    try {
-      const res = await callStrategist({
-        channelIds: [channelId],
-        store,
-        feedback: text,
-        locale,
-      });
-      for (const c of res.channels) {
-        gtm.upsertChannelStrategy({
-          channelId: c.channelId,
-          channelName: c.channelName,
-          positioning: c.positioning,
-          direction: c.direction,
-          contentPillars: c.contentPillars,
-          markdown: c.markdown,
-          updatedAt: Date.now(),
-        });
-      }
-    } catch {
-      // 重新生成失败保留原文档
-    } finally {
-      setRegenerating(null);
-    }
-  };
 
   const shown = activeChannel
     ? channelDocs.filter((d) => d.channelId === activeChannel)
@@ -110,7 +93,15 @@ export default function StrategyPage() {
       {channelDocs.length > 1 && (
         <div className="mt-10 flex flex-wrap gap-1.5">
           <button
-            onClick={() => setActiveChannel(null)}
+            onClick={() => {
+              setActiveChannel(null);
+              setViewContext({
+                view: 'market_strategy',
+                entityType: 'strategy',
+                title: isZh ? '总体市场策略' : 'Overall market strategy',
+                revision: store.strategy?.updatedAt,
+              });
+            }}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               activeChannel === null ? 'bg-ink text-white' : 'border border-hairline text-ink-muted hover:text-ink'
             }`}
@@ -120,7 +111,17 @@ export default function StrategyPage() {
           {channelDocs.map((d) => (
             <button
               key={d.channelId}
-              onClick={() => setActiveChannel(d.channelId)}
+              onClick={() => {
+                setActiveChannel(d.channelId);
+                setViewContext({
+                  view: 'channel_strategy',
+                  entityType: 'channel_strategy',
+                  entityId: d.channelId,
+                  channelId: d.channelId,
+                  title: `${d.channelName} · ${isZh ? '渠道策略' : 'channel strategy'}`,
+                  revision: d.updatedAt,
+                });
+              }}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeChannel === d.channelId
                   ? 'bg-ink text-white'
@@ -146,81 +147,42 @@ export default function StrategyPage() {
               </div>
               <button
                 onClick={() => {
-                  setFeedbackFor(feedbackFor === doc.channelId ? null : doc.channelId);
-                  setFeedback('');
+                  setViewContext({
+                    view: 'channel_strategy',
+                    entityType: 'channel_strategy',
+                    entityId: doc.channelId,
+                    channelId: doc.channelId,
+                    title: `${doc.channelName} · ${isZh ? '渠道策略' : 'channel strategy'}`,
+                    revision: doc.updatedAt,
+                  });
+                  window.dispatchEvent(new Event('nowbuild:open-agent'));
                 }}
-                disabled={regenerating !== null}
                 className="rounded-full border border-hairline bg-white px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink disabled:opacity-40"
               >
-                {isZh ? '提意见修改' : 'Give feedback'}
+                {isZh ? '在右侧讨论' : 'Discuss on the right'}
               </button>
             </div>
 
-            {regenerating === doc.channelId ? (
-              <div className="flex items-center gap-3 px-5 py-10">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zinc-400 opacity-60" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-ink" />
-                </span>
-                <p className="text-sm text-zinc-400">
-                  {isZh ? '策略 Agent 正在根据你的意见重写…' : 'Strategist is rewriting based on your feedback…'}
-                </p>
+            <div className="grid gap-3 p-3 sm:grid-cols-2">
+              <div className="rounded-xl bg-paper-dim p-4">
+                <p className="index-label">{isZh ? '账号定位' : 'Positioning'}</p>
+                <p className="mt-2 text-sm leading-relaxed text-ink">{doc.positioning}</p>
               </div>
-            ) : (
-              <>
-                <div className="grid gap-3 p-3 sm:grid-cols-2">
-                  <div className="rounded-xl bg-paper-dim p-4">
-                    <p className="index-label">{isZh ? '账号定位' : 'Positioning'}</p>
-                    <p className="mt-2 text-sm leading-relaxed text-ink">{doc.positioning}</p>
-                  </div>
-                  <div className="rounded-xl bg-paper-dim p-4">
-                    <p className="index-label">{isZh ? '内容支柱' : 'Content pillars'}</p>
-                    <ul className="mt-2 space-y-1">
-                      {doc.contentPillars.map((p) => (
-                        <li key={p} className="flex items-start gap-2 text-sm text-ink">
-                          <span className="mt-2 h-1 w-1 shrink-0 bg-ink" />
-                          {p}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <div className="px-5 pb-5 pt-2">
-                  <Markdown text={doc.markdown} />
-                </div>
-              </>
-            )}
-
-            {feedbackFor === doc.channelId && regenerating === null && (
-              <div className="border-t border-hairline bg-paper-dim p-4">
-                <textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  rows={3}
-                  placeholder={
-                    isZh
-                      ? '例如：我是从产品经理转型的独立开发者，希望内容更多结合我的转型经历…'
-                      : 'e.g. I moved from PM to indie dev — lean the content on that story…'
-                  }
-                  className="w-full resize-none rounded-xl border border-hairline bg-white px-3.5 py-3 text-sm leading-relaxed outline-none focus:border-ink"
-                />
-                <div className="mt-2 flex justify-end gap-2">
-                  <button
-                    onClick={() => setFeedbackFor(null)}
-                    className="px-4 py-2 text-xs text-zinc-400 hover:text-ink"
-                  >
-                    {isZh ? '取消' : 'Cancel'}
-                  </button>
-                  <button
-                    onClick={() => void submitFeedback(doc.channelId)}
-                    disabled={!feedback.trim()}
-                    className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 disabled:bg-zinc-200"
-                  >
-                    {isZh ? '提交并重新生成' : 'Submit & regenerate'}
-                  </button>
-                </div>
+              <div className="rounded-xl bg-paper-dim p-4">
+                <p className="index-label">{isZh ? '内容支柱' : 'Content pillars'}</p>
+                <ul className="mt-2 space-y-1">
+                  {doc.contentPillars.map((p) => (
+                    <li key={p} className="flex items-start gap-2 text-sm text-ink">
+                      <span className="mt-2 h-1 w-1 shrink-0 bg-ink" />
+                      {p}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
+            </div>
+            <div className="px-5 pb-5 pt-2">
+              <Markdown text={doc.markdown} />
+            </div>
           </section>
         ))}
       </div>

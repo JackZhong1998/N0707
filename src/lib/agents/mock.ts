@@ -295,6 +295,8 @@ export async function mockContext(input: {
   recentMessages: ChatMessage[];
   userProfileDoc: string;
   projectProfileDoc: string;
+  conversationSummary?: string;
+  memoryFacts?: ContextResponse['memoryFacts'];
 }): Promise<ContextResponse> {
   await delay(400);
   const userLines = input.recentMessages
@@ -312,6 +314,11 @@ export async function mockContext(input: {
   return {
     userProfileDoc: `${userDoc}\n${userLines.join('\n')}`.slice(0, 6000),
     projectProfileDoc: `${projectDoc}\n${userLines.join('\n')}`.slice(0, 6000),
+    conversationSummary:
+      userLines.length > 0
+        ? `## 当前讨论\n${userLines.join('\n')}`
+        : input.conversationSummary ?? '',
+    memoryFacts: input.memoryFacts ?? [],
   };
 }
 
