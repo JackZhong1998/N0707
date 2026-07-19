@@ -9,7 +9,7 @@ const localeLabels: Record<Locale, string> = {
   zh: '中文',
 };
 
-export default function LanguageSwitcher() {
+export default function LanguageSwitcher({ dark = false }: { dark?: boolean }) {
   const locale = useLocale() as Locale;
   const router = useRouter();
   const pathname = usePathname();
@@ -19,15 +19,19 @@ export default function LanguageSwitcher() {
   }
 
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-gray-200 p-0.5">
+    <div className="flex items-center gap-1">
       {routing.locales.map((loc) => (
         <button
           key={loc}
           onClick={() => handleSwitch(loc)}
-          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
             locale === loc
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
+              ? dark
+                ? 'bg-white/15 text-white'
+                : 'bg-paper-dim text-ink'
+              : dark
+                ? 'text-zinc-500 hover:text-zinc-300'
+                : 'text-zinc-400 hover:text-ink'
           }`}
         >
           {localeLabels[loc]}

@@ -4,8 +4,8 @@ import '@/app/globals.css';
 
 export const metadata: Metadata = {
   icons: {
-    icon: '/icon.png',
-    apple: '/logo.png',
+    icon: '/icon.svg',
+    apple: '/icon.svg',
   },
 };
 

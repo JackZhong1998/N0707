@@ -1,44 +1,33 @@
-'use client';
-
-import Image from 'next/image';
-
-type LogoProps = {
-  showText?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-};
-
-const sizeMap = {
-  sm: { icon: 28, text: 'text-base' },
-  md: { icon: 32, text: 'text-lg' },
-  lg: { icon: 40, text: 'text-xl' },
-} as const;
-
-function LogoMark({ size }: { size: number }) {
+/**
+ * NowBuild 文字 Logo — NowBuild Your Business
+ * N 与 B 使用品牌红，N 向左微倾（与 favicon 的斜 N 呼应）
+ */
+export default function Logo({
+  dark = false,
+  showTagline = true,
+}: {
+  dark?: boolean;
+  showTagline?: boolean;
+}) {
+  const red = dark ? 'text-red-500' : 'text-red-600';
+  const taglineColor = dark ? 'text-zinc-400' : 'text-zinc-500';
   return (
-    <Image
-      src="/logo.png"
-      alt=""
-      width={size}
-      height={size}
-      aria-hidden
-    />
-  );
-}
-
-export default function Logo({ showText = true, size = 'md', className = '' }: LogoProps) {
-  const { icon, text } = sizeMap[size];
-
-  return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <LogoMark size={icon} />
-      {showText && (
-        <span className={`font-display font-bold tracking-tight text-gray-900 ${text}`}>
-          NowBuild
+    <span className="inline-flex items-baseline select-none">
+      <span
+        className={`font-[family-name:var(--font-display)] text-lg font-bold tracking-tight ${
+          dark ? 'text-white' : 'text-ink'
+        }`}
+      >
+        <span className={`inline-block -rotate-8 font-extrabold ${red}`}>N</span>
+        <span>ow</span>
+        <span className={`font-extrabold ${red}`}>B</span>
+        <span>uild</span>
+      </span>
+      {showTagline && (
+        <span className={`ml-2 text-lg font-medium tracking-tight ${taglineColor}`}>
+          Your Business
         </span>
       )}
     </span>
   );
 }
-
-export { LogoMark };

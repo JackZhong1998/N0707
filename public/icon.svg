@@ -1,20 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <defs>
-    <linearGradient id="nb-letter" x1="6" y1="8" x2="26" y2="26" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#a5b4fc"/>
-      <stop offset="0.45" stop-color="#818cf8"/>
-      <stop offset="1" stop-color="#c084fc"/>
-    </linearGradient>
-    <radialGradient id="nb-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(16 10) scale(18)">
-      <stop stop-color="#6366f1" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <rect width="32" height="32" rx="9" fill="#111118"/>
-  <rect width="32" height="32" rx="9" fill="url(#nb-glow)"/>
-  <rect x="0.5" y="0.5" width="31" height="31" rx="8.5" stroke="white" stroke-opacity="0.1"/>
-  <g fill="url(#nb-letter)">
-    <path d="M5.5 23.5V8.5H8.35L13.55 16.75V8.5H15.9V23.5H13.55V14.85L8.35 23.5H5.5Z"/>
-    <path d="M16.6 8.5H20.35C23.75 8.5 26 10.45 26 13.05C26 14.85 24.95 16.15 23.25 16.55C25.15 16.95 26.35 18.45 26.35 20.65C26.35 23.75 23.85 25.5 20.45 25.5H16.6V8.5ZM18.55 10.35V13.75H20.05C21.55 13.75 22.55 12.95 22.55 11.75C22.55 10.55 21.55 9.85 20.05 9.85H18.55ZM18.55 16.35V23.65H20.55C22.45 23.65 23.75 22.55 23.75 20.65C23.75 18.75 22.45 17.75 20.55 17.75H18.55Z"/>
+  <rect width="32" height="32" rx="8" fill="#0a0a0a"/>
+  <g transform="rotate(-8 16 16)">
+    <path d="M9.2 24V8h3.4l7 11V8h3.2v16h-3.2l-7-11v11H9.2Z" fill="#EF4444"/>
   </g>
 </svg>

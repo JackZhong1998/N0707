@@ -2,13 +2,11 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/landing/Hero';
-import Problem from '@/components/landing/Problem';
-import HowItWorks from '@/components/landing/HowItWorks';
-import FeatureComparison from '@/components/landing/FeatureComparison';
-import FeatureHighlights from '@/components/landing/FeatureHighlights';
-import Qualifier from '@/components/landing/Qualifier';
+import Channels from '@/components/landing/Channels';
+import FlowSteps from '@/components/landing/FlowSteps';
+import CalendarGlimpse from '@/components/landing/CalendarGlimpse';
+import ClosingCta from '@/components/landing/ClosingCta';
 import FAQ from '@/components/landing/FAQ';
-import FinalCTA from '@/components/landing/FinalCTA';
 import Footer from '@/components/landing/Footer';
 import { buildAbsoluteUrl, getBaseUrl, getSiteName, localePath, languageAlternates } from '@/lib/seo';
 
@@ -57,7 +55,7 @@ export default async function HomePage({ params }: Props) {
     '@type': 'Organization',
     name: getSiteName(),
     url: getBaseUrl(),
-    logo: buildAbsoluteUrl('/logo.png'),
+    logo: buildAbsoluteUrl('/icon.svg'),
     sameAs: [],
   };
 
@@ -109,16 +107,14 @@ export default async function HomePage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
       />
-      <Navbar />
+      <Navbar variant="dark" />
       <main>
         <Hero />
-        <Problem />
-        <HowItWorks />
-        <FeatureHighlights />
-        <FeatureComparison />
-        <Qualifier />
+        <CalendarGlimpse />
+        <FlowSteps />
+        <Channels />
         <FAQ />
-        <FinalCTA />
+        <ClosingCta />
       </main>
       <Footer />
     </>

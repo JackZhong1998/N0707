@@ -1,16 +1,16 @@
 {
   "Metadata": {
     "home": {
-      "title": "NowBuild — 30-Day GTM Action Calendar to Get Your First Users",
-      "description": "You shipped with AI — now build your business loop. NowBuild turns a 15-minute strategy conversation into a 30-day go-to-market calendar: AI drafts daily content, you review and publish."
+      "title": "NowBuild — Go to Market for the Lonely Vibe Builder",
+      "description": "Ideas are cheap in the AI era — action is scarce. NowBuild turns your product into a 30-day action calendar: daily tasks and ready-to-publish drafts, so you just apply your taste and find your first real users."
     },
     "blog": {
       "title": "Blog — GTM Playbooks & First-User Growth",
       "description": "Practical articles on go-to-market strategy, channel selection, content rhythm, and getting your first 100 users — for builders doing their first launch."
     },
     "pricing": {
-      "title": "Pricing — Free Strategy, Pro from $19/month",
-      "description": "Define your go-to-market strategy for free. Unlock the full 30-day execution calendar with Pro at $19/month or $199/year. No hidden fees, cancel anytime."
+      "title": "Pricing — Free Strategy, Pro from $19.90/month",
+      "description": "Define your go-to-market strategy for free. Unlock the full 30-day execution calendar with Pro at $19.90/month or $199/year. No hidden fees, cancel anytime."
     },
     "privacy": {
       "title": "Privacy Policy — How We Protect Your Data",
@@ -239,10 +239,10 @@
     "subtitle": "Define your market strategy for free. Upgrade when you're ready for the full 30-day plan.",
     "monthly": "Monthly",
     "yearly": "Yearly",
-    "yearlyDiscount": "Save $29",
+    "yearlyDiscount": "Save $39.80",
     "perMonth": "/month",
     "perYear": "/year",
-    "yearlyEquivalent": "≈ $16.6/month",
+    "yearlyEquivalent": "≈ $16.58/month",
     "valueAnchor": "Less than a coffee a day for a 30-day market partner",
     "currentPlan": "Current Plan",
     "getStarted": "Start for Free",
@@ -264,7 +264,7 @@
       },
       "pro": {
         "name": "Pro",
-        "priceMonthly": "$19",
+        "priceMonthly": "$19.90",
         "priceYearly": "$199",
         "description": "Full 30-day market strategy execution, start to review.",
         "features": [
@@ -291,7 +291,7 @@
         },
         {
           "question": "Is yearly worth it?",
-          "answer": "Yearly at $199 (≈ $16.6/month) saves $29 vs monthly — great for builders planning multiple strategy cycles."
+          "answer": "Yearly at $199 (≈ $16.58/month) saves $39.80 vs monthly — great for builders planning multiple strategy cycles."
         }
       ]
     }
@@ -347,10 +347,22 @@
     "values": {
       "title": "Our Values",
       "items": [
-        { "title": "Execution over theory", "description": "Builders don't lack growth articles — they lack 'what exactly to post today'. We deliver daily actions, not another GTM course." },
-        { "title": "You review, you publish", "description": "AI drafts 80%, but the voice facing the market is always yours. We reduce friction; we don't run your accounts." },
-        { "title": "Honest promises", "description": "We promise a system and a rhythm, not a guaranteed user count. You'll have reviewable market feedback within the first week." },
-        { "title": "Small and deep", "description": "No all-in-one startup suite. We do one thing extremely well: your first 30 days of taking a product to market." }
+        {
+          "title": "Execution over theory",
+          "description": "Builders don't lack growth articles — they lack 'what exactly to post today'. We deliver daily actions, not another GTM course."
+        },
+        {
+          "title": "You review, you publish",
+          "description": "AI drafts 80%, but the voice facing the market is always yours. We reduce friction; we don't run your accounts."
+        },
+        {
+          "title": "Honest promises",
+          "description": "We promise a system and a rhythm, not a guaranteed user count. You'll have reviewable market feedback within the first week."
+        },
+        {
+          "title": "Small and deep",
+          "description": "No all-in-one startup suite. We do one thing extremely well: your first 30 days of taking a product to market."
+        }
       ]
     },
     "cta": {

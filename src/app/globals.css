@@ -1,27 +1,43 @@
 @import "tailwindcss";
 
+/*
+ * NowBuild 设计系统 — 数字化瑞士现代主义
+ * 骨架：瑞士网格 / 无衬线字体 / 不对称布局
+ * 视觉：黑白灰、去装饰化、依赖排版与留白建立层次
+ */
 @theme {
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
-  --color-primary-950: #1e1b4b;
+  /* 灰阶即品牌色：primary 全部映射到 ink 灰阶，旧页面自动降为黑白灰 */
+  --color-primary-50: #fafafa;
+  --color-primary-100: #f4f4f5;
+  --color-primary-200: #e4e4e7;
+  --color-primary-300: #d4d4d8;
+  --color-primary-400: #a1a1aa;
+  --color-primary-500: #52525b;
+  --color-primary-600: #18181b;
+  --color-primary-700: #101012;
+  --color-primary-800: #0c0c0e;
+  --color-primary-900: #09090b;
+  --color-primary-950: #050506;
+
+  --color-ink: #0a0a0a;
+  --color-ink-soft: #3f3f46;
+  --color-ink-muted: #71717a;
+  --color-ink-faint: #a1a1aa;
+  --color-paper: #ffffff;
+  --color-paper-dim: #fafafa;
+  --color-hairline: #e4e4e7;
+  --color-hairline-dark: #26262a;
 
   --color-surface: #fafafa;
   --color-surface-elevated: #ffffff;
-  --color-border: #e5e7eb;
-  --color-text-primary: #0a0a0b;
-  --color-text-secondary: #52525b;
-  --color-text-muted: #a1a1aa;
+  --color-border: #e4e4e7;
+  --color-text-primary: #0a0a0a;
+  --color-text-secondary: #3f3f46;
+  --color-text-muted: #71717a;
 
-  --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), 'Helvetica Neue', ui-sans-serif, system-ui, 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-body: var(--font-inter), 'Helvetica Neue', ui-sans-serif, system-ui, 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, 'SF Mono', monospace;
 }
 
 @layer base {
@@ -33,39 +49,47 @@
 
   body {
     font-family: var(--font-body);
-    color: var(--color-text-primary);
-    background: var(--color-surface-elevated);
+    color: var(--color-ink);
+    background: var(--color-paper);
+    font-feature-settings: 'ss01' on, 'cv01' on;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    font-weight: 700;
-    letter-spacing: -0.025em;
+    font-weight: 600;
+    letter-spacing: -0.03em;
   }
 
   ::selection {
-    background: var(--color-primary-200);
-    color: var(--color-primary-900);
+    background: var(--color-ink);
+    color: var(--color-paper);
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    background: linear-gradient(135deg, var(--color-primary-600), #7c3aed);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
+  /* 瑞士风格 hairline 网格背景 */
   .bg-grid {
     background-image:
-      linear-gradient(to right, #e5e7eb33 1px, transparent 1px),
-      linear-gradient(to bottom, #e5e7eb33 1px, transparent 1px);
-    background-size: 64px 64px;
+      linear-gradient(to right, rgba(10, 10, 10, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(10, 10, 10, 0.05) 1px, transparent 1px);
+    background-size: 72px 72px;
   }
 
-  .bg-gradient-radial {
-    background: radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-primary-100), transparent);
+  .bg-grid-dark {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 72px 72px;
+  }
+
+  /* 大标题的紧排版 */
+  .display-tight {
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+  }
+
+  .text-gradient {
+    color: var(--color-ink);
   }
 
   .scrollbar-none {
@@ -75,10 +99,24 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d8 transparent;
+  }
+
+  /* 数字化编号（瑞士编目风格）*/
+  .index-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+  }
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -88,24 +126,239 @@
 }
 
 @keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(24px); }
+  from { opacity: 0; transform: translateX(20px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out both;
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out both;
+@keyframes blink-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
-.animate-slide-in-right {
-  animation: slide-in-right 0.5s ease-out both;
-}
+.animate-fade-in-up { animation: fade-in-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-in { animation: fade-in 0.45s ease-out both; }
+.animate-slide-in-right { animation: slide-in-right 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-pulse-soft { animation: pulse-soft 1.6s ease-in-out infinite; }
 
 .delay-100 { animation-delay: 100ms; }
 .delay-200 { animation-delay: 200ms; }
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
+
+/*
+ * 手电筒 Hero（性能版）
+ * 旧实现每帧改 CSS 变量驱动全屏 mask/background 渐变 → 每帧整屏重绘导致卡顿。
+ * 新实现：两个仅靠 transform 移动的图层（合成器处理，不触发重绘）：
+ * - .torch-hole：巨大黑色遮罩，中心挖一个透明圆洞
+ * - .torch-glow：暖白光斑
+ */
+.torch-hole {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8000px;
+  height: 8000px;
+  will-change: transform;
+  background: radial-gradient(
+    circle var(--torch-r, 320px) at center,
+    rgba(10, 10, 10, 0) 0%,
+    rgba(10, 10, 10, 0.04) 50%,
+    rgba(10, 10, 10, 0.6) 80%,
+    rgba(10, 10, 10, 0.94) 100%
+  );
+}
+
+.torch-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--torch-r, 320px) * 2.4);
+  height: calc(var(--torch-r, 320px) * 2.4);
+  border-radius: 9999px;
+  will-change: transform;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    circle closest-side,
+    rgba(255, 248, 235, 0.32) 0%,
+    rgba(255, 248, 235, 0.12) 55%,
+    transparent 100%
+  );
+}
+
+/* Hero 中央展板的常亮光：标题区始终被照亮，与背景融为一体 */
+.hero-board-light {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(1080px, 94vw);
+  height: min(720px, 88%);
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    ellipse closest-side,
+    rgba(255, 246, 228, 0.24) 0%,
+    rgba(255, 246, 228, 0.1) 50%,
+    transparent 100%
+  );
+}
+
+/* 挂在墙上的画：目光（鼠标）扫过时轻轻晃动 */
+.char-card {
+  transform-origin: 50% -10px;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.55s ease;
+}
+.char-card:hover {
+  transform: rotate(var(--tilt, 4deg)) translateY(4px) scale(1.04);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.65);
+}
+
+/* Markdown 文档正文（策略文档 / to-do 内容） */
+.doc-prose {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--color-ink-soft);
+}
+.doc-prose h1, .doc-prose h2, .doc-prose h3, .doc-prose h4 {
+  color: var(--color-ink);
+  margin-top: 1.75em;
+  margin-bottom: 0.6em;
+}
+.doc-prose h1 { font-size: 1.25rem; }
+.doc-prose h2 { font-size: 1.125rem; }
+.doc-prose h3 { font-size: 1rem; }
+.doc-prose h4 { font-size: 0.9375rem; }
+.doc-prose > :first-child { margin-top: 0; }
+.doc-prose p { margin: 0.75em 0; }
+.doc-prose ul, .doc-prose ol { margin: 0.75em 0; padding-left: 1.375em; }
+.doc-prose ul { list-style: disc; }
+.doc-prose ol { list-style: decimal; }
+.doc-prose li { margin: 0.3em 0; }
+.doc-prose strong { color: var(--color-ink); font-weight: 600; }
+.doc-prose blockquote {
+  border-left: 2px solid var(--color-ink);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--color-ink-muted);
+}
+.doc-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-paper-dim);
+  border: 1px solid var(--color-hairline);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.doc-prose hr {
+  border: none;
+  border-top: 1px solid var(--color-hairline);
+  margin: 1.5em 0;
+}
+.doc-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.875rem;
+}
+.doc-prose th, .doc-prose td {
+  border: 1px solid var(--color-hairline);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.doc-prose th { background: var(--color-paper-dim); font-weight: 600; }
+
+/*
+ * 深色气泡内的 Markdown：doc-prose 默认把 strong / 标题写死为墨色（#0a0a0a），
+ * 在黑色用户气泡里会变成"黑底黑字"。加上 doc-prose-invert 后全部继承气泡文字色。
+ */
+.doc-prose-invert,
+.doc-prose-invert strong,
+.doc-prose-invert h1,
+.doc-prose-invert h2,
+.doc-prose-invert h3,
+.doc-prose-invert h4,
+.doc-prose-invert blockquote {
+  color: inherit;
+}
+.doc-prose-invert code {
+  color: inherit;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.doc-prose-invert blockquote {
+  border-left-color: rgba(255, 255, 255, 0.5);
+}
+.doc-prose-invert hr {
+  border-top-color: rgba(255, 255, 255, 0.25);
+}
+.doc-prose-invert th,
+.doc-prose-invert td {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.doc-prose-invert th {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/*
+ * 产品工作台深色语义层。
+ * 落在 .agent-workspace 内的旧页面仍可继续使用 ink / paper / hairline
+ * 这些语义类，不需要每个数据组件各维护一套深色 JSX。
+ */
+.agent-workspace {
+  --color-ink: #f4f4f5;
+  --color-ink-soft: #d4d4d8;
+  --color-ink-muted: #a1a1aa;
+  --color-ink-faint: #71717a;
+  --color-paper: #111216;
+  --color-paper-dim: #18191d;
+  --color-hairline: #2a2c31;
+  --color-hairline-dark: #35373d;
+  --color-surface: #101114;
+  --color-surface-elevated: #15161a;
+  --color-border: #2a2c31;
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #d4d4d8;
+  --color-text-muted: #8b8b95;
+  color-scheme: dark;
+}
+
+.agent-workspace .bg-white {
+  background-color: #121316 !important;
+}
+
+.agent-workspace .bg-white.text-black {
+  background-color: #f4f4f5 !important;
+  color: #09090b !important;
+}
+
+.agent-workspace .bg-white.text-black * {
+  color: #09090b !important;
+}
+
+.agent-workspace .bg-white\/80 {
+  background-color: rgba(18, 19, 22, 0.84) !important;
+}
+
+.agent-workspace .bg-white\/50 {
+  background-color: rgba(18, 19, 22, 0.56) !important;
+}
+
+.agent-workspace .bg-ink,
+.agent-workspace .bg-ink *,
+.agent-workspace .bg-ink.text-white,
+.agent-workspace .bg-ink .text-white {
+  color: #09090b !important;
+}
+
+.agent-workspace input,
+.agent-workspace textarea,
+.agent-workspace select {
+  color-scheme: dark;
+}

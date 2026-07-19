@@ -1,6 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-let _supabase: SupabaseClient | null = null;
 let _serviceSupabase: SupabaseClient | null = null;
 
 function getSupabaseUrl(): string {
@@ -9,23 +8,21 @@ function getSupabaseUrl(): string {
   return url;
 }
 
-export function getSupabase(): SupabaseClient {
-  if (!_supabase) {
-    _supabase = createClient(getSupabaseUrl(), process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-  }
-  return _supabase;
-}
-
-/** @deprecated Use getSupabase() */
-export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    return Reflect.get(getSupabase(), prop);
-  },
-});
-
+/** Server-only administrative client. Never expose this key to browser code. */
 export function getServiceSupabase(): SupabaseClient {
   if (!_serviceSupabase) {
-    _serviceSupabase = createClient(getSupabaseUrl(), process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const secret =
+      process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!secret) {
+      throw new Error('SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY is not configured');
+    }
+    _serviceSupabase = createClient(getSupabaseUrl(), secret, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
   }
   return _serviceSupabase;
 }

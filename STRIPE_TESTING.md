@@ -1,143 +1,94 @@
-# Stripe 测试文档
+# Stripe + Supabase 本地测试
 
-这个文档用于验证项目中的 Stripe 订阅支付流程是否正常，包括：
+项目的 Checkout 是真实 Stripe Test mode 订阅流程；Webhook 会校验原始请求签名，并把订阅与事件幂等记录写入 Supabase。
 
-- 前端发起 Checkout
-- Stripe 回调 Webhook
-- Supabase 订阅状态写入/更新
-- 取消订阅后的状态变化
+## 1. 先建表
 
----
+在 Supabase Dashboard 的 SQL Editor 执行 `supabase/schema.sql`。该迁移可重复执行，会从旧版单表订阅结构升级到完整业务模型。
 
-## 1. 测试前准备
+应包含这些表：
 
-先确认 `.env.local` 中 Stripe 变量已配置：
+- `app_users` / `gtm_projects`：Clerk 用户映射和 GTM 项目
+- `project_contexts`：用户档案、项目档案和上下文同步进度
+- `conversations` / `messages`：市场总监与渠道专员对话
+- `market_strategies` / `channel_strategies` / `project_channels`：市场策略与渠道选择
+- `todos`：30 天行动日历、状态和内容草稿
+- `subscriptions` / `stripe_events`：订阅状态与 Webhook 幂等记录
+- `ai_usage_events`：逐请求 AI 用量和成本账本
 
-```env
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
+执行迁移后可运行自动化验收：
+
+```bash
+npm run db:smoke
+npm run stripe:webhook:smoke
+```
+
+两个命令都只创建临时测试记录，并在完成后自动清理。
+
+## 2. 检查环境变量
+
+`.env.local` 至少需要：
+
+```dotenv
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx
+CLERK_SECRET_KEY=sk_test_xxx
+
 STRIPE_SECRET_KEY=sk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
 NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID=price_xxx
 NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=price_xxx
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+# 新项目推荐 sb_secret_…；旧项目可继续用 service_role
+SUPABASE_SECRET_KEY=sb_secret_xxx
+# SUPABASE_SERVICE_ROLE_KEY=eyxxx
 ```
 
-然后启动本地服务：
+`STRIPE_WEBHOOK_SECRET` 不需要写入文件，下面的脚本会为每次本地会话生成。
+
+## 3. 一条命令启动
+
+运行：
 
 ```bash
-npm run dev
+npm run dev:stripe
 ```
 
----
+脚本会从 `.env.local` 内存读取 `STRIPE_SECRET_KEY`，确保 CLI 和应用使用同一个 Test 账号（无需额外 `stripe login`）。它会启动同一个 Stripe listener，从它获取临时 `whsec_…`，只注入本次 Next.js 进程，然后转发事件到：
 
-## 2. 启动本地 Webhook 转发（必须）
+```text
+http://localhost:3000/api/webhooks/stripe
+```
 
-Stripe 不能直接访问本地 `localhost`，需要 Stripe CLI 转发：
+按 `Ctrl+C` 会同时停止 Next.js 和 listener。
+
+如果提示 3000 端口已占用，请先停止旧的 `npm run dev` 进程，再运行
+`npm run dev:stripe`。脚本不会自动改用其他端口，避免 Webhook 被转发到旧进程。
+
+## 4. 端到端验收
+
+1. 打开 `http://localhost:3000/zh/app/calendar`，用 Clerk 测试用户登录。
+2. 点击支付墙并进入 Stripe Checkout。
+3. 使用成功测试卡 `4242 4242 4242 4242`，未来有效期、任意 CVC 和邮编。
+4. 支付后会回到行动日历。页面会在短时间内重试读取订阅，Webhook 落库后自动解锁。
+5. 在 Supabase 确认：
+   - `subscriptions.status` 是 `active` 或 `trialing`
+   - `stripe_events.status` 是 `processed`
+   - 用户对话后，`conversations` 和 `messages` 有数据
+   - 生成策略后，策略表和 `todos` 有数据
+
+## 5. 事件回归测试
+
+可在另一终端触发 Stripe fixture：
 
 ```bash
-# 第一次使用先登录
-stripe login
-
-# 转发 webhook 到本地
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
+stripe trigger customer.subscription.updated
 ```
 
-执行后会看到类似输出：
+这类通用 fixture 没有 NowBuild 的 `clerk_user_id` 元数据，因此用来测签名和错误重试即可；订阅业务映射应以真实 Checkout 流程验收。
 
-```bash
-Ready! Your webhook signing secret is whsec_xxxxxxxxx
-```
+## 6. 安全要点
 
-将该 `whsec_xxx` 复制到 `.env.local` 的 `STRIPE_WEBHOOK_SECRET`，然后重启 `npm run dev`。
-
----
-
-## 3. Stripe 测试账号（测试卡信息）
-
-在 Stripe Checkout 支付页，使用下面的测试卡号即可模拟不同场景：
-
-| 场景 | 卡号（Card number） | 到期日 | CVC | 邮编 |
-|------|----------------------|--------|-----|------|
-| 支付成功（最常用） | `4242 4242 4242 4242` | 任意未来日期（如 `12/34`） | 任意 3 位（如 `123`） | 任意（如 `10001`） |
-| 需要 3D Secure 验证 | `4000 0025 0000 3155` | 任意未来日期 | 任意 3 位 | 任意 |
-| 支付失败（余额不足） | `4000 0000 0000 9995` | 任意未来日期 | 任意 3 位 | 任意 |
-
-> 说明：Stripe 测试模式不会产生真实扣款，以上仅用于开发验证。
-
----
-
-## 4. 推荐测试流程（一步步）
-
-### 4.1 测试“支付成功”流程
-
-1. 本地访问 `http://localhost:3000`
-2. 注册或登录一个测试用户（Clerk）
-3. 进入定价页，选择 Pro（月付或年付）并发起支付
-4. 在 Stripe Checkout 中使用成功卡：`4242 4242 4242 4242`
-5. 支付完成后应跳回：
-   - `http://localhost:3000/pricing?success=true`
-
-**预期结果：**
-
-- Stripe CLI 终端能看到事件投递成功（2xx）
-- 事件至少包含：`checkout.session.completed`
-- Supabase `subscriptions` 表新增或更新当前用户记录，`status` 为 `active`
-
-### 4.2 测试“3DS 验证”流程
-
-1. 重复上面的购买流程
-2. 使用卡号：`4000 0025 0000 3155`
-3. 在 Stripe 模拟验证页完成认证
-
-**预期结果：**
-
-- 完成认证后支付成功
-- Webhook 正常进入 `checkout.session.completed`
-- 订阅状态正确写入
-
-### 4.3 测试“支付失败”流程
-
-1. 重复购买流程
-2. 使用失败卡号：`4000 0000 0000 9995`
-
-**预期结果：**
-
-- Checkout 页面提示支付失败
-- 页面不会进入 `success=true`
-- Supabase 不应产生有效激活订阅
-
----
-
-## 5. 测试取消订阅
-
-1. 先完成一次成功支付（确保已有有效订阅）
-2. 到 Stripe Dashboard（Test mode）找到该客户订阅并取消
-3. 观察 Webhook 事件：`customer.subscription.deleted`
-
-**预期结果：**
-
-- 本地接口 `/api/webhooks/stripe` 返回成功
-- Supabase `subscriptions.status` 被更新为 `canceled`
-
----
-
-## 6. 快速排错
-
-- 报错 `Missing signature`：
-  - 检查 `STRIPE_WEBHOOK_SECRET` 是否与当前 `stripe listen` 输出一致
-- Webhook 不触发：
-  - 确认 `stripe listen --forward-to localhost:3000/api/webhooks/stripe` 正在运行
-- 提示 `Price not configured`：
-  - 检查两个 `price_` 变量是否填写正确
-- 无法创建 Checkout：
-  - 检查 `STRIPE_SECRET_KEY` 是否为 `sk_test_` 且有效
-
----
-
-## 7. 上线前提醒
-
-本测试文档默认基于 **Stripe Test 模式**。切换到生产环境前请确认：
-
-- 已替换为 `pk_live_` / `sk_live_`
-- Webhook endpoint 指向正式域名 `/api/webhooks/stripe`
-- 使用正式环境的 `STRIPE_WEBHOOK_SECRET`
+- 只使用 `sk_test_` 做本地测试。
+- Supabase secret/service-role key 只在 Next.js 服务端创建的 client 中使用。
+- 前端提交的 `paid` 值不会写入订阅表；解锁权限始终由 Stripe Webhook 同步的订阅状态决定。
+- 生产 Webhook 需在 Stripe Workbench 配置公网 HTTPS endpoint 和独立的签名 Secret。

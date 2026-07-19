@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:stripe": "bash scripts/stripe-dev.sh",
+    "db:smoke": "node scripts/supabase-smoke-test.mjs",
+    "stripe:webhook:smoke": "node scripts/stripe-webhook-smoke-test.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
