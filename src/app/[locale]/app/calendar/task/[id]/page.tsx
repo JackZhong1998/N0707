@@ -12,6 +12,7 @@ import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import { publishTo } from '@/lib/gtm/publish-links';
 import PostMetricsPanel from '@/components/app/PostMetricsPanel';
+import TwitterThreadSplitter from '@/components/app/TwitterThreadSplitter';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
 
 const PUBLISH_HOSTS: Record<string, string[]> = {
@@ -260,6 +261,9 @@ export default function TaskDetailPage({
             <div className="mt-4 whitespace-pre-wrap text-[15px] leading-[1.85] text-ink-soft">
               {todo.content.body}
             </div>
+            {todo.channelId === 'twitter_x' && (
+              <TwitterThreadSplitter text={getContentText()} />
+            )}
           </article>
         )}
         {todo.contentStatus === 'none' && (

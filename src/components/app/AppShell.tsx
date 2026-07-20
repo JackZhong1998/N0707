@@ -249,6 +249,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         icon: 'calendar',
       },
       {
+        key: 'topics',
+        href: '/app/topics',
+        label: isZh ? '选题库' : 'Topic library',
+        description: isZh ? '核心选题与渠道表达版本' : 'Core topics and channel variants',
+        icon: 'topics',
+      },
+      {
         key: 'posts',
         href: '/app/posts',
         label: isZh ? '帖子与数据' : 'Posts & data',
@@ -606,6 +613,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         {/* 桌面端常驻 Agent；收起后保留状态轨道。 */}
         <AgentPanelView
           messages={panelMessages}
+          artifacts={store.artifacts}
           notifications={panelNotifications}
           input={input}
           onInput={setInput}
@@ -634,6 +642,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-40 bg-[#08090b] p-2 md:hidden">
           <AgentPanelView
             messages={panelMessages}
+            artifacts={store.artifacts}
             notifications={panelNotifications}
             input={input}
             onInput={setInput}

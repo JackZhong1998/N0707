@@ -3,27 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useGtm } from '@/lib/gtm/store';
-import { latestMetricSnapshot } from '@/lib/gtm/post-metrics';
 import {
-  collectMetricsWithExtension,
-  detectPublisherExtension,
-  type SupportedPublishChannel,
-} from '@/lib/gtm/publisher-extension';
-import type { PostMetricSnapshot, Todo } from '@/lib/gtm/types';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function isDue(todo: Todo, now: number): boolean {
-  if (
-    !todo.publishedUrl ||
-    !['twitter_x', 'xiaohongshu'].includes(todo.channelId)
-  ) {
-    return false;
-  }
-  const latest = latestMetricSnapshot(todo);
-  const lastKnownAt = latest?.collectedAt ?? todo.publishedAt;
-  return !lastKnownAt || now - lastKnownAt >= DAY_MS;
-}
+  isDueForSync,
+  syncAllPostMetrics,
+  type SyncProgress,
+} from '@/lib/gtm/sync-all-metrics';
 
 export default function AutoMetricsSync() {
   const { store, hydrated, updateTodo } = useGtm();
@@ -31,18 +15,14 @@ export default function AutoMetricsSync() {
   const isZh = locale !== 'en';
   const runningRef = useRef(false);
   const attemptedRef = useRef(new Set<string>());
-  const [progress, setProgress] = useState<{
-    current: number;
-    total: number;
-    message: string;
-    done?: boolean;
-  } | null>(null);
+  const [progress, setProgress] = useState<SyncProgress | null>(null);
 
   useEffect(() => {
     if (!hydrated || !store.paid || runningRef.current) return;
     const now = Date.now();
     const due = store.todos.filter(
-      (todo) => isDue(todo, now) && !attemptedRef.current.has(todo.id)
+      (todo) =>
+        isDueForSync(todo, now) && !attemptedRef.current.has(todo.id)
     );
     if (due.length === 0) return;
 
@@ -50,67 +30,34 @@ export default function AutoMetricsSync() {
     for (const todo of due) attemptedRef.current.add(todo.id);
 
     void (async () => {
-      const publisher = await detectPublisherExtension();
-      if (!publisher.installed) {
-        runningRef.current = false;
-        return;
-      }
-
-      let completed = 0;
-      let failed = 0;
       setProgress({
         current: 0,
         total: due.length,
         message: isZh ? '正在检查到期帖子…' : 'Checking due posts…',
       });
 
-      for (const todo of due) {
-        if (!todo.publishedUrl) continue;
-        setProgress({
-          current: completed + failed + 1,
-          total: due.length,
-          message: isZh
-            ? `正在更新：${todo.content?.title || todo.title}`
-            : `Updating: ${todo.content?.title || todo.title}`,
-        });
-        updateTodo(todo.id, { trackingStatus: 'collecting' });
-        try {
-          const task = collectMetricsWithExtension(
-            todo.channelId as SupportedPublishChannel,
-            todo.publishedUrl,
-            () => undefined
-          );
-          const result = await task.completion;
-          if (!result.metrics) throw new Error('No metrics');
-          const snapshot: PostMetricSnapshot = {
-            id: crypto.randomUUID(),
-            collectedAt: Date.now(),
-            source: 'extension',
-            metrics: result.metrics,
-          };
-          updateTodo(todo.id, {
-            trackingStatus: 'active',
-            metricSnapshots: [...(todo.metricSnapshots ?? []), snapshot],
-          });
-          completed += 1;
-        } catch {
-          updateTodo(todo.id, { trackingStatus: 'needs_user' });
-          failed += 1;
-        }
+      const result = await syncAllPostMetrics(store.todos, updateTodo, {
+        onProgress: (next) => setProgress(next),
+      });
+
+      if (result.skipped) {
+        runningRef.current = false;
+        setProgress(null);
+        return;
       }
 
       setProgress({
-        current: due.length,
-        total: due.length,
+        current: result.total,
+        total: result.total,
         done: true,
         message:
-          failed === 0
+          result.failed === 0
             ? isZh
-              ? `已自动更新 ${completed} 条帖子`
-              : `Updated ${completed} posts`
+              ? `已自动更新 ${result.completed} 条帖子`
+              : `Updated ${result.completed} posts`
             : isZh
-              ? `更新完成：${completed} 条成功，${failed} 条需要手动处理`
-              : `Finished: ${completed} updated, ${failed} need attention`,
+              ? `更新完成：${result.completed} 条成功，${result.failed} 条需要手动处理`
+              : `Finished: ${result.completed} updated, ${result.failed} need attention`,
       });
       runningRef.current = false;
       window.setTimeout(() => setProgress(null), 5000);
@@ -129,9 +76,11 @@ export default function AutoMetricsSync() {
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium">{progress.message}</p>
-          <p className="mt-0.5 text-[10px] text-zinc-400">
-            {progress.current} / {progress.total}
-          </p>
+          {progress.total > 0 && (
+            <p className="mt-0.5 text-[10px] text-zinc-400">
+              {progress.current} / {progress.total}
+            </p>
+          )}
         </div>
       </div>
     </div>

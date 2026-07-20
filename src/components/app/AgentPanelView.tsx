@@ -5,7 +5,11 @@ import { Link } from '@/i18n/navigation';
 import KickoffCardView from '@/components/app/chat/KickoffCardView';
 import OptionCardView from '@/components/app/chat/OptionCardView';
 import { Markdown } from '@/lib/gtm/markdown';
+import ArtifactLibraryDrawer, {
+  ArtifactLibraryTrigger,
+} from '@/components/app/ArtifactLibraryDrawer';
 import type {
+  AgentArtifact,
   KickoffCard,
   MessageCard,
   OptionCard,
@@ -35,6 +39,7 @@ export type AgentPanelNotification = {
 
 export type AgentPanelViewProps = {
   messages: readonly AgentPanelMessage[];
+  artifacts?: readonly AgentArtifact[];
   notifications?: readonly AgentPanelNotification[];
   input: string;
   onInput: (value: string) => void;
@@ -148,6 +153,7 @@ function InteractiveMessageCard({
 
 export default function AgentPanelView({
   messages,
+  artifacts = [],
   notifications = [],
   input,
   onInput,
@@ -170,6 +176,7 @@ export default function AgentPanelView({
   const stickToBottomRef = useRef(true);
   const previousMessageCountRef = useRef(0);
   const [unseenCount, setUnseenCount] = useState(0);
+  const [artifactDrawerOpen, setArtifactDrawerOpen] = useState(false);
 
   useEffect(() => {
     const latest = messages.at(-1);
@@ -271,6 +278,10 @@ export default function AgentPanelView({
             {isZh ? `${pendingCount} 条待处理` : `${pendingCount} queued`}
           </span>
         )}
+        <ArtifactLibraryTrigger
+          onClick={() => setArtifactDrawerOpen(true)}
+          isZh={isZh}
+        />
         {onToggleCollapsed && (
           <button
             type="button"
@@ -284,6 +295,13 @@ export default function AgentPanelView({
           </button>
         )}
       </div>
+
+      <ArtifactLibraryDrawer
+        open={artifactDrawerOpen}
+        onClose={() => setArtifactDrawerOpen(false)}
+        artifacts={artifacts}
+        isZh={isZh}
+      />
 
       {viewContext && (
         <div className="mx-3 mt-3 flex min-w-0 shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.04] px-2.5 py-2 text-[10px]">

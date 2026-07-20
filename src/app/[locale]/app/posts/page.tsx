@@ -5,6 +5,12 @@ import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
+import { detectPublisherExtension } from '@/lib/gtm/publisher-extension';
+import {
+  isSyncableTodo,
+  syncAllPostMetrics,
+  type SyncProgress,
+} from '@/lib/gtm/sync-all-metrics';
 import {
   engagementRate,
   formatMetric,
@@ -16,11 +22,14 @@ import {
 type Filter = 'all' | string;
 
 export default function PostsPage() {
-  const { store, hydrated } = useGtm();
+  const { store, hydrated, updateTodo } = useGtm();
   const { setViewContext, clearViewContext } = useViewContext();
   const locale = useLocale();
   const isZh = locale !== 'en';
   const [filter, setFilter] = useState<Filter>('all');
+  const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
+  const [syncMessage, setSyncMessage] = useState('');
 
   useEffect(() => {
     setViewContext({
@@ -63,6 +72,56 @@ export default function PostsPage() {
     (sum, todo) => sum + totalEngagement(latestMetricSnapshot(todo)!.metrics),
     0
   );
+  const syncableCount = published.filter(isSyncableTodo).length;
+
+  const handleSyncAll = async () => {
+    if (syncing || syncableCount === 0) return;
+    setSyncing(true);
+    setSyncMessage('');
+    setSyncProgress({
+      current: 0,
+      total: syncableCount,
+      message: isZh ? '正在准备抓取…' : 'Preparing sync…',
+    });
+
+    const publisher = await detectPublisherExtension();
+    if (!publisher.installed) {
+      setSyncMessage(
+        isZh
+          ? '请先安装 NowBuild 发布插件，才能自动抓取帖子数据。'
+          : 'Install the NowBuild publisher extension to sync post metrics.'
+      );
+      setSyncProgress(null);
+      setSyncing(false);
+      return;
+    }
+
+    const result = await syncAllPostMetrics(store.todos, updateTodo, {
+      force: true,
+      onProgress: (next) => setSyncProgress(next),
+    });
+
+    if (result.total === 0) {
+      setSyncMessage(
+        isZh ? '没有可抓取的帖子。' : 'No posts available to sync.'
+      );
+    } else if (result.failed === 0) {
+      setSyncMessage(
+        isZh
+          ? `已成功抓取 ${result.completed} 条帖子的数据。`
+          : `Synced metrics for ${result.completed} posts.`
+      );
+    } else {
+      setSyncMessage(
+        isZh
+          ? `抓取完成：${result.completed} 条成功，${result.failed} 条失败（可进入详情手动录入）。`
+          : `Finished: ${result.completed} synced, ${result.failed} failed (enter details to add manually).`
+      );
+    }
+
+    setSyncProgress(null);
+    setSyncing(false);
+  };
 
   if (!hydrated) {
     return (
@@ -89,38 +148,96 @@ export default function PostsPage() {
                 : 'Every published post becomes evidence for your marketing director.'}
             </p>
           </div>
-          <div className="flex rounded-full bg-white p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-            {([
-              { id: 'all', label: isZh ? '全部' : 'All' },
-              ...channelFilters,
-            ] as Array<{ id: Filter; label: string }>).map(
-              ({ id: value, label }) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {syncableCount > 0 && (
               <button
-                key={value}
-                onClick={() => {
-                  setFilter(value);
-                  setViewContext({
-                    view: 'post_metrics',
-                    entityType: 'post_collection',
-                    title:
-                      value === 'all'
-                        ? isZh
-                          ? '全部帖子数据'
-                          : 'All post metrics'
-                        : `${label} · ${isZh ? '帖子数据' : 'post metrics'}`,
-                    channelId: value === 'all' ? undefined : value,
-                  });
-                }}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  filter === value ? 'bg-ink text-white' : 'text-ink-muted hover:text-ink'
-                }`}
+                type="button"
+                onClick={() => void handleSyncAll()}
+                disabled={syncing}
+                className="flex h-9 items-center gap-2 rounded-full bg-ink px-4 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 disabled:bg-zinc-300"
               >
-                {label}
+                <svg
+                  className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
+                  />
+                </svg>
+                {syncing
+                  ? isZh
+                    ? '抓取中…'
+                    : 'Syncing…'
+                  : isZh
+                    ? '一键抓取全部数据'
+                    : 'Sync all metrics'}
               </button>
-              )
             )}
+            <div className="flex rounded-full bg-white p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+              {([
+                { id: 'all', label: isZh ? '全部' : 'All' },
+                ...channelFilters,
+              ] as Array<{ id: Filter; label: string }>).map(
+                ({ id: value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => {
+                    setFilter(value);
+                    setViewContext({
+                      view: 'post_metrics',
+                      entityType: 'post_collection',
+                      title:
+                        value === 'all'
+                          ? isZh
+                            ? '全部帖子数据'
+                            : 'All post metrics'
+                          : `${label} · ${isZh ? '帖子数据' : 'post metrics'}`,
+                      channelId: value === 'all' ? undefined : value,
+                    });
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                    filter === value ? 'bg-ink text-white' : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  {label}
+                </button>
+                )
+              )}
+            </div>
           </div>
         </div>
+
+        {(syncProgress || syncMessage) && (
+          <div
+            className={`mt-4 rounded-2xl px-4 py-3 text-xs ${
+              syncProgress
+                ? 'bg-ink text-white'
+                : 'bg-white text-ink-soft shadow-[0_1px_8px_rgba(0,0,0,0.04)]'
+            }`}
+          >
+            {syncProgress ? (
+              <div className="flex items-center gap-3">
+                <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-white" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">
+                    {isZh ? '正在抓取：' : 'Syncing: '}
+                    {syncProgress.message}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-zinc-400">
+                    {syncProgress.current} / {syncProgress.total}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p>{syncMessage}</p>
+            )}
+          </div>
+        )}
 
         <div className="mt-5 grid grid-cols-3 gap-3">
           <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
