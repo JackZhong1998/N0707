@@ -18,6 +18,7 @@ export default function Paywall({
   const isZh = locale !== 'en';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   if (!open) return null;
 
   const startCheckout = async () => {
@@ -28,7 +29,7 @@ export default function Paywall({
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'pro', billingCycle: 'monthly', locale }),
+        body: JSON.stringify({ plan: 'pro', billingCycle, locale }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
         url?: string;
@@ -64,6 +65,18 @@ export default function Paywall({
         'Revise via chat, publish in one click',
       ];
 
+  const monthlyPrice = '$19.90';
+  const yearlyPrice = '$199';
+  const displayPrice = billingCycle === 'monthly' ? monthlyPrice : yearlyPrice;
+  const displayPeriod =
+    billingCycle === 'monthly'
+      ? isZh
+        ? '月'
+        : 'month'
+      : isZh
+        ? '年'
+        : 'year';
+
   return (
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-6"
@@ -94,12 +107,45 @@ export default function Paywall({
           ))}
         </ul>
 
-        <div className="mt-8 flex items-baseline gap-2">
-          <span className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight text-ink">
-            $19.90
-          </span>
-          <span className="text-sm text-zinc-400">/ {isZh ? '月' : 'month'}</span>
+        <div className="mt-8 inline-flex w-full items-center gap-1 rounded-full bg-paper-dim p-1">
+          <button
+            type="button"
+            onClick={() => setBillingCycle('monthly')}
+            className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+              billingCycle === 'monthly'
+                ? 'bg-white text-ink shadow-sm'
+                : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            {isZh ? '月付' : 'Monthly'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setBillingCycle('yearly')}
+            className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+              billingCycle === 'yearly'
+                ? 'bg-white text-ink shadow-sm'
+                : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            {isZh ? '年付' : 'Yearly'}
+            <span className="ml-1.5 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              {isZh ? '省 $39.80' : 'Save $39.80'}
+            </span>
+          </button>
         </div>
+
+        <div className="mt-6 flex items-baseline gap-2">
+          <span className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight text-ink">
+            {displayPrice}
+          </span>
+          <span className="text-sm text-zinc-400">/ {displayPeriod}</span>
+        </div>
+        {billingCycle === 'yearly' && (
+          <p className="mt-1 text-sm text-emerald-600">
+            {isZh ? '相当于 $16.58/月' : '≈ $16.58/month'}
+          </p>
+        )}
 
         <button
           onClick={startCheckout}

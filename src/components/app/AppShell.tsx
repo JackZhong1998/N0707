@@ -368,10 +368,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, store.paid, isCalendarIndex, router]);
 
-  useEffect(() => {
-    if (hydrated && !store.paid) setPaywallOpen(true);
-  }, [hydrated, store.paid]);
-
   // 主动复盘不插队到当前会话：满足一周数据条件后静默执行，结果进入通知箱。
   useEffect(() => {
     if (!hydrated || !store.paid || autoReviewStarted.current) return;
@@ -667,7 +663,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* 未支付：底层日历仍可预览，点击任意处重新打开付费墙。 */}
+      {/* 未支付：日历页透明遮罩仅预览，点击打开付费墙；其他页面全屏遮挡。 */}
       {locked && (
         <button
           type="button"
