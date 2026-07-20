@@ -53,7 +53,8 @@ export type AgentPanelViewProps = {
   onSubmitKickoff?: (
     messageId: string,
     card: KickoffCard,
-    answers: Record<string, string[]>
+    answers: Record<string, string[]>,
+    productUrl?: string
   ) => void;
   onReadNotification?: (notificationId: string) => void;
   sending?: boolean;
@@ -130,8 +131,8 @@ function InteractiveMessageCard({
       <KickoffCardView
         card={kickoffCard}
         disabled={false}
-        onSubmit={(answers) =>
-          onSubmitKickoff(messageId, kickoffCard, answers)
+        onSubmit={(answers, productUrl) =>
+          onSubmitKickoff(messageId, kickoffCard, answers, productUrl)
         }
       />
     );

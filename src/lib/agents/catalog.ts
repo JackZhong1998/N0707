@@ -8,6 +8,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import type { OptionCard } from '@/lib/gtm/types';
 import { CHANNEL_DEFINITIONS, getChannelDefinition } from './skills/channel-map';
 import { getCombinedSkillContent, getSkillMeta, listAllSkillIds } from './skills/loader';
 
@@ -98,6 +99,87 @@ export function getChannelCatalog(): ChannelCatalogEntry[] {
 export function formatChannelCatalog(): string {
   return getChannelCatalog()
     .map((c) => `- ${c.channelId}（${c.name}）: ${c.description}`)
+    .join('\n');
+}
+
+export interface ChannelRecommendationInput {
+  /** kickoff market 选项 id：cn / us / sea / global */
+  markets?: string[];
+  /** kickoff stage 选项 id：idea / building / live / users */
+  stage?: string;
+  /** kickoff time 选项 id：lt30 / m30h1 / h12 / h3 */
+  time?: string;
+  locale?: string;
+}
+
+/** 根据冷启动问卷上下文推荐最适合的 3–4 个渠道（供 mock 与总监参考） */
+export function recommendChannels(input: ChannelRecommendationInput = {}): string[] {
+  const markets = input.markets?.length ? input.markets : ['cn'];
+  const stage = input.stage ?? 'live';
+  const cnPrimary = markets.includes('cn') && !markets.includes('us');
+  const enPrimary = markets.includes('us') || markets.includes('global');
+
+  if (stage === 'idea' || stage === 'building') {
+    if (enPrimary) {
+      return ['user_interview', 'twitter_x', 'user_outreach', 'website_copy'];
+    }
+    return ['user_interview', 'xiaohongshu', 'user_outreach', 'website_copy'];
+  }
+
+  if (enPrimary) {
+    const channels = ['twitter_x', 'user_outreach', 'website_copy'];
+    if (stage === 'live' || stage === 'users') {
+      channels.push('product_hunt');
+    }
+    return [...new Set(channels)];
+  }
+
+  if (cnPrimary || markets.includes('sea')) {
+    return stage === 'users'
+      ? ['xiaohongshu', 'user_outreach', 'wechat_official', 'website_copy']
+      : ['xiaohongshu', 'user_outreach', 'website_copy', 'wechat_official'];
+  }
+
+  return ['xiaohongshu', 'user_outreach', 'twitter_x', 'website_copy'];
+}
+
+export function buildChannelPickOptionCard(
+  channelIds: string[],
+  locale = 'zh'
+): Pick<OptionCard, 'question' | 'multi' | 'allowCustom' | 'options' | 'recommendedChannelIds'> {
+  const isZh = locale !== 'en';
+  return {
+    question: isZh
+      ? '你想先从哪几个渠道做起？（可多选，我们会帮你省时间）'
+      : 'Which channels do you want to start with? (pick any — we handle the heavy lifting)',
+    multi: true,
+    allowCustom: true,
+    recommendedChannelIds: channelIds,
+    options: channelIds.map((channelId) => {
+      const def = getChannelDefinition(channelId);
+      return {
+        id: channelId,
+        label: channelName(channelId, locale),
+        ...(def?.description ? { description: def.description } : {}),
+      };
+    }),
+  };
+}
+
+export function formatChannelRecommendationBrief(
+  channelIds: string[],
+  locale = 'zh'
+): string {
+  const isZh = locale !== 'en';
+  return channelIds
+    .map((channelId, index) => {
+      const def = getChannelDefinition(channelId);
+      const name = channelName(channelId, locale);
+      const desc = def?.description ?? '';
+      return isZh
+        ? `${index + 1}. **${name}** — ${desc}`
+        : `${index + 1}. **${name}** — ${desc}`;
+    })
     .join('\n');
 }
 

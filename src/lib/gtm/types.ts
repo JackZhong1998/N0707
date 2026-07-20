@@ -210,6 +210,8 @@ export interface OptionCard {
   multi: boolean;
   options: OptionItem[];
   allowCustom?: boolean;
+  /** 渠道推荐卡：总监推荐的 channelIds，用户确认后写入 store */
+  recommendedChannelIds?: string[];
   /** 用户提交后记录所选 label */
   answered?: string[];
 }
@@ -228,6 +230,8 @@ export interface KickoffCard {
   questions: KickoffQuestion[];
   /** 用户提交后记录：questionId -> 所选 label 列表 */
   answered?: Record<string, string[]>;
+  /** 已上线产品用户提交的产品链接 */
+  productUrl?: string;
 }
 
 /* ---------- 消息卡片 ---------- */

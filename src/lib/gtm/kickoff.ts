@@ -6,6 +6,13 @@
 
 import type { KickoffCard } from './types';
 
+/** 已上线产品状态 — 需要用户提供产品链接 */
+export const LIVE_PRODUCT_STAGE_IDS = ['live', 'users'] as const;
+
+export function isLiveProductStage(stageOptionId: string): boolean {
+  return (LIVE_PRODUCT_STAGE_IDS as readonly string[]).includes(stageOptionId);
+}
+
 export function buildKickoffCard(isZh: boolean): KickoffCard {
   if (!isZh) {
     return {
@@ -48,7 +55,8 @@ export function buildKickoffCard(isZh: boolean): KickoffCard {
           question: 'How much time per day can you spend on getting users?',
           multi: false,
           options: [
-            { id: 'lt1', label: 'Under 1 hour' },
+            { id: 'lt30', label: 'Under 30 minutes' },
+            { id: 'm30h1', label: '30 min to 1 hour' },
             { id: 'h12', label: '1–2 hours' },
             { id: 'h3', label: '3+ hours' },
           ],
@@ -96,7 +104,8 @@ export function buildKickoffCard(isZh: boolean): KickoffCard {
         question: '每天能投入多少时间做获客？',
         multi: false,
         options: [
-          { id: 'lt1', label: '1 小时以内' },
+          { id: 'lt30', label: '30 分钟以内' },
+          { id: 'm30h1', label: '30 分钟到 1 小时' },
           { id: 'h12', label: '1–2 小时' },
           { id: 'h3', label: '3 小时以上' },
         ],
@@ -109,7 +118,8 @@ export function buildKickoffCard(isZh: boolean): KickoffCard {
 export function formatKickoffAnswers(
   card: KickoffCard,
   answers: Record<string, string[]>,
-  isZh: boolean
+  isZh: boolean,
+  productUrl?: string
 ): string {
   const lines = card.questions
     .map((q) => {
@@ -118,5 +128,12 @@ export function formatKickoffAnswers(
       return `${q.question} ${picked.join(isZh ? '、' : ', ')}`;
     })
     .filter(Boolean);
-  return `${isZh ? '我的基本情况：' : 'My basics:'}\n${lines.map((l) => `- ${l}`).join('\n')}`;
+  const urlLine =
+    productUrl?.trim()
+      ? isZh
+        ? `- 产品链接：${productUrl.trim()}`
+        : `- Product URL: ${productUrl.trim()}`
+      : null;
+  const allLines = urlLine ? [...lines, urlLine] : lines;
+  return `${isZh ? '我的基本情况：' : 'My basics:'}\n${allLines.map((l) => `- ${l}`).join('\n')}`;
 }

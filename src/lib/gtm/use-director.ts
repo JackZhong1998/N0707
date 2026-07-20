@@ -581,14 +581,36 @@ export function useDirector(defaultViewContext?: ViewContext) {
           role: 'assistant',
           content:
             locale !== 'en'
-              ? `${result.summary}\n\n完整选题计划已经放到左侧工作区，所有渠道版本也已经进入选题库。`
-              : `${result.summary}\n\nThe full plan is in the workspace and every channel variant has been added to the topic library.`,
+              ? `${result.summary}\n\n完整选题计划已经放到左侧工作区，所有渠道版本也已经进入选题库。**你先过一遍这些选题方向** — 哪里不对味直接告诉我，确认没问题后我们再推进策略确认和排期。`
+              : `${result.summary}\n\nThe full plan is in the workspace and every channel variant has been added to the topic library. **Review these topic directions first** — tell me anything that feels off; once confirmed we'll move to strategy sign-off and scheduling.`,
           card: {
             kind: 'artifact',
             artifactId: artifact.id,
             title: artifact.title,
             summary: artifact.summary,
             status: artifact.status,
+          },
+        });
+        await publishDirectorMessage({
+          role: 'assistant',
+          content: '',
+          card: {
+            kind: 'options',
+            card: {
+              question: locale !== 'en' ? '这些选题方向可以吗？' : 'Happy with these topic directions?',
+              multi: false,
+              options: [
+                {
+                  id: 'confirm_topics',
+                  label: locale !== 'en' ? '选题方向没问题' : 'Topics look good',
+                },
+                {
+                  id: 'adjust_topics',
+                  label: locale !== 'en' ? '我要调整选题（在下方说明）' : 'I want changes (tell me below)',
+                },
+              ],
+              allowCustom: true,
+            },
           },
         });
       } catch (error) {
@@ -1587,6 +1609,18 @@ export function useDirector(defaultViewContext?: ViewContext) {
         .filter((o) => selected.includes(o.id))
         .map((o) => o.label);
       if (customText) labels.push(customText);
+
+      if (card.recommendedChannelIds?.length) {
+        const selectedChannels = selected.filter((id) =>
+          card.recommendedChannelIds!.includes(id)
+        );
+        if (selectedChannels.length > 0) {
+          gtm.setChannels([...new Set(selectedChannels)]);
+        } else if (selected.includes('confirm_recommended_channels')) {
+          gtm.setChannels([...new Set(card.recommendedChannelIds)]);
+        }
+      }
+
       gtm.patchDirectorMessage(messageId, {
         card: { kind: 'options', card: { ...card, answered: labels } },
       });
@@ -1599,15 +1633,27 @@ export function useDirector(defaultViewContext?: ViewContext) {
     [gtm, send]
   );
 
-  /** 提交冷启动问卷（多题固定卡片） */
+  /** 提交冷启动问卷（多题固定卡片）；已上线产品附带链接时先研究再对话 */
   const submitKickoff = useCallback(
-    (messageId: string, card: KickoffCard, answers: Record<string, string[]>) => {
+    async (
+      messageId: string,
+      card: KickoffCard,
+      answers: Record<string, string[]>,
+      productUrl?: string
+    ) => {
+      const trimmedUrl = productUrl?.trim();
       gtm.patchDirectorMessage(messageId, {
-        card: { kind: 'kickoff', card: { ...card, answered: answers } },
+        card: {
+          kind: 'kickoff',
+          card: { ...card, answered: answers, ...(trimmedUrl ? { productUrl: trimmedUrl } : {}) },
+        },
       });
-      void send(formatKickoffAnswers(card, answers, locale !== 'en'));
+      if (trimmedUrl) {
+        await runProductResearch(trimmedUrl);
+      }
+      void send(formatKickoffAnswers(card, answers, locale !== 'en', trimmedUrl));
     },
-    [gtm, locale, send]
+    [gtm, locale, send, runProductResearch]
   );
 
   return {

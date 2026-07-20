@@ -12,7 +12,12 @@ import type {
   DirectorResponse,
   StrategyResponse,
 } from '@/lib/gtm/types';
-import { channelName } from './catalog';
+import {
+  buildChannelPickOptionCard,
+  channelName,
+  formatChannelRecommendationBrief,
+  recommendChannels,
+} from './catalog';
 import { getChannelDefinition } from './skills/channel-map';
 
 export function isMockMode(): boolean {
@@ -20,6 +25,59 @@ export function isMockMode(): boolean {
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function parseKickoffContext(history: ChatMessage[]): {
+  markets: string[];
+  stage?: string;
+  time?: string;
+} {
+  const kickoffMsg = history.find(
+    (m) =>
+      m.role === 'user' &&
+      (/我的基本情况/.test(m.content) || /My basics:/i.test(m.content))
+  );
+  if (!kickoffMsg) return { markets: ['cn'] };
+
+  const content = kickoffMsg.content;
+  const markets: string[] = [];
+  if (/中国市场|China \(Chinese/i.test(content)) markets.push('cn');
+  if (/美国|英语市场|US \/ English/i.test(content)) markets.push('us');
+  if (/东南亚|Southeast Asia/i.test(content)) markets.push('sea');
+  if (/全球|Global/i.test(content)) markets.push('global');
+  if (markets.length === 0) markets.push('cn');
+
+  let stage: string | undefined;
+  if (/想法|规划中|Idea \/ planning/i.test(content)) stage = 'idea';
+  else if (/开发中|In development/i.test(content)) stage = 'building';
+  else if (/已上线且有一些用户|Live with some users/i.test(content)) stage = 'users';
+  else if (/已上线|Live and usable/i.test(content)) stage = 'live';
+
+  let time: string | undefined;
+  if (/30 分钟以内|Under 30 minutes/i.test(content)) time = 'lt30';
+  else if (/30 分钟到 1 小时|30 min to 1 hour/i.test(content)) time = 'm30h1';
+  else if (/1 小时以内|Under 1 hour/i.test(content)) time = 'm30h1';
+  else if (/1–2 小时|1-2 hours/i.test(content)) time = 'h12';
+  else if (/3 小时|3\+ hours/i.test(content)) time = 'h3';
+
+  return { markets, stage, time };
+}
+
+function buildChannelRecommendation(history: ChatMessage[]) {
+  const kickoff = parseKickoffContext(history);
+  const channelIds = recommendChannels(kickoff);
+  const brief = formatChannelRecommendationBrief(channelIds);
+  return {
+    channelIds,
+    reply: `结合你的目标市场、产品状态和可投入时间，我给你推荐下面 ${channelIds.length} 个最合适的渠道——不用你懂行，具体怎么做我们来：
+
+${brief}
+
+**为什么推荐这些？** 每个渠道各有分工：有的负责快速验证、有的负责持续曝光、有的负责转化承接。策略组会按你选的渠道排好每天做什么，渠道专员会写好内容初稿 — 你只需要过一遍、发布。
+
+**勾一下你想先从哪几个做起**（时间紧选 1–2 个也行，充裕可以全选）：`,
+    optionCard: buildChannelPickOptionCard(channelIds),
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /* 市场总监                                                             */
@@ -84,52 +142,69 @@ export async function mockDirector(input: {
   // 冷启动问询阶段（按轮次推进）
   // 进入对话时前端已本地插入：问候语 + 固定冷启动问卷卡（共 2 条 assistant 消息），
   // 因此首条用户消息（问卷答案）到达时 assistantTurns 约为 2
+  const hasProductUrl =
+    /产品链接|Product URL/i.test(msg) ||
+    input.history.some(
+      (m) => m.role === 'user' && /产品链接|Product URL/i.test(m.content)
+    );
+
+  const channelRecommendation = buildChannelRecommendation(input.history);
+
+  const coldStartOptionCard = {
+    question: '冷启动方式偏好',
+    multi: false as const,
+    options: [
+      { id: 'founder', label: '创始人个人号', description: '以你本人的故事和视角输出（推荐）' },
+      { id: 'brand', label: '品牌官方号', description: '以产品品牌的身份运营' },
+      { id: 'mixed', label: '两者结合', description: '个人号讲故事，官方号做承接' },
+    ],
+  };
+
   if (assistantTurns <= 2) {
+    if (hasProductUrl) {
+      return {
+        reply: `收到，你的基本盘我记下了。我已经读完你的产品官网和主要竞品，对产品和市场有了基本判断。
+
+${channelRecommendation.reply}`,
+        optionCard: channelRecommendation.optionCard,
+      };
+    }
     return {
       reply:
         '收到，你的基本盘我记下了。接着说说产品本身：**它是什么？解决了什么问题？** 如果只能用一句话说服你的目标用户，你会说什么？',
     };
   }
 
+  if (hasProductUrl && assistantTurns === 3) {
+    return {
+      reply: '好，渠道方案定了。最后一个问题 — 你的冷启动更想以什么方式打？',
+      optionCard: coldStartOptionCard,
+    };
+  }
+
   if (assistantTurns === 3) {
     return {
-      reply: '明白了，画像清楚了。基于你的市场和产品，我建议优先做这几个渠道 — 选出你愿意投入的（可多选）：',
-      optionCard: {
-        question: '首发渠道选哪些？',
-        multi: true,
-        options: [
-          { id: 'xiaohongshu', label: '小红书', description: '公域种草，适合冷启动讲故事' },
-          { id: 'user_outreach', label: '私域 / 朋友圈', description: '转化路径最短的渠道' },
-          { id: 'twitter_x', label: 'Twitter / X', description: 'Build in public，海外主阵地' },
-          { id: 'wechat_official', label: '微信公众号', description: '长文深度内容沉淀' },
-          { id: 'reddit', label: 'Reddit', description: '海外社区渗透' },
-          { id: 'linkedin', label: 'LinkedIn', description: 'B2B 决策者触达' },
-        ],
-      },
+      reply: channelRecommendation.reply,
+      optionCard: channelRecommendation.optionCard,
     };
   }
 
   if (assistantTurns === 4) {
     return {
-      reply: '好，渠道定了。最后一个问题 — 你的冷启动更想以什么方式打？',
-      optionCard: {
-        question: '冷启动方式偏好',
-        multi: false,
-        options: [
-          { id: 'founder', label: '创始人个人号', description: '以你本人的故事和视角输出（推荐）' },
-          { id: 'brand', label: '品牌官方号', description: '以产品品牌的身份运营' },
-          { id: 'mixed', label: '两者结合', description: '个人号讲故事，官方号做承接' },
-        ],
-      },
+      reply: '好，渠道方案定了。最后一个问题 — 你的冷启动更想以什么方式打？',
+      optionCard: coldStartOptionCard,
     };
   }
 
-  // 信息足够 → 调用策略生成 Agent
+  // 信息足够 → 同时调用策略生成 + 选题规划
   const channels = input.channels.length > 0 ? input.channels : ['xiaohongshu', 'user_outreach'];
   return {
     reply:
-      '信息足够了。我现在把策略组（策略生成 Agent）叫起来，基于我们刚才聊的这些，给你产出一份 30 天冷启动市场策略：包含总体方向、每个渠道的账号定位和内容规划。生成需要一点时间，完成后我会用卡片的形式给你，稍等。',
-    actions: [{ type: 'generate_strategy', channelIds: channels }],
+      '信息足够了。我现在把策略组和选题规划一起叫起来，基于我们刚才聊的这些，给你产出市场策略和首批选题。生成需要一点时间，完成后我会用卡片的形式给你，稍等。',
+    actions: [
+      { type: 'generate_strategy', channelIds: channels },
+      { type: 'generate_topics', channelIds: channels, count: 7 },
+    ],
   };
 }
 
