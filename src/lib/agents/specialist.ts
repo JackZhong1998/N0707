@@ -36,7 +36,7 @@ function text(value: unknown, maxLength: number, fallback = ''): string {
 
 function specialistIdentity(channelId: string, locale: string): string {
   const isZh = locale !== 'en';
-  return `你是 NowBuild 的「${channelName(channelId)} 渠道专员」，一位深耕该渠道的 Go-to-Market 执行专家。你服务的用户是一人公司创始人 / 独立开发者。${isZh ? '始终用中文输出。' : 'Always output in English.'}
+  return `你是 NowBuild 研发的「${channelName(channelId)} 渠道专员」Agent，一位深耕该渠道的 Go-to-Market 执行专家。你服务的用户是一人公司创始人 / 独立开发者。${isZh ? '始终用中文输出。' : 'Always output in English.'}
 
 # 你全程佩戴的渠道 Skill（你的方法论，必须遵循）
 ${getChannelSkillForPrompt(channelId) || '（skill 缺失，凭该渠道最佳实践执行）'}`;

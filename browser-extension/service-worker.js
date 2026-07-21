@@ -47,13 +47,37 @@ function validMetricsPayload(payload) {
         (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
       );
     }
-    return (
-      url.hostname === 'xiaohongshu.com' ||
-      url.hostname.endsWith('.xiaohongshu.com')
+    return ['xiaohongshu.com', 'xhslink.com'].some(
+      (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
     );
   } catch {
     return false;
   }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForTabComplete(tabId, timeout = 45000) {
+  const tab = await chrome.tabs.get(tabId);
+  if (tab.status === 'complete') return;
+
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      reject(new Error('打开帖子页面超时'));
+    }, timeout);
+
+    function onUpdated(updatedTabId, info) {
+      if (updatedTabId !== tabId || info.status !== 'complete') return;
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      resolve();
+    }
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+  });
 }
 
 async function readJobs() {
@@ -75,6 +99,28 @@ async function sendToWeb(job, event) {
     });
   } catch {
     // The NowBuild tab may have been closed. The job remains recoverable locally.
+  }
+}
+
+async function focusWebTab(webTabId) {
+  if (!webTabId) return;
+  try {
+    const tab = await chrome.tabs.get(webTabId);
+    if (tab.windowId !== undefined) {
+      await chrome.windows.update(tab.windowId, { focused: true });
+    }
+    await chrome.tabs.update(webTabId, { active: true });
+  } catch {
+    // The NowBuild tab may have been closed.
+  }
+}
+
+async function closeTargetTab(tabId) {
+  if (!tabId) return;
+  try {
+    await chrome.tabs.remove(tabId);
+  } catch {
+    // The target tab may already be closed.
   }
 }
 
@@ -115,11 +161,31 @@ async function dispatchJob(job) {
     await sendToWeb(claimed, {
       status: claimed.kind === 'metrics' ? 'collecting' : 'filling',
       message:
-        claimed.kind === 'metrics' ? '正在读取帖子公开数据' : '正在填写发布内容',
+        claimed.kind === 'metrics' ? '正在后台读取帖子公开数据' : '正在填写发布内容',
     });
   } catch {
     // The content script may not be ready yet. CHANNEL_READY will retry.
     await updateJob(claimed, { startedAt: null });
+  }
+}
+
+async function runMetricsCollection(job) {
+  await sendToWeb(job, {
+    status: 'opening',
+    message: '正在后台打开帖子页面',
+  });
+  try {
+    await waitForTabComplete(job.targetTabId);
+    await sleep(job.channel === 'xiaohongshu' ? 2200 : 1000);
+    await dispatchJob(job);
+  } catch (error) {
+    await sendToWeb(job, {
+      status: 'failed',
+      error: error?.message || 'Collection failed',
+    });
+    await removeJob(job.requestId);
+    await closeTargetTab(job.targetTabId);
+    await focusWebTab(job.webTabId);
   }
 }
 
@@ -181,18 +247,14 @@ async function startMetricsCollection(request, sender) {
     requestId: payload.requestId,
     channel: payload.channel,
     postUrl: payload.postUrl,
-    webTabId: sender.tab.id,
+    webTabId: sender.tab?.id,
     targetTabId: targetTab.id,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
   jobs[payload.requestId] = job;
   await writeJobs(jobs);
-  void dispatchJob(job);
-  await sendToWeb(job, {
-    status: 'opening',
-    message: '正在打开帖子页面',
-  });
+  void runMetricsCollection(job);
   return { accepted: true, requestId: payload.requestId };
 }
 
@@ -231,11 +293,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const jobs = await readJobs();
         const job = jobs[request.requestId];
         if (job?.targetTabId) {
-          try {
-            await chrome.tabs.remove(job.targetTabId);
-          } catch {
-            // The target tab may already be closed.
-          }
+          await closeTargetTab(job.targetTabId);
         }
         if (job) await removeJob(job.requestId);
         sendResponse({ ok: true });
@@ -268,15 +326,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         error: request.error,
         metrics: request.metrics,
       });
-      if (request.status === 'published' || request.status === 'collected') {
+
+      if (request.status === 'published') {
         await removeJob(job.requestId);
-        if (request.status === 'collected') {
-          try {
-            await chrome.tabs.remove(sender.tab.id);
-          } catch {
-            // The collection tab may already be closed.
-          }
-        }
+        return;
+      }
+
+      if (request.status === 'collected') {
+        await removeJob(job.requestId);
+        await closeTargetTab(sender.tab.id);
+        await focusWebTab(job.webTabId);
+        return;
+      }
+
+      if (request.status === 'failed') {
+        await removeJob(job.requestId);
+        await closeTargetTab(sender.tab.id);
+        await focusWebTab(job.webTabId);
       }
     })();
     return false;
@@ -289,12 +355,16 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   void (async () => {
     const job = await findJobByTargetTab(tabId);
     if (!job) return;
-    if (job.lastStatus !== 'published') {
+    if (job.lastStatus !== 'published' && job.lastStatus !== 'collected') {
       await sendToWeb(job, {
         status: 'failed',
-        error: '发布页面已关闭，任务没有确认完成',
+        error:
+          job.kind === 'metrics'
+            ? '帖子页面已关闭，数据采集未完成'
+            : '发布页面已关闭，任务没有确认完成',
       });
       await removeJob(job.requestId);
+      await focusWebTab(job.webTabId);
     }
   })();
 });

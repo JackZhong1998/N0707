@@ -7,23 +7,12 @@ import {
   detectPublisherExtension,
   type PublisherAvailability,
 } from '@/lib/gtm/publisher-extension';
-
-const CURRENT_EXTENSION_VERSION = '0.2.1';
-const DOWNLOAD_URL = `/downloads/nowbuild-publisher-extension-${CURRENT_EXTENSION_VERSION}.zip`;
-
-function isOlderExtensionVersion(version?: string): boolean {
-  if (!version) return true;
-  const installed = version.split('.').map((part) => Number(part));
-  const current = CURRENT_EXTENSION_VERSION.split('.').map((part) => Number(part));
-
-  for (let index = 0; index < Math.max(installed.length, current.length); index += 1) {
-    const installedPart = installed[index] ?? 0;
-    const currentPart = current[index] ?? 0;
-    if (installedPart < currentPart) return true;
-    if (installedPart > currentPart) return false;
-  }
-  return false;
-}
+import {
+  isOlderExtensionVersion,
+  PUBLISHER_EXTENSION_RELEASE_NOTES,
+  PUBLISHER_EXTENSION_VERSION,
+  publisherExtensionDownloadUrl,
+} from '@/lib/gtm/publisher-extension-version';
 
 function DownloadIcon() {
   return (
@@ -58,20 +47,33 @@ export default function PublisherExtensionPage() {
   }, []);
 
   const needsUpgrade =
-    publisher?.installed === true && isOlderExtensionVersion(publisher.version);
+    publisher?.installed === true &&
+    isOlderExtensionVersion(publisher.version, PUBLISHER_EXTENSION_VERSION);
+  const releaseNotes =
+    PUBLISHER_EXTENSION_RELEASE_NOTES[PUBLISHER_EXTENSION_VERSION] ??
+    PUBLISHER_EXTENSION_RELEASE_NOTES['0.2.4'];
+  const downloadUrl = publisherExtensionDownloadUrl(PUBLISHER_EXTENSION_VERSION);
 
   const steps = isZh
     ? [
         ['下载并解压插件', '点击下方按钮下载 ZIP，下载完成后双击解压。'],
         ['打开 Chrome 扩展程序', '在地址栏输入 chrome://extensions，然后打开“开发者模式”。'],
-        ['加载插件文件夹', '点击“加载已解压的扩展程序”，选择解压后的 browser-extension 文件夹。'],
-        ['刷新 NowBuild', '回到内容页面并刷新，之后即可自动填写小红书和 X 发布页面。'],
+        needsUpgrade
+          ? ['替换旧版本', '删除或覆盖原来的 browser-extension 文件夹，保留 Chrome 里已加载的扩展条目。']
+          : ['加载插件文件夹', '点击“加载已解压的扩展程序”，选择解压后的 browser-extension 文件夹。'],
+        needsUpgrade
+          ? ['重新加载插件', '在 chrome://extensions 中点击插件卡片上的“重新加载”，然后刷新 NowBuild 页面。']
+          : ['刷新 NowBuild', '回到内容页面并刷新，之后即可自动填写小红书和 X 发布页面。'],
       ]
     : [
         ['Download and unzip', 'Download the ZIP below, then unzip it on your computer.'],
         ['Open Chrome extensions', 'Enter chrome://extensions and enable Developer mode.'],
-        ['Load the extension folder', 'Choose “Load unpacked” and select the extracted browser-extension folder.'],
-        ['Refresh NowBuild', 'Return to your content and refresh the page to start publishing.'],
+        needsUpgrade
+          ? ['Replace the old folder', 'Delete or overwrite the previous browser-extension folder while keeping the loaded extension entry.']
+          : ['Load the extension folder', 'Choose “Load unpacked” and select the extracted browser-extension folder.'],
+        needsUpgrade
+          ? ['Reload the extension', 'Click Reload on the extension card in chrome://extensions, then refresh NowBuild.']
+          : ['Refresh NowBuild', 'Return to your content and refresh the page to start publishing.'],
       ];
 
   return (
@@ -106,11 +108,11 @@ export default function PublisherExtensionPage() {
 
               <div
                 className={`flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium ${
-                    publisher?.installed && !needsUpgrade
-                      ? 'bg-ink text-white'
-                      : needsUpgrade
-                        ? 'bg-amber-50 text-amber-700'
-                        : 'bg-paper-dim text-ink-soft'
+                  publisher?.installed && !needsUpgrade
+                    ? 'bg-ink text-white'
+                    : needsUpgrade
+                      ? 'bg-amber-50 text-amber-700'
+                      : 'bg-paper-dim text-ink-soft'
                 }`}
               >
                 <span
@@ -121,7 +123,7 @@ export default function PublisherExtensionPage() {
                         ? 'bg-emerald-400'
                         : needsUpgrade
                           ? 'bg-amber-400'
-                        : 'bg-zinc-300'
+                          : 'bg-zinc-300'
                   }`}
                 />
                 {checking
@@ -134,13 +136,40 @@ export default function PublisherExtensionPage() {
                       : `Installed · v${publisher.version ?? ''}`
                     : needsUpgrade
                       ? isZh
-                        ? `需要更新 · v${publisher?.version ?? ''}`
-                        : `Update needed · v${publisher?.version ?? ''}`
-                    : isZh
-                      ? '尚未安装'
-                      : 'Not installed'}
+                        ? `有新版本 · 当前 v${publisher?.version ?? ''}`
+                        : `Update available · v${publisher?.version ?? ''}`
+                      : isZh
+                        ? '尚未安装'
+                        : 'Not installed'}
               </div>
             </div>
+
+            {needsUpgrade && (
+              <div className="mt-7 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50">
+                <div className="border-b border-amber-200 px-5 py-4">
+                  <p className="text-sm font-semibold text-amber-900">
+                    {isZh
+                      ? `发现新版本 v${PUBLISHER_EXTENSION_VERSION}`
+                      : `New version available: v${PUBLISHER_EXTENSION_VERSION}`}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                    {isZh
+                      ? `你当前安装的是 v${publisher?.version ?? '未知'}。请下载并重新加载插件，以修复小红书数据采集等问题。`
+                      : `You are on v${publisher?.version ?? 'unknown'}. Download and reload the extension to get Xiaohongshu metrics fixes and other updates.`}
+                  </p>
+                </div>
+                {releaseNotes && (
+                  <ul className="space-y-2 px-5 py-4 text-xs leading-relaxed text-amber-900">
+                    {(isZh ? releaseNotes.zh : releaseNotes.en).map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {publisher?.installed && !needsUpgrade ? (
               <div className="mt-7 rounded-2xl bg-paper-dim p-5">
@@ -154,8 +183,8 @@ export default function PublisherExtensionPage() {
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-zinc-500">
                       {isZh
-                        ? '返回任意小红书或 X 内容，点击“准备发布”即可开始。'
-                        : 'Return to any Xiaohongshu or X content and choose “Prepare to publish”.'}
+                        ? `当前版本 v${publisher.version ?? PUBLISHER_EXTENSION_VERSION} 已是最新。返回任意小红书或 X 内容，点击“准备发布”即可开始。`
+                        : `You are on the latest version v${publisher.version ?? PUBLISHER_EXTENSION_VERSION}. Return to any Xiaohongshu or X content and choose “Prepare to publish”.`}
                     </p>
                     <Link
                       href="/app/calendar"
@@ -167,25 +196,18 @@ export default function PublisherExtensionPage() {
                 </div>
               </div>
             ) : (
-              <div className="mt-7">
-                {needsUpgrade && (
-                  <div className="mb-4 rounded-2xl bg-amber-50 p-4 text-xs leading-relaxed text-amber-800">
-                    {isZh
-                      ? '你安装的是旧版本。请下载 0.2.1，替换原插件文件夹后，在 chrome://extensions 中点击插件的“重新加载”，最后刷新 NowBuild 页面。'
-                      : 'Your extension is outdated. Download 0.2.1, replace the old extension folder, click Reload in chrome://extensions, then refresh NowBuild.'}
-                  </div>
-                )}
+              <div className={needsUpgrade ? 'mt-5' : 'mt-7'}>
                 <div className="flex flex-wrap items-center gap-3">
                   <a
-                    href={DOWNLOAD_URL}
+                    href={downloadUrl}
                     download
                     className="inline-flex h-11 items-center gap-2 rounded-full bg-ink px-6 text-sm font-semibold text-white hover:bg-zinc-800"
                   >
                     <DownloadIcon />
                     {needsUpgrade
                       ? isZh
-                        ? '下载插件更新'
-                        : 'Download update'
+                        ? `下载 v${PUBLISHER_EXTENSION_VERSION} 更新`
+                        : `Download v${PUBLISHER_EXTENSION_VERSION} update`
                       : isZh
                         ? '下载 Chrome 插件'
                         : 'Download Chrome extension'}
@@ -199,8 +221,8 @@ export default function PublisherExtensionPage() {
                   </button>
                   <span className="text-xs text-zinc-400">
                     {isZh
-                      ? `版本 ${CURRENT_EXTENSION_VERSION} · 仅支持桌面版 Chrome`
-                      : `Version ${CURRENT_EXTENSION_VERSION} · Desktop Chrome only`}
+                      ? `最新版本 ${PUBLISHER_EXTENSION_VERSION} · 仅支持桌面版 Chrome`
+                      : `Latest version ${PUBLISHER_EXTENSION_VERSION} · Desktop Chrome only`}
                   </span>
                 </div>
               </div>
@@ -209,7 +231,13 @@ export default function PublisherExtensionPage() {
 
           <div className="border-t border-zinc-100 p-6 sm:p-9">
             <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-ink">
-              {isZh ? '4 步完成安装' : 'Install in four steps'}
+              {needsUpgrade
+                ? isZh
+                  ? '4 步完成更新'
+                  : 'Update in four steps'
+                : isZh
+                  ? '4 步完成安装'
+                  : 'Install in four steps'}
             </h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {steps.map(([title, description], index) => (

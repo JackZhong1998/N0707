@@ -73,7 +73,7 @@ export default function PostMetricsPanel({ todo, onSnapshot }: Props) {
       return;
     }
     setCollecting(true);
-    setMessage(isZh ? '正在打开帖子并读取公开数据…' : 'Opening the post…');
+    setMessage(isZh ? '正在后台抓取公开数据…' : 'Collecting metrics in the background…');
     try {
       const task = collectMetricsWithExtension(
         todo.channelId as SupportedPublishChannel,

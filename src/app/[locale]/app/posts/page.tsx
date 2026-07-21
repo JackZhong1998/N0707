@@ -81,7 +81,7 @@ export default function PostsPage() {
     setSyncProgress({
       current: 0,
       total: syncableCount,
-      message: isZh ? '正在准备抓取…' : 'Preparing sync…',
+      message: isZh ? '正在后台抓取…' : 'Syncing in background…',
     });
 
     const publisher = await detectPublisherExtension();

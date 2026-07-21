@@ -2,16 +2,19 @@
   "manifest_version": 3,
   "name": "NowBuild 发布助手",
   "description": "从 NowBuild 打开并填写小红书和 X 发布页面。插件不保存账号密码，也不调用 AI。",
-  "version": "0.2.1",
+  "version": "0.2.4",
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "windows"
   ],
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
     "https://creator.xiaohongshu.com/*",
     "https://www.xiaohongshu.com/*",
+    "https://xhslink.com/*",
+    "https://*.xhslink.com/*",
     "https://nowbuild.ai/*"
   ],
   "background": {
@@ -47,7 +50,9 @@
     {
       "matches": [
         "https://creator.xiaohongshu.com/*",
-        "https://www.xiaohongshu.com/*"
+        "https://www.xiaohongshu.com/*",
+        "https://xhslink.com/*",
+        "https://*.xhslink.com/*"
       ],
       "js": [
         "channels/xiaohongshu.js"

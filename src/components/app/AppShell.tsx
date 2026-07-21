@@ -27,6 +27,11 @@ import {
   useViewContext,
 } from '@/lib/gtm/view-context-provider';
 import type { ViewContext } from '@/lib/gtm/view-context';
+import { detectPublisherExtension } from '@/lib/gtm/publisher-extension';
+import {
+  isOlderExtensionVersion,
+  PUBLISHER_EXTENSION_VERSION,
+} from '@/lib/gtm/publisher-extension-version';
 
 const isClerkConfigured =
   typeof process !== 'undefined' &&
@@ -237,7 +242,22 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [agentCollapsed, setAgentCollapsed] = useState(false);
   const [mobileAgentOpen, setMobileAgentOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [extensionNeedsUpdate, setExtensionNeedsUpdate] = useState(false);
   const autoReviewStarted = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void detectPublisherExtension().then((publisher) => {
+      if (cancelled) return;
+      setExtensionNeedsUpdate(
+        publisher.installed === true &&
+          isOlderExtensionVersion(publisher.version, PUBLISHER_EXTENSION_VERSION)
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const items = useMemo<NavigationItem[]>(
     () => [
@@ -482,7 +502,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                     <NavIcon name={item.icon} className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-xs font-semibold">{item.label}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="block text-xs font-semibold">{item.label}</span>
+                      {item.key === 'publisher' && extensionNeedsUpdate && (
+                        <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                          {isZh ? '有更新' : 'Update'}
+                        </span>
+                      )}
+                    </span>
                     <span
                       className={`mt-0.5 block truncate text-[10px] ${
                         active ? 'text-zinc-500' : 'text-zinc-600'
@@ -545,16 +572,25 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                 )}
                 <Link
                   href={item.href}
-                  title={item.label}
+                  title={
+                    item.key === 'publisher' && extensionNeedsUpdate
+                      ? isZh
+                        ? '发布插件 · 有新版本'
+                        : 'Publishing extension · update available'
+                      : item.label
+                  }
                   aria-label={item.label}
                   onMouseEnter={() => router.prefetch(item.href)}
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                  className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
                     active
                       ? 'bg-white text-black'
                       : 'text-zinc-400 hover:bg-white/[0.08] hover:text-white'
                   }`}
                 >
                   <NavIcon name={item.icon} />
+                  {item.key === 'publisher' && extensionNeedsUpdate && (
+                    <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-[#08090b]" />
+                  )}
                 </Link>
               </div>
             );

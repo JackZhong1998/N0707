@@ -160,52 +160,209 @@ function parseCount(value) {
   return Math.round(number);
 }
 
-function metricFromSelectors(selectors) {
+function isLoginWall() {
+  const text = document.body?.innerText || '';
+  const needsLogin =
+    /登录后查看|请先登录|扫码登录|登录探索更多|马上登录/.test(text);
+  return needsLogin && !findInteractionRoot() && !noteContentReady();
+}
+
+function metricFromElement(element) {
+  if (!element) return undefined;
+  const value =
+    parseCount(element.getAttribute('aria-label')) ??
+    parseCount(element.textContent);
+  return value;
+}
+
+function metricFromRoot(root, selectors) {
   for (const selector of selectors) {
-    const element = document.querySelector(selector);
-    if (!element) continue;
-    const value =
-      parseCount(element.getAttribute('aria-label')) ??
-      parseCount(element.textContent);
+    const value = metricFromElement(root.querySelector(selector));
     if (value !== undefined) return value;
   }
   return undefined;
 }
 
+function metricFromAria(root, pattern) {
+  for (const element of root.querySelectorAll('[aria-label]')) {
+    const label = element.getAttribute('aria-label') || '';
+    if (!pattern.test(label)) continue;
+    const value = parseCount(label);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+function findInteractionRoot() {
+  const candidates = [
+    '.buttons.engage-bar-style',
+    '.engage-bar-container',
+    '.interact-container',
+    '.engage-bar',
+    '#noteContainer',
+    '.note-container',
+    '.note-detail',
+    '[class*="engage-bar-style"]',
+    '[class*="interact-container"]',
+  ];
+  for (const selector of candidates) {
+    const element = document.querySelector(selector);
+    if (element && visible(element)) return element;
+  }
+  return null;
+}
+
+function noteContentReady() {
+  const markers = ['#detail-title', '#noteContainer', '.note-content', '.note-scroller'];
+  return markers.some((selector) => {
+    const element = document.querySelector(selector);
+    return element && visible(element);
+  });
+}
+
+function readMetricCount(root, wrapperSelector) {
+  const wrapper = root.querySelector(wrapperSelector);
+  if (!wrapper || !visible(wrapper)) return undefined;
+  const countEl = wrapper.querySelector('.count');
+  if (countEl) {
+    const value = metricFromElement(countEl);
+    return value !== undefined ? value : 0;
+  }
+  const ariaValue = metricFromAria(wrapper, /(点赞|评论|收藏|分享|赞|条评论)/);
+  return ariaValue !== undefined ? ariaValue : 0;
+}
+
+function collectMetricsFromDom() {
+  const root = findInteractionRoot();
+  if (root) {
+    return {
+      likes: readMetricCount(root, '.like-wrapper'),
+      comments: readMetricCount(root, '.chat-wrapper'),
+      saves: readMetricCount(root, '.collect-wrapper'),
+      shares: readMetricCount(root, '.share-wrapper'),
+      views: metricFromRoot(root, [
+        '.read-count',
+        '[class*="read-count"]',
+        '[class*="view-count"]',
+      ]),
+    };
+  }
+
+  const fallbackRoot = document.querySelector('#noteContainer') || document;
+  const metrics = {
+    likes: metricFromRoot(fallbackRoot, [
+      '.buttons.engage-bar-style .like-wrapper .count',
+      '.engage-bar-container .like-wrapper .count',
+      '.interact-container .like-wrapper .count',
+      '.like-wrapper .count',
+    ]),
+    comments: metricFromRoot(fallbackRoot, [
+      '.buttons.engage-bar-style .chat-wrapper .count',
+      '.engage-bar-container .chat-wrapper .count',
+      '.interact-container .chat-wrapper .count',
+      '.chat-wrapper .count',
+    ]),
+    saves: metricFromRoot(fallbackRoot, [
+      '.buttons.engage-bar-style .collect-wrapper .count',
+      '.engage-bar-container .collect-wrapper .count',
+      '.interact-container .collect-wrapper .count',
+      '.collect-wrapper .count',
+    ]),
+    shares: metricFromRoot(fallbackRoot, [
+      '.buttons.engage-bar-style .share-wrapper .count',
+      '.engage-bar-container .share-wrapper .count',
+      '.interact-container .share-wrapper .count',
+      '.share-wrapper .count',
+    ]),
+    views: metricFromRoot(fallbackRoot, [
+      '.read-count',
+      '[class*="read-count"]',
+      '[class*="view-count"]',
+    ]),
+  };
+  if (metrics.likes === undefined) {
+    metrics.likes = metricFromAria(fallbackRoot, /(点赞|赞)/);
+  }
+  if (metrics.comments === undefined) {
+    metrics.comments = metricFromAria(fallbackRoot, /(评论|条评论)/);
+  }
+  if (metrics.saves === undefined) {
+    metrics.saves = metricFromAria(fallbackRoot, /(收藏)/);
+  }
+  if (metrics.shares === undefined) {
+    metrics.shares = metricFromAria(fallbackRoot, /(分享)/);
+  }
+  if (metrics.views === undefined) {
+    metrics.views = metricFromAria(document, /(浏览|阅读)/);
+  }
+  return metrics;
+}
+
+async function waitForNotePage(timeout = 75000) {
+  const interactionSelectors = [
+    '.buttons.engage-bar-style',
+    '.engage-bar-container',
+    '.interact-container',
+    '.engage-bar .like-wrapper',
+    '.like-wrapper',
+  ];
+  const started = Date.now();
+  while (Date.now() - started < timeout) {
+    if (isLoginWall()) {
+      throw new Error('请先在小红书网页端登录后再采集数据');
+    }
+    if (noteContentReady()) {
+      for (const selector of interactionSelectors) {
+        const element = document.querySelector(selector);
+        if (element && visible(element)) return;
+      }
+    }
+    await sleep(350);
+  }
+  if (noteContentReady() && findInteractionRoot()) return;
+  if (isLoginWall()) {
+    throw new Error('请先在小红书网页端登录后再采集数据');
+  }
+  if (noteContentReady()) return;
+  throw new Error('等待小红书笔记页加载超时，请确认帖子链接有效');
+}
+
 async function collectMetrics(request) {
   activeRequest = request;
   try {
-    const started = Date.now();
-    while (Date.now() - started < 20000 && !document.body?.innerText) {
-      await sleep(250);
+    await waitForNotePage();
+    let metrics = collectMetricsFromDom();
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      if (Object.values(metrics).some((value) => value !== undefined)) break;
+      await sleep(500);
+      metrics = collectMetricsFromDom();
     }
-    const metrics = {
-      likes: metricFromSelectors([
-        '.like-wrapper .count',
-        '[class*="like-wrapper"] [class*="count"]',
-        '[class*="like"] [class*="count"]',
-      ]),
-      comments: metricFromSelectors([
-        '.chat-wrapper .count',
-        '[class*="comment"] [class*="count"]',
-        '[class*="chat-wrapper"] [class*="count"]',
-      ]),
-      saves: metricFromSelectors([
-        '.collect-wrapper .count',
-        '[class*="collect-wrapper"] [class*="count"]',
-        '[class*="collect"] [class*="count"]',
-      ]),
-      shares: metricFromSelectors([
-        '.share-wrapper .count',
-        '[class*="share-wrapper"] [class*="count"]',
-      ]),
-    };
+
+    const root = findInteractionRoot();
+    if (
+      root &&
+      Object.values(metrics).every((value) => value === undefined)
+    ) {
+      metrics = {
+        likes: readMetricCount(root, '.like-wrapper'),
+        comments: readMetricCount(root, '.chat-wrapper'),
+        saves: readMetricCount(root, '.collect-wrapper'),
+        shares: readMetricCount(root, '.share-wrapper'),
+      };
+    }
+
     if (Object.values(metrics).every((value) => value === undefined)) {
       throw new Error('没有在小红书笔记页找到可读取的数据');
     }
+
+    const normalized = {};
+    for (const [key, value] of Object.entries(metrics)) {
+      if (value !== undefined) normalized[key] = value;
+    }
+
     emit('collected', {
       message: '小红书笔记数据已更新',
-      metrics,
+      metrics: normalized,
     });
   } catch (error) {
     emit('failed', {
