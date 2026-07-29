@@ -17,6 +17,7 @@ export default function Footer() {
         { label: t('directories'), href: '/directories' },
         { label: t('pricing'), href: '/pricing' },
         { label: t('campaign'), href: '/30-day-campaign' },
+        { label: t('openSource'), href: '/open-source-saas-starter' },
       ],
     },
     {

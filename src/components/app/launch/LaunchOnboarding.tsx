@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import {
   buildLaunchBrief,
@@ -214,12 +214,18 @@ export default function LaunchOnboarding() {
           {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
         </form>
 
-        <div className="mt-8 border-t border-white/[0.07] pt-6">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.07] pt-6">
           <p className="max-w-lg text-xs leading-5 text-zinc-600">
             {isZh
               ? '免费阶段会生成冷启动简报。订阅后，再为你制定完整推广蓝图、组建渠道团队，并生成 30 天行动计划。'
               : 'The free stage only builds your Launch Brief. The Blueprint, Channel Agents, and 30-day tasks generate after payment.'}
           </p>
+          <Link
+            href="/open-source-saas-starter"
+            className="text-xs font-semibold text-zinc-400 underline decoration-zinc-700 underline-offset-4 hover:text-white"
+          >
+            {isZh ? '还没发布产品？先去 Build →' : "Haven't launched yet? Build first →"}
+          </Link>
         </div>
       </div>
     </div>
