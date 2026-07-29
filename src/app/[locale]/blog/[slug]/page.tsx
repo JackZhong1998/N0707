@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/landing/Footer';
 import { Link } from '@/i18n/navigation';
-import { buildAbsoluteUrl, getSiteName, localePath, languageAlternates } from '@/lib/seo';
+import { buildAbsoluteUrl, getBaseUrl, getSiteName, localePath, languageAlternates } from '@/lib/seo';
 import enMessages from '@/messages/en.json';
 
 type Props = {
@@ -82,13 +82,17 @@ export default async function BlogPostPage({ params }: Props) {
     headline: post.title,
     description: post.excerpt,
     datePublished: post.date,
+    url: buildAbsoluteUrl(localePath(locale, `/blog/${slug}`)),
+    inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
     author: {
-      '@type': 'Person',
+      '@type': 'Organization',
       name: post.author,
+      url: getBaseUrl(),
     },
     publisher: {
       '@type': 'Organization',
       name: getSiteName(),
+      url: getBaseUrl(),
     },
     mainEntityOfPage: buildAbsoluteUrl(localePath(locale, `/blog/${slug}`)),
   };

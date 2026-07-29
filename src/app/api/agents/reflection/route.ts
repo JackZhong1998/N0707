@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         projectProfileDoc: text(body.projectProfileDoc, 24_000),
         strategyMarkdown: text(body.strategyMarkdown, 30_000),
         performanceContext: text(body.performanceContext, 30_000),
+        campaignContext: text(body.campaignContext, 60_000),
         locale: body.locale === 'en' ? 'en' : 'zh',
       })
     );

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Short Video Script"
+  short_description: "Create shoot-ready TikTok, Reels, and Shorts packages"
+  default_prompt: "Use $short-video-script to create a shoot-ready vertical video package with hooks, spoken script, shots, overlays, and tests."

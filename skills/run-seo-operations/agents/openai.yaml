@@ -1,0 +1,4 @@
+interface:
+  display_name: "SEO Operations"
+  short_description: "Run evidence-led daily, weekly, and monthly SEO work"
+  default_prompt: "Use $run-seo-operations to select and complete today’s highest-value SEO task."

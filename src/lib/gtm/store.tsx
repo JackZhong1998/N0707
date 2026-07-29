@@ -26,7 +26,10 @@ import {
   type TopicVariant,
 } from './types';
 
-const STORAGE_PREFIX = 'nowbuild-gtm-v4-';
+// New product framework, new cache namespace. This prevents a cleared test
+// account from restoring the retired GTM snapshot back into an empty Supabase
+// project on its next login.
+const STORAGE_PREFIX = 'nowbuild-launch-v1-';
 const CLERK_CONFIGURED =
   typeof process !== 'undefined' &&
   Boolean(
@@ -137,6 +140,9 @@ function mergeHydratedStores(
       (message) => message.replyToMessageIds ?? []
     )
   );
+  const remoteHasBrief = Boolean(remoteStore.launch?.brief);
+  const localLaunch =
+    localStore.launch?.brief && !remoteHasBrief ? localStore.launch : undefined;
   return {
     // A different cached revision means another session changed the project
     // while this tab was offline. Without the common base, server state wins
@@ -151,6 +157,15 @@ function mergeHydratedStores(
         (request) => !repliedTo.has(request.messageId)
       )
     ).sort((a, b) => a.createdAt - b.createdAt),
+    // A user's pre-checkout Launch Brief only exists in the local write-ahead
+    // cache. Never let an older/empty first remote snapshot erase it.
+    ...(localLaunch
+      ? {
+          launch: localLaunch,
+          startDate: localStore.startDate,
+          planReady: localStore.planReady,
+        }
+      : {}),
     updatedAt: remoteStore.updatedAt,
   };
 }
@@ -298,6 +313,11 @@ function mergeConflictingStores(
 
   return {
     ...remoteStore,
+    launch: mergeThreeWayValue(
+      baseStore.launch,
+      remoteStore.launch,
+      localStore.launch
+    ),
     planReady: mergeThreeWayValue(
       baseStore.planReady,
       remoteStore.planReady,
@@ -417,9 +437,18 @@ export function makeMessage(
   return { ...message, id: crypto.randomUUID(), createdAt: Date.now() };
 }
 
+export type SubscriptionAccessStatus =
+  | 'checking'
+  | 'paid'
+  | 'unpaid'
+  | 'error';
+
 interface GtmContextValue {
   store: GtmStore;
   hydrated: boolean;
+  /** True after paid remote state was merged (or no remote sync is required). */
+  remoteReady: boolean;
+  accessStatus: SubscriptionAccessStatus;
   update: (patch: Partial<GtmStore>) => void;
   addDirectorMessage: (message: Omit<ChatMessage, 'id' | 'createdAt'>) => ChatMessage;
   patchDirectorMessage: (id: string, patch: Partial<ChatMessage>) => void;
@@ -501,6 +530,8 @@ function GtmProviderState({
   // write-ahead cache is loaded by the hydration effect below.
   const [store, setStore] = useState<GtmStore>(createInitialStore);
   const [hydrated, setHydrated] = useState(false);
+  const [accessStatus, setAccessStatus] =
+    useState<SubscriptionAccessStatus>('checking');
   const [remoteReady, setRemoteReady] = useState(false);
   const keyRef = useRef<string | null>(null);
   const loadedKeyRef = useRef<string | null>(null);
@@ -620,6 +651,7 @@ function GtmProviderState({
     queuedRemoteStoreRef.current = null;
     setHydrated(false);
     setRemoteReady(false);
+    setAccessStatus(userId ? 'checking' : 'unpaid');
 
     let localStore = loadStore(key);
     let cachedRemoteRevision: string | null = null;
@@ -636,14 +668,16 @@ function GtmProviderState({
         anonRaw &&
         localStore.directorChat.length === 0 &&
         localStore.todos.length === 0 &&
-        localStore.topics.length === 0
+        localStore.topics.length === 0 &&
+        !localStore.launch
       ) {
         try {
           const anonStore = migrate(JSON.parse(anonRaw));
           if (
             anonStore.directorChat.length > 0 ||
             anonStore.todos.length > 0 ||
-            anonStore.topics.length > 0
+            anonStore.topics.length > 0 ||
+            anonStore.launch
           ) {
             localStore = anonStore;
           }
@@ -654,11 +688,14 @@ function GtmProviderState({
       }
     }
 
+    // Local state is safe to show immediately. Subscription access remains a
+    // separate server-owned decision and is checked in the background.
+    setStore(localStore);
+    loadedKeyRef.current = key;
+    setHydrated(true);
+
     if (!userId) {
-      setStore(localStore);
-      loadedKeyRef.current = key;
       setRemoteReady(true);
-      setHydrated(true);
       return;
     }
 
@@ -700,37 +737,65 @@ function GtmProviderState({
         }
       };
 
+      const checkoutReturn =
+        new URLSearchParams(window.location.search).get('checkout') ===
+        'success';
+      const checkoutSessionId = checkoutReturn
+        ? new URLSearchParams(window.location.search).get('session_id')
+        : null;
+      let accessFailureAttempt = 0;
+      let paid: boolean | null = null;
+
+      while (!cancelled && paid === null) {
+        try {
+          const access = await fetchJson<{ paid: boolean }>(
+            checkoutSessionId
+              ? `/api/gtm/access?session_id=${encodeURIComponent(checkoutSessionId)}`
+              : '/api/gtm/access',
+            checkoutSessionId ? 15_000 : 5_000
+          );
+          accessFailureAttempt = 0;
+          if (access.paid) {
+            paid = true;
+            break;
+          }
+          paid = false;
+        } catch (error) {
+          accessFailureAttempt += 1;
+          if (!cancelled) setAccessStatus('error');
+          console.warn(
+            `Subscription check failed; keeping access unknown while retrying: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+          const retryMs = Math.min(
+            30_000,
+            1_500 * 2 ** Math.min(accessFailureAttempt - 1, 4)
+          );
+          await new Promise((resolve) =>
+            window.setTimeout(resolve, retryMs)
+          );
+        }
+      }
+
+      if (cancelled || paid === null) return;
+
+      setAccessStatus(paid ? 'paid' : 'unpaid');
+      setStore((current) => ({ ...current, paid }));
+
+      if (!paid) {
+        // Free tier keeps the local Launch Brief workspace so users can finish
+        // analysis and up to 20 Brief corrections before checkout. Remote
+        // persistence remains paid-only below.
+        setStore((current) => ({ ...current, paid: false }));
+        setRemoteReady(true);
+        return;
+      }
+
       try {
-        const checkoutReturn = new URLSearchParams(window.location.search).get('checkout') === 'success';
-        const attempts = checkoutReturn ? 5 : 1;
-        let paid = false;
-
-        for (let attempt = 0; attempt < attempts; attempt += 1) {
-          const access = await fetchJson<{ paid: boolean }>('/api/gtm/access', 5_000);
-          paid = access.paid;
-          if (paid || !checkoutReturn || attempt === attempts - 1) break;
-          await new Promise((resolve) => window.setTimeout(resolve, 800));
-        }
-
-        if (cancelled) return;
-
-        // Unpaid users only need the access decision. Paid users stay behind
-        // the hydration gate until their durable inbox and job outbox are
-        // loaded, otherwise a late remote snapshot could erase a new message.
-        const accessStore = { ...localStore, paid };
-        setStore(accessStore);
-        loadedKeyRef.current = key;
-
-        if (!paid) {
-          setRemoteReady(true);
-          setHydrated(true);
-          return;
-        }
-
         // The local write-ahead cache is already safe to render. Remote state
         // continues hydrating in the background, so a transient schema/network
         // error can never leave the whole product behind a permanent spinner.
-        setHydrated(true);
         let remoteAttempt = 0;
         while (!cancelled) {
           try {
@@ -755,10 +820,11 @@ function GtmProviderState({
                       ...payload.store,
                       paid: true,
                     })
-                : { ...current, paid: true }
+                : cachedRemoteRevision === payload.revision
+                  ? { ...current, paid: true }
+                  : { ...current, paid: true }
             );
             setRemoteReady(true);
-            setHydrated(true);
             return;
           } catch (error) {
             remoteAttempt += 1;
@@ -782,12 +848,9 @@ function GtmProviderState({
           }
         }
       } catch (error) {
-        console.error('Subscription check failed; denying access:', error);
-        if (!cancelled && keyRef.current === key) {
-          setStore({ ...localStore, paid: false });
-          loadedKeyRef.current = key;
-          setHydrated(true);
-        }
+        // The remote hydration loop normally absorbs transient failures. Keep
+        // local state rendered if an unexpected error escapes it.
+        console.error('Remote state hydration failed:', error);
       }
     })();
 
@@ -826,6 +889,7 @@ function GtmProviderState({
     if (
       !hydrated ||
       !remoteReady ||
+      accessStatus !== 'paid' ||
       !userId ||
       loadedKeyRef.current !== storageKey(userId)
     ) {
@@ -841,6 +905,7 @@ function GtmProviderState({
     store,
     hydrated,
     remoteReady,
+    accessStatus,
     userId,
   ]);
 
@@ -1293,6 +1358,8 @@ function GtmProviderState({
       value={{
         store,
         hydrated,
+        remoteReady,
+        accessStatus,
         update,
         addDirectorMessage,
         patchDirectorMessage,

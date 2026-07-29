@@ -94,7 +94,7 @@ export default function ArtifactLibraryDrawer({
   return (
     <div
       ref={panelRef}
-      className="absolute right-3 top-[52px] z-40 w-[280px] overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d0e11]/98 shadow-2xl backdrop-blur-xl"
+      className="absolute right-3 top-[52px] z-40 w-[280px] overflow-hidden rounded-2xl border border-white/[0.1] bg-night-panel/98 shadow-2xl backdrop-blur-xl"
       role="dialog"
       aria-modal="true"
       aria-label={isZh ? '已生成长文档' : 'Generated documents'}

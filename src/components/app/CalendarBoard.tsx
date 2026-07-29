@@ -105,8 +105,13 @@ const TodoCard = memo(function TodoCard({
       } ${todo.status === 'done' ? 'opacity-55' : ''}`}
     >
       <div className="flex items-center justify-between gap-1.5">
-        <span className="truncate text-[10px] font-medium tracking-wide text-zinc-500">
-          {todo.channelName}
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-[10px] font-medium tracking-wide text-zinc-500">{todo.channelName}</span>
+          {todo.launchStatus && (
+            <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[8px] uppercase text-zinc-500">
+              {todo.launchStatus.replace('_', ' ')}
+            </span>
+          )}
         </span>
         <span className="flex shrink-0 items-center gap-1.5">
           {todo.time && <span className="font-mono text-[10px] text-zinc-400">{todo.time}</span>}
@@ -125,8 +130,11 @@ const TodoCard = memo(function TodoCard({
       >
         {todo.title}
       </p>
-      {!compact && todo.brief && (
-        <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-500">{todo.brief}</p>
+      {!compact && (todo.purpose || todo.brief) && (
+        <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-500">{todo.purpose || todo.brief}</p>
+      )}
+      {!compact && (todo.pillar || todo.phase) && (
+        <p className="mt-1.5 truncate text-[9px] uppercase tracking-wider text-zinc-400">{[todo.phase, todo.pillar].filter(Boolean).join(' · ')}</p>
       )}
       {!compact && todo.market && (
         <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-400">
@@ -165,6 +173,7 @@ export default function CalendarBoard({
   const [view, setView] = useState<ViewMode>(previewMode ? 'week' : initialView);
   const [anchor, setAnchor] = useState<string>(previewMode ? previewAnchor : todayStr());
   const [focusDate, setFocusDate] = useState<string | null>(null);
+  const [channelFilter, setChannelFilter] = useState<string>('all');
 
   useEffect(() => {
     if (!previewMode) return;
@@ -175,6 +184,7 @@ export default function CalendarBoard({
   const byDate = useMemo(() => {
     const map = new Map<string, Todo[]>();
     for (const t of todos) {
+      if (channelFilter !== 'all' && t.channelId !== channelFilter) continue;
       const list = map.get(t.date) ?? [];
       list.push(t);
       map.set(t.date, list);
@@ -183,7 +193,12 @@ export default function CalendarBoard({
       list.sort((a, b) => (a.time ?? '99').localeCompare(b.time ?? '99'));
     }
     return map;
-  }, [todos]);
+  }, [channelFilter, todos]);
+
+  const channels = useMemo(
+    () => [...new Map(todos.map((todo) => [todo.channelId, todo.channelName])).entries()],
+    [todos]
+  );
 
   const openTask = (id: string) => router.push(`/app/calendar/task/${id}`);
   const prefetchTask = (id: string) => router.prefetch(`/app/calendar/task/${id}`);
@@ -264,7 +279,7 @@ export default function CalendarBoard({
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-4">
           <h1 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-ink">
-            {isZh ? '行动日历' : 'Action Calendar'}
+            Launch Calendar
           </h1>
           <span className="hidden text-sm text-zinc-400 sm:inline">{periodLabel}</span>
         </div>
@@ -303,6 +318,26 @@ export default function CalendarBoard({
       </div>
 
       {!previewMode && <p className="px-4 pt-1 text-xs text-zinc-400 sm:hidden">{periodLabel}</p>}
+
+      {!previewMode && channels.length > 1 && (
+        <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 pb-2 sm:px-6">
+          <button
+            onClick={() => setChannelFilter('all')}
+            className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-medium ${channelFilter === 'all' ? 'bg-ink text-white' : 'bg-paper-dim text-zinc-500'}`}
+          >
+            {isZh ? '全部渠道' : 'All channels'}
+          </button>
+          {channels.map(([id, name]) => (
+            <button
+              key={id}
+              onClick={() => setChannelFilter(id)}
+              className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-medium ${channelFilter === id ? 'bg-ink text-white' : 'bg-paper-dim text-zinc-500'}`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 视图主体 */}
       <div className="min-h-0 flex-1 overflow-auto p-4 pt-2 sm:p-6 sm:pt-2">

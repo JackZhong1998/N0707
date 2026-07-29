@@ -12,18 +12,40 @@ import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import { publishTo } from '@/lib/gtm/publish-links';
 import PostMetricsPanel from '@/components/app/PostMetricsPanel';
-import TwitterThreadSplitter from '@/components/app/TwitterThreadSplitter';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
+import {
+  detectPublisherExtension,
+  publishWithExtension,
+  type PublisherEvent,
+  type PublisherAvailability,
+  type SupportedPublishChannel,
+} from '@/lib/gtm/publisher-extension';
+import {
+  canPublishTodo,
+  capabilityLabels,
+  getChannelCapability,
+  validatePostUrl,
+} from '@/lib/gtm/channel-capabilities';
+import type { PublishStatus } from '@/lib/gtm/types';
 
-const PUBLISH_HOSTS: Record<string, string[]> = {
-  xiaohongshu: ['xiaohongshu.com', 'xhslink.com'],
-  twitter_x: ['x.com', 'twitter.com'],
-  linkedin: ['linkedin.com', 'lnkd.in'],
-  reddit: ['reddit.com', 'redd.it'],
-  wechat_official: ['mp.weixin.qq.com'],
-  product_hunt: ['producthunt.com'],
-  github_growth: ['github.com'],
-};
+function publishStatusLabel(status: PublishStatus | undefined, isZh: boolean) {
+  const labels: Record<PublishStatus, [string, string]> = {
+    not_started: ['尚未开始', 'Not started'],
+    opening: ['正在打开平台', 'Opening platform'],
+    filling: ['正在自动填写', 'Auto-filling'],
+    needs_user_action: ['填写完成，待你发布', 'Ready for you to publish'],
+    awaiting_user: ['填写完成，待你发布', 'Ready for you to publish'],
+    waiting_login: ['等待平台登录', 'Waiting for platform login'],
+    publishing: ['正在检测发布结果', 'Detecting publish result'],
+    published_needs_link: ['已发布，待补链接', 'Published, URL needed'],
+    published: ['已发布，待确认链接', 'Published, confirming URL'],
+    tracked: ['已发布并追踪', 'Published and tracked'],
+    blocked: ['发布需要处理', 'Publishing needs attention'],
+    failed: ['发布检测失败', 'Publish detection failed'],
+  };
+  const pair = labels[status ?? 'not_started'];
+  return isZh ? pair[0] : pair[1];
+}
 
 export default function TaskDetailPage({
   params,
@@ -38,10 +60,20 @@ export default function TaskDetailPage({
   const [copied, setCopied] = useState(false);
   const [urlError, setUrlError] = useState('');
   const [manualUrl, setManualUrl] = useState('');
+  const [dayTodosOpen, setDayTodosOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishMessage, setPublishMessage] = useState('');
+  const [publisher, setPublisher] = useState<PublisherAvailability | null>(null);
+  const [confirmUrl, setConfirmUrl] = useState('');
   const writeRequestedRef = useRef<string | null>(null);
   const { setViewContext, clearViewContext } = useViewContext();
 
   const todo = store.todos.find((t) => t.id === id);
+  const capability = getChannelCapability(todo?.channelId ?? '');
+  const showPublishButton = todo ? canPublishTodo(todo) : false;
+  const extensionCanFill =
+    publisher?.installed === true &&
+    publisher.supportedChannels.includes(todo?.channelId ?? '');
   const dayTodos = useMemo(
     () =>
       store.todos
@@ -96,6 +128,22 @@ export default function TaskDetailPage({
     todo,
   ]);
 
+  useEffect(() => {
+    setManualUrl(todo?.publishedUrl ?? '');
+    setUrlError('');
+    setConfirmUrl('');
+  }, [todo?.id, todo?.publishedUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void detectPublisherExtension().then((availability) => {
+      if (!cancelled) setPublisher(availability);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!todo && !hydrated) {
     return (
       <div className="flex h-full flex-col">
@@ -146,54 +194,211 @@ export default function TaskDetailPage({
   };
 
   const recordPublished = (postUrl: string) => {
-    const expectedHosts = PUBLISH_HOSTS[todo.channelId];
-    const pastedUrl = postUrl.trim().match(/https?:\/\/[^\s]+/)?.[0] ?? postUrl.trim();
-    const normalizedUrl = pastedUrl.replace(/[),.;，。；）]+$/, '');
-    let valid = false;
-    try {
-      const url = new URL(normalizedUrl);
-      valid =
-        ['http:', 'https:'].includes(url.protocol) &&
-        (!expectedHosts ||
-          expectedHosts.some(
-            (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
-          ));
-    } catch {
-      valid = false;
-    }
-    if (!valid) {
+    const validation = validatePostUrl(todo.channelId, postUrl);
+    if (validation.confidence === 'invalid') {
       setUrlError(
-        isZh ? '请输入该渠道的有效帖子地址。' : 'Enter a valid post URL for this channel.'
+        isZh
+          ? '这不是该渠道的有效原帖地址，请打开帖子详情页后重新复制。'
+          : 'This is not a valid post URL for this channel. Open the post itself and copy that URL.'
+      );
+      setConfirmUrl('');
+      return false;
+    }
+    if (
+      validation.confidence === 'low' &&
+      confirmUrl !== validation.url
+    ) {
+      setConfirmUrl(validation.url);
+      setUrlError(
+        isZh
+          ? '域名正确，但地址不像公开帖子详情页。确认已打开原帖后，再点击一次“仍要保存”。'
+          : 'The domain is correct, but this does not look like a public post page. Verify the post and choose “Save anyway”.'
       );
       return false;
     }
     gtm.updateTodo(id, {
       status: 'done',
-      publishStatus: 'published',
-      publishedUrl: normalizedUrl,
-      publishedAt: Date.now(),
+      launchStatus: 'published',
+      publishStatus: 'tracked',
+      publishedUrl: validation.url,
+      linkStatus: 'confirmed',
+      publishedAt: todo.publishedAt ?? Date.now(),
       publishError: undefined,
       trackingStatus: 'active',
       metricSnapshots: todo.metricSnapshots ?? [],
     });
     setUrlError('');
-    setManualUrl('');
+    setConfirmUrl('');
+    setManualUrl(validation.url);
+    setPublishMessage(isZh ? '帖子链接已保存，可随时修改。' : 'Post URL saved. You can change it anytime.');
     return true;
   };
 
-  const handlePublish = async () => {
-    if (!todo.content) return;
-    const text = getContentText();
-    await publishTo(todo.channelId, text);
+  const markLinkForLater = () => {
     gtm.updateTodo(id, {
-      publishStatus: 'needs_user_action',
+      status: 'done',
+      launchStatus: 'published',
+      publishStatus: 'published_needs_link',
+      linkStatus: 'pending',
+      publishedAt: todo.publishedAt ?? Date.now(),
+      trackingStatus: 'needs_user',
       publishError: undefined,
     });
+    setPublishMessage(
+      isZh
+        ? `已将发布任务标记完成，并保留“待补链接”提醒。${capability.linkHelp.zh}`
+        : `The publishing task is complete and remains flagged “Post URL needed.” ${capability.linkHelp.en}`
+    );
+  };
+
+  const undoContentRewrite = () => {
+    const previous = todo.contentHistory?.at(-1);
+    if (!previous) return;
+    gtm.updateTodo(id, {
+      content: previous.content,
+      contentStatus: 'ready',
+      contentRevision: (todo.contentRevision ?? previous.version) + 1,
+      contentHistory: todo.contentHistory?.slice(0, -1) ?? [],
+    });
+    setPublishMessage(
+      isZh
+        ? `已恢复修改前的文案（原 v${previous.version}）。`
+        : `Restored the copy from before the last rewrite (original v${previous.version}).`
+    );
+  };
+
+  const handlePublish = async () => {
+    if (!todo.content || !showPublishButton) return;
+    const text = getContentText();
+    setPublishing(true);
+    setPublishMessage(isZh ? '正在连接发布插件…' : 'Connecting to the publisher…');
+
+    const latestPublisher = publisher ?? (await detectPublisherExtension());
+    setPublisher(latestPublisher);
+    if (
+      latestPublisher.installed &&
+      latestPublisher.supportedChannels.includes(todo.channelId)
+    ) {
+      const task = publishWithExtension(
+        todo.channelId as SupportedPublishChannel,
+        {
+          title: todo.content.title,
+          body: todo.content.body,
+        },
+        (event: PublisherEvent) => {
+          setPublishMessage(event.message || '');
+          gtm.updateTodo(id, {
+            publishStatus: event.status,
+            publishError: event.error,
+          });
+          if (event.postUrl) setManualUrl(event.postUrl);
+        }
+      );
+      try {
+        const result = await task.completion;
+        const detected = result.postUrl
+          ? validatePostUrl(todo.channelId, result.postUrl)
+          : null;
+        if (detected?.confidence === 'high') {
+          gtm.updateTodo(id, {
+            status: 'done',
+            launchStatus: 'published',
+            publishStatus: 'tracked',
+            publishedUrl: detected.url,
+            linkStatus: 'confirmed',
+            publishedAt: todo.publishedAt ?? Date.now(),
+            publishError: undefined,
+            trackingStatus: 'active',
+            metricSnapshots: todo.metricSnapshots ?? [],
+          });
+          setManualUrl(detected.url);
+          setPublishMessage(
+            isZh
+              ? '发布成功，已自动保存原帖链接并开始追踪。'
+              : 'Published. The post URL was saved and tracking is active.'
+          );
+          gtm.addAgentNotification({
+            title: isZh ? `${todo.channelName} 发布成功` : `${todo.channelName} published`,
+            summary: isZh
+              ? '已自动保存原帖链接并开始追踪。'
+              : 'The post URL was saved and tracking is active.',
+            priority: 'normal',
+          });
+        } else {
+          if (result.postUrl) setManualUrl(result.postUrl);
+          gtm.updateTodo(id, {
+            status: 'done',
+            launchStatus: 'published',
+            publishStatus: 'published_needs_link',
+            linkStatus: 'pending',
+            publishedAt: todo.publishedAt ?? Date.now(),
+            publishError: undefined,
+            trackingStatus: 'needs_user',
+          });
+          setPublishMessage(
+            isZh
+              ? `平台已确认发布，但尚未获得可信原帖链接。${capability.linkHelp.zh}`
+              : `Publishing was confirmed, but a trustworthy post URL was not found. ${capability.linkHelp.en}`
+          );
+          gtm.addAgentNotification({
+            title: isZh
+              ? `${todo.channelName} 已发布，待补链接`
+              : `${todo.channelName} published — URL needed`,
+            summary: isZh ? capability.linkHelp.zh : capability.linkHelp.en,
+            priority: 'important',
+          });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : isZh ? '发布未完成' : 'Publishing did not finish';
+        gtm.updateTodo(id, { publishStatus: 'failed', publishError: message });
+        setPublishMessage(message);
+        gtm.addAgentNotification({
+          title: isZh
+            ? `${todo.channelName} 发布检测未完成`
+            : `${todo.channelName} publish detection did not finish`,
+          summary: message,
+          priority: 'important',
+        });
+      } finally {
+        setPublishing(false);
+      }
+      return;
+    }
+
+    try {
+      await publishTo(todo.channelId, text);
+      gtm.updateTodo(id, {
+        publishStatus: 'needs_user_action',
+        publishError: undefined,
+      });
+      setPublishMessage(
+        latestPublisher.installed
+          ? isZh
+            ? '该渠道暂不支持插件填写，已打开平台并复制文案。发布后请返回此任务确认。'
+            : 'This channel is not supported by the extension. The platform is open and the copy is ready; return here after publishing.'
+          : isZh
+            ? '未检测到插件，已打开平台并复制文案。发布后请返回此任务确认。'
+            : 'Publisher not detected. The platform is open and the copy is ready; return here after publishing.'
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : isZh
+            ? '无法打开发布平台'
+            : 'Could not open the publishing platform';
+      gtm.updateTodo(id, { publishStatus: 'failed', publishError: message });
+      setPublishMessage(message);
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const contentPane = (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-      <div className="shrink-0 rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+    <div className="min-h-0 flex-1 overflow-y-auto p-3">
+      <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+       <section className="p-5">
+        <p className="index-label mb-3">{isZh ? '为什么安排这项任务' : 'Why this task'}</p>
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] font-medium text-ink">
             {todo.channelName}
@@ -202,11 +407,43 @@ export default function TaskDetailPage({
             Day {todo.dayIndex}
             {todo.phase ? ` · ${todo.phase}` : ''}
           </span>
+          {todo.launchStatus && (
+            <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[10px] uppercase text-zinc-500">
+              {todo.launchStatus.replace('_', ' ')}
+            </span>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {capabilityLabels(capability, isZh).map((label) => (
+            <span
+              key={label}
+              className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] text-zinc-400"
+            >
+              {label}
+            </span>
+          ))}
         </div>
         <h1 className="mt-2 font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-ink">
           {todo.title}
         </h1>
-        <p className="mt-1 text-sm text-zinc-400">{todo.brief}</p>
+        <p className="mt-1 text-sm text-zinc-400">{todo.purpose || todo.brief}</p>
+        {(todo.pillar || todo.taskType) && (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {todo.pillar && (
+              <div className="rounded-xl bg-paper-dim p-3">
+                <span className="index-label">{isZh ? 'Campaign 支柱' : 'Campaign pillar'}</span>
+                <p className="mt-1 text-xs text-ink-soft">{todo.pillar}</p>
+              </div>
+            )}
+            {todo.taskType && (
+              <div className="rounded-xl bg-paper-dim p-3">
+                <span className="index-label">{isZh ? '交付类型' : 'Deliverable type'}</span>
+                <p className="mt-1 text-xs capitalize text-ink-soft">{todo.taskType}</p>
+              </div>
+            )}
+          </div>
+        )}
+        {todo.purpose && <p className="mt-3 text-xs leading-5 text-zinc-400">{todo.brief}</p>}
         {(todo.market || todo.audience) && (
           <div className="mt-2.5 flex flex-wrap gap-2">
             {todo.market && (
@@ -223,9 +460,10 @@ export default function TaskDetailPage({
             )}
           </div>
         )}
-      </div>
+       </section>
 
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+      <section className="border-t border-zinc-100 p-5">
+        <p className="index-label mb-4">{isZh ? '发布文案' : 'Publishing copy'}</p>
         {todo.contentStatus === 'writing' && (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <span className="relative flex h-3 w-3">
@@ -240,30 +478,43 @@ export default function TaskDetailPage({
         {todo.contentStatus === 'ready' && todo.content && (
           <article>
             <div className="flex items-start justify-between gap-3">
-              <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-ink">
-                {todo.content.title}
-              </h2>
-              <button
-                type="button"
-                onClick={() => void handleCopyContent()}
-                className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-paper-dim px-3 text-xs font-medium text-ink transition-colors hover:bg-zinc-200"
-              >
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
-                  />
-                </svg>
-                {copied ? (isZh ? '已复制' : 'Copied') : isZh ? '复制' : 'Copy'}
-              </button>
+              <div>
+                <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-ink">
+                  {todo.content.title}
+                </h2>
+                <p className="mt-1 text-[10px] text-zinc-400">
+                  {isZh ? '内容版本' : 'Copy version'} v{todo.contentRevision ?? 1}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                {(todo.contentHistory?.length ?? 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={undoContentRewrite}
+                    className="flex h-8 items-center rounded-full border border-zinc-200 px-3 text-xs font-medium text-ink-soft transition-colors hover:bg-paper-dim"
+                  >
+                    {isZh ? '撤销本次修改' : 'Undo rewrite'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void handleCopyContent()}
+                  className="flex h-8 items-center gap-1.5 rounded-full bg-paper-dim px-3 text-xs font-medium text-ink transition-colors hover:bg-zinc-200"
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
+                    />
+                  </svg>
+                  {copied ? (isZh ? '已复制' : 'Copied') : isZh ? '复制' : 'Copy'}
+                </button>
+              </div>
             </div>
             <div className="mt-4 whitespace-pre-wrap text-[15px] leading-[1.85] text-ink-soft">
               {todo.content.body}
             </div>
-            {todo.channelId === 'twitter_x' && (
-              <TwitterThreadSplitter text={getContentText()} />
-            )}
           </article>
         )}
         {todo.contentStatus === 'none' && (
@@ -276,11 +527,30 @@ export default function TaskDetailPage({
             </button>
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="shrink-0 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        {todo.publishedUrl ? (
+      <section className="border-t border-zinc-100 p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="index-label">{isZh ? '发布状态' : 'Publishing status'}</p>
+          <span className="rounded-full bg-paper-dim px-2.5 py-1 text-[10px] font-medium text-ink-soft">
+            {publishStatusLabel(
+              todo.publishedUrl ? 'tracked' : todo.publishStatus,
+              isZh
+            )}
+          </span>
+        </div>
           <div className="space-y-4">
+            {todo.linkStatus === 'pending' && !todo.publishedUrl && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-900">
+                  {isZh ? '已发布 · 待补原帖链接' : 'Published · Post URL needed'}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-amber-800">
+                  {isZh ? capability.linkHelp.zh : capability.linkHelp.en}
+                </p>
+              </div>
+            )}
+            {todo.publishedUrl && (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-ink">
@@ -301,39 +571,66 @@ export default function TaskDetailPage({
                 {isZh ? '查看原帖' : 'View post'}
               </a>
             </div>
-            <p className="mt-2 truncate text-[11px] text-zinc-400">{todo.publishedUrl}</p>
-            <div className="border-t border-zinc-100 pt-4">
-              <PostMetricsPanel
-                todo={todo}
-                onSnapshot={(snapshot) =>
-                  gtm.updateTodo(id, {
-                    trackingStatus: 'active',
-                    metricSnapshots: [...(todo.metricSnapshots ?? []), snapshot],
-                  })
-                }
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => void handlePublish()}
-              disabled={todo.contentStatus !== 'ready'}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200 sm:w-auto"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-              </svg>
-              {isZh ? `前往${todo.channelName}发布` : `Open ${todo.channelName} to publish`}
-            </button>
+            )}
+            {showPublishButton ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handlePublish()}
+                  disabled={publishing}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200 sm:w-auto"
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  </svg>
+                  {publishing
+                    ? isZh
+                      ? '发布处理中…'
+                      : 'Publishing…'
+                    : isZh
+                      ? `准备发布到${todo.channelName}`
+                      : `Prepare for ${todo.channelName}`}
+                </button>
+                {extensionCanFill ? (
+                  <span className="text-[11px] text-zinc-400">
+                    {isZh
+                      ? '插件自动化填写，最终发布由你确认'
+                      : 'The extension fills it; you confirm the final publish'}
+                  </span>
+                ) : capability.extensionSupport !== 'none' ? (
+                  <Link
+                    href={`/app/publisher-extension?returnTo=${encodeURIComponent(`/app/calendar/task/${id}`)}`}
+                    className="text-[11px] font-medium text-ink underline underline-offset-2"
+                  >
+                    {isZh ? '安装发布插件并返回当前任务' : 'Install publisher and return here'}
+                  </Link>
+                ) : (
+                  <span className="text-[11px] text-zinc-400">
+                    {isZh
+                      ? '复制文案并打开平台，最终发布由你确认'
+                      : 'Copies the text and opens the platform; you confirm publishing'}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-paper-dim p-4">
+                <p className="text-xs font-medium text-ink-soft">
+                  {isZh ? '此任务不显示内容发布按钮' : 'No content-publishing button for this task'}
+                </p>
+                <p className="mt-1 text-[11px] leading-5 text-zinc-400">
+                  {isZh ? capability.linkHelp.zh : capability.linkHelp.en}
+                </p>
+              </div>
+            )}
 
+            {capability.publishAction !== 'none' && (
             <div className="flex flex-wrap items-center gap-2">
               <input
                 value={manualUrl}
                 onChange={(event) => {
                   setManualUrl(event.target.value);
                   setUrlError('');
+                  setConfirmUrl('');
                 }}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && manualUrl.trim()) {
@@ -351,12 +648,51 @@ export default function TaskDetailPage({
                 disabled={!manualUrl.trim()}
                 className="h-10 rounded-full bg-paper-dim px-4 text-xs font-medium text-ink disabled:text-zinc-300"
               >
-                {isZh ? '确认已发布' : 'Confirm published'}
+                {confirmUrl
+                  ? isZh
+                    ? '仍要保存'
+                    : 'Save anyway'
+                  : todo.publishedUrl
+                    ? isZh
+                      ? '更新链接'
+                      : 'Update URL'
+                    : isZh
+                      ? '保存链接'
+                      : 'Save URL'}
               </button>
             </div>
+            )}
+            {!todo.publishedUrl &&
+              ['needs_user_action', 'awaiting_user', 'publishing', 'published_needs_link', 'published'].includes(
+                todo.publishStatus ?? ''
+              ) && (
+                <button
+                  type="button"
+                  onClick={markLinkForLater}
+                  className="text-xs font-medium text-zinc-500 underline underline-offset-2 hover:text-ink"
+                >
+                  {isZh ? '我已发布，链接稍后补充' : 'I published it — add the URL later'}
+                </button>
+              )}
             {urlError && <p className="text-xs text-red-500">{urlError}</p>}
+            {publishMessage && !urlError && (
+              <p className="text-xs text-zinc-400">{publishMessage}</p>
+            )}
+            {todo.publishedUrl && (
+              <div className="border-t border-zinc-100 pt-4">
+                <PostMetricsPanel
+                  todo={todo}
+                  onSnapshot={(snapshot) =>
+                    gtm.updateTodo(id, {
+                      trackingStatus: 'active',
+                      metricSnapshots: [...(todo.metricSnapshots ?? []), snapshot],
+                    })
+                  }
+                />
+              </div>
+            )}
           </div>
-        )}
+      </section>
       </div>
     </div>
   );
@@ -374,17 +710,31 @@ export default function TaskDetailPage({
           {isZh ? '返回日历' : 'Back to calendar'}
         </Link>
         <span className="text-[10px] text-zinc-400">
-          {isZh ? '在右侧与市场合伙人讨论当前内容' : 'Discuss this content with your partner on the right'}
+          {isZh ? '在右侧与冷启动合伙人讨论当前内容' : 'Discuss this content with your Launch Partner on the right'}
         </span>
       </div>
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <aside className="hidden w-60 shrink-0 flex-col gap-2 lg:flex">
-          <div className="shrink-0 rounded-2xl bg-white px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-            <p className="index-label">{isZh ? '当天任务' : "Today's tasks"}</p>
-            <p className="mt-0.5 font-mono text-xs text-zinc-400">{todo.date}</p>
-          </div>
-          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto rounded-2xl bg-white p-2 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+        <aside className={`hidden shrink-0 flex-col gap-2 lg:flex ${dayTodosOpen ? 'w-60' : 'w-12'}`}>
+          <button
+            type="button"
+            onClick={() => setDayTodosOpen((open) => !open)}
+            aria-expanded={dayTodosOpen}
+            className="flex min-h-12 shrink-0 items-center justify-center rounded-2xl bg-white px-3 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"
+          >
+            {dayTodosOpen ? (
+              <div className="flex w-full items-center justify-between gap-2 text-left">
+                <div>
+                  <p className="index-label">{isZh ? '当天任务' : "Today's tasks"}</p>
+                  <p className="mt-0.5 font-mono text-xs text-zinc-400">{todo.date}</p>
+                </div>
+                <span className="text-zinc-400">‹</span>
+              </div>
+            ) : (
+              <span className="text-lg text-zinc-400">›</span>
+            )}
+          </button>
+          {dayTodosOpen && <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto rounded-2xl bg-white p-2 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
             {dayTodos.map((t) => (
               <Link
                 key={t.id}
@@ -408,7 +758,7 @@ export default function TaskDetailPage({
                 </p>
               </Link>
             ))}
-          </div>
+          </div>}
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">

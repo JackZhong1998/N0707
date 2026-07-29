@@ -31,6 +31,7 @@ export async function POST(request: Request) {
       channelStrategyMarkdown: text(body.channelStrategyMarkdown, 30_000),
       userProfileDoc: text(body.userProfileDoc, 8_000),
       projectProfileDoc: text(body.projectProfileDoc, 24_000),
+      campaignContext: text(body.campaignContext, 60_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
     });
     return NextResponse.json(result);

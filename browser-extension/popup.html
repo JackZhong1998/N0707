@@ -17,6 +17,26 @@
     margin: 0;
     color: #71717a;
   }
+  button {
+    width: 100%;
+    margin-top: 16px;
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: white;
+    background: #18181b;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #27272a;
+  }
+  .version {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #a1a1aa;
+  }
   .status {
     display: flex;
     align-items: center;
@@ -32,7 +52,10 @@
 </style>
 <div class="status">
   <span class="dot"></span>
-  <strong>发布助手已就绪</strong>
+  <strong>Publisher ready</strong>
 </div>
 <h1>NowBuild</h1>
-<p>请回到 NowBuild，选择小红书或 X 内容并点击“准备发布”。插件不会保存你的平台密码。</p>
+<p>Stable adapters for X and Xiaohongshu, plus seven content platforms and assisted flows for 19 product directories. Your platform passwords are never stored.</p>
+<p class="version" id="version"></p>
+<button type="button" id="open-console">Open Test Console</button>
+<script src="popup.js"></script>

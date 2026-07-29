@@ -2,6 +2,9 @@
 -- Authentication is handled by Clerk. All application data is accessed by the
 -- Next.js server with a Supabase secret/service-role key; browser roles receive
 -- no direct table privileges.
+-- After applying this baseline, also apply every file in supabase/migrations;
+-- the resumable Campaign queue RPCs live in the dated migration so upgrades
+-- and fresh installations use the same function definitions.
 
 create extension if not exists pgcrypto;
 
@@ -42,6 +45,9 @@ create table if not exists public.gtm_projects (
   -- reads when two tabs save concurrently.
   state_revision bigint not null default 0 check (state_revision >= 0),
   state_snapshot jsonb,
+  -- Queryable projection of user-confirmed Launch Kit data, including the
+  -- public source URL and captured asset provenance.
+  directory_launch_kit jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (owner_id, slug)
@@ -172,10 +178,19 @@ create table if not exists public.todos (
   due_time time,
   title text not null,
   brief text not null default '',
+  purpose text,
+  pillar text,
+  task_type text,
   phase text,
   market text,
   audience text,
   status text not null default 'pending' check (status in ('pending', 'done', 'skipped')),
+  launch_status text not null default 'planned'
+    check (launch_status in (
+      'planned', 'generating', 'draft', 'ready', 'needs_action',
+      'publishing', 'published', 'completed', 'skipped', 'failed', 'replanning'
+    )),
+  revision integer not null default 1 check (revision >= 1),
   content_title text,
   content_body text,
   content_status text not null default 'none' check (content_status in ('none', 'writing', 'ready')),
@@ -203,6 +218,68 @@ alter table public.todos
   add constraint todos_topic_variant_fk
   foreign key (project_id, topic_variant_id)
   references public.topic_variants(project_id, id);
+
+-- Durable Campaign queue. Workers claim jobs and deterministic steps through
+-- the security-definer functions below; browsers never access these tables.
+create table if not exists public.campaign_jobs (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.gtm_projects(id) on delete cascade,
+  clerk_user_id text not null,
+  build_key text not null,
+  locale text not null default 'en' check (locale in ('en', 'zh')),
+  status text not null default 'queued'
+    check (status in ('queued', 'running', 'completed', 'failed', 'cancelled')),
+  current_step text,
+  progress_completed integer not null default 0 check (progress_completed >= 0),
+  progress_total integer not null default 0 check (progress_total >= 0),
+  attempt_count integer not null default 0 check (attempt_count >= 0),
+  max_attempts integer not null default 100 check (max_attempts between 1 and 200),
+  priority integer not null default 100,
+  input_snapshot jsonb not null,
+  result_summary jsonb,
+  last_error text,
+  locked_by text,
+  locked_at timestamptz,
+  lease_expires_at timestamptz,
+  heartbeat_at timestamptz,
+  next_attempt_at timestamptz not null default now(),
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (project_id, build_key)
+);
+
+create table if not exists public.campaign_job_steps (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid not null references public.campaign_jobs(id) on delete cascade,
+  step_key text not null,
+  step_type text not null
+    check (step_type in ('blueprint', 'channel_strategy', 'channel_calendar', 'finalize')),
+  channel_id text,
+  sort_order integer not null check (sort_order >= 0),
+  status text not null default 'queued'
+    check (status in ('queued', 'running', 'completed', 'failed', 'skipped')),
+  attempt_count integer not null default 0 check (attempt_count >= 0),
+  max_attempts integer not null default 3 check (max_attempts between 1 and 10),
+  input_snapshot jsonb not null default '{}'::jsonb,
+  result_snapshot jsonb,
+  last_error text,
+  locked_by text,
+  locked_at timestamptz,
+  lease_expires_at timestamptz,
+  next_attempt_at timestamptz not null default now(),
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (job_id, step_key),
+  check (
+    (step_type in ('channel_strategy', 'channel_calendar') and channel_id is not null)
+    or
+    (step_type in ('blueprint', 'finalize') and channel_id is null)
+  )
+);
 
 -- Keep user_id as Clerk's text ID so this migration remains compatible with
 -- the starter schema that may already be installed.
@@ -270,6 +347,8 @@ as $$
 $$;
 
 -- Add columns when upgrading an installation of the original starter schema.
+alter table public.gtm_projects add column if not exists state_revision bigint not null default 0;
+alter table public.gtm_projects add column if not exists state_snapshot jsonb;
 alter table public.subscriptions add column if not exists stripe_price_id text;
 alter table public.subscriptions add column if not exists billing_cycle text;
 alter table public.subscriptions add column if not exists cancel_at_period_end boolean not null default false;
@@ -282,6 +361,35 @@ alter table public.todos add column if not exists published_at timestamptz;
 alter table public.todos add column if not exists publish_error text;
 alter table public.todos add column if not exists tracking_status text not null default 'not_started';
 alter table public.todos add column if not exists metric_snapshots jsonb not null default '[]'::jsonb;
+alter table public.todos add column if not exists purpose text;
+alter table public.todos add column if not exists pillar text;
+alter table public.todos add column if not exists task_type text;
+alter table public.todos add column if not exists launch_status text not null default 'planned';
+alter table public.todos add column if not exists revision integer not null default 1;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'todos_launch_status_check'
+      and conrelid = 'public.todos'::regclass
+  ) then
+    alter table public.todos
+      add constraint todos_launch_status_check
+      check (launch_status in (
+        'planned', 'generating', 'draft', 'ready', 'needs_action',
+        'publishing', 'published', 'completed', 'skipped', 'failed', 'replanning'
+      ));
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'todos_revision_check'
+      and conrelid = 'public.todos'::regclass
+  ) then
+    alter table public.todos
+      add constraint todos_revision_check check (revision >= 1);
+  end if;
+end
+$$;
 alter table public.project_contexts add column if not exists conversation_summary text not null default '';
 alter table public.project_contexts add column if not exists memory_facts jsonb not null default '[]'::jsonb;
 alter table public.project_contexts add column if not exists pending_agent_requests jsonb not null default '[]'::jsonb;
@@ -312,6 +420,19 @@ create index if not exists idx_stripe_events_status on public.stripe_events(stat
 create index if not exists idx_ai_usage_user_month on public.ai_usage_events(user_id, created_at);
 create unique index if not exists idx_ai_usage_request_id
   on public.ai_usage_events(request_id) where request_id is not null;
+create index if not exists idx_campaign_jobs_claim
+  on public.campaign_jobs(status, next_attempt_at, priority, created_at);
+create index if not exists idx_campaign_jobs_project
+  on public.campaign_jobs(project_id, created_at desc);
+create unique index if not exists idx_campaign_jobs_one_active_per_project
+  on public.campaign_jobs(project_id)
+  where status in ('queued', 'running');
+create index if not exists idx_campaign_jobs_lease
+  on public.campaign_jobs(lease_expires_at) where status = 'running';
+create index if not exists idx_campaign_job_steps_claim
+  on public.campaign_job_steps(job_id, status, sort_order, next_attempt_at);
+create index if not exists idx_campaign_job_steps_lease
+  on public.campaign_job_steps(lease_expires_at) where status = 'running';
 
 -- Apply updated_at consistently. DROP keeps this script repeatable.
 drop trigger if exists app_users_updated_at on public.app_users;
@@ -351,6 +472,12 @@ for each row execute function public.set_updated_at();
 drop trigger if exists stripe_events_updated_at on public.stripe_events;
 create trigger stripe_events_updated_at before update on public.stripe_events
 for each row execute function public.set_updated_at();
+drop trigger if exists campaign_jobs_updated_at on public.campaign_jobs;
+create trigger campaign_jobs_updated_at before update on public.campaign_jobs
+for each row execute function public.set_updated_at();
+drop trigger if exists campaign_job_steps_updated_at on public.campaign_job_steps;
+create trigger campaign_job_steps_updated_at before update on public.campaign_job_steps
+for each row execute function public.set_updated_at();
 
 -- No browser access: Clerk auth is verified by Next.js, then server-side code
 -- uses the Supabase service role. RLS remains enabled as defense in depth.
@@ -368,6 +495,8 @@ alter table public.todos enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.stripe_events enable row level security;
 alter table public.ai_usage_events enable row level security;
+alter table public.campaign_jobs enable row level security;
+alter table public.campaign_job_steps enable row level security;
 
 drop policy if exists "Users can view own subscription" on public.subscriptions;
 drop policy if exists "Service role can manage subscriptions" on public.subscriptions;
@@ -376,14 +505,16 @@ revoke all on public.app_users, public.gtm_projects, public.project_contexts,
   public.conversations, public.messages, public.market_strategies,
   public.channel_strategies, public.project_channels, public.topics,
   public.topic_variants, public.todos,
-  public.subscriptions, public.stripe_events, public.ai_usage_events
+  public.subscriptions, public.stripe_events, public.ai_usage_events,
+  public.campaign_jobs, public.campaign_job_steps
   from anon, authenticated;
 
 grant all on public.app_users, public.gtm_projects, public.project_contexts,
   public.conversations, public.messages, public.market_strategies,
   public.channel_strategies, public.project_channels, public.topics,
   public.topic_variants, public.todos,
-  public.subscriptions, public.stripe_events, public.ai_usage_events to service_role;
+  public.subscriptions, public.stripe_events, public.ai_usage_events,
+  public.campaign_jobs, public.campaign_job_steps to service_role;
 revoke execute on function public.get_ai_monthly_spend(text, timestamptz)
   from public, anon, authenticated;
 grant execute on function public.get_ai_monthly_spend(text, timestamptz) to service_role;

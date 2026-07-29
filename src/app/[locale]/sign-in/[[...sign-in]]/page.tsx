@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   return {
     title: locale === 'zh' ? '登录' : 'Sign In',
-    description: locale === 'zh' ? '登录您的账户。' : 'Sign in to your account.',
+    description: locale === 'zh' ? '登录 NowBuild，继续推进你的产品冷启动。' : 'Sign in to your account.',
     alternates: {
       canonical: `/${locale}/sign-in`,
       languages: { en: '/en/sign-in', zh: '/zh/sign-in' },
@@ -36,15 +36,15 @@ export default async function SignInPage({ params }: Props) {
   // Clerk 未配置（本地演示）：模拟登录，直接进入产品内页
   if (!isClerkConfigured) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
-        <div className="w-full max-w-sm border border-zinc-800 bg-[#0d0d0d] p-8">
+      <div className="flex min-h-screen items-center justify-center bg-night px-4">
+        <div className="w-full max-w-sm border border-zinc-800 bg-night p-8">
           <p className="index-label !text-zinc-500">NowBuild</p>
           <h1 className="mt-3 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-white">
             {isZh ? '登录' : 'Sign in'}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-zinc-500">
             {isZh
-              ? '演示模式：未配置登录服务，点击下方按钮直接进入。'
+              ? '当前为演示模式，点击下方按钮即可直接进入工作台。'
               : 'Demo mode: auth is not configured. Continue straight in.'}
           </p>
           <Link

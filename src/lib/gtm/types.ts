@@ -48,7 +48,6 @@ export interface PendingAgentRequest {
   meta?: {
     fromOptionCard?: boolean;
     selectedIds?: string[];
-    confirmStrategy?: boolean;
   };
   createdAt: number;
 }
@@ -106,8 +105,12 @@ export type PublishStatus =
   | 'filling'
   | 'needs_user_action'
   | 'awaiting_user'
+  | 'waiting_login'
   | 'publishing'
+  | 'published_needs_link'
   | 'published'
+  | 'tracked'
+  | 'blocked'
   | 'failed';
 
 export type TrackingStatus =
@@ -210,8 +213,6 @@ export interface OptionCard {
   multi: boolean;
   options: OptionItem[];
   allowCustom?: boolean;
-  /** 渠道推荐卡：总监推荐的 channelIds，用户确认后写入 store */
-  recommendedChannelIds?: string[];
   /** 用户提交后记录所选 label */
   answered?: string[];
 }
@@ -292,6 +293,23 @@ export interface ChannelStrategyDoc {
 export interface TodoContent {
   title: string;
   body: string;
+  research?: {
+    status: 'grounded' | 'no_results' | 'unavailable';
+    searchedAt: number;
+    sources: Array<{
+      title: string;
+      url: string;
+      publishedAt?: string;
+    }>;
+  };
+}
+
+export interface TodoContentVersion {
+  id: string;
+  version: number;
+  content: TodoContent;
+  createdAt: number;
+  reason?: string;
 }
 
 export interface Todo {
@@ -309,22 +327,359 @@ export interface Todo {
   title: string;
   /** 编写方向（渠道专员写内容时的 brief） */
   brief: string;
+  /** Why this task exists in the shared campaign spine. */
+  purpose?: string;
+  /** Campaign content pillar shared by every channel. */
+  pillar?: string;
+  /** Channel-specific execution type (post, article, submission, etc.). */
+  taskType?: string;
   phase?: string;
   /** 该 To-Do 针对的目标市场（如「中国大陆」「United States」）；决定产出内容的语言 */
   market?: string;
   /** 该 To-Do 针对的目标人群一句话 */
   audience?: string;
   status: TodoStatus;
+  /** Rich execution state used by the Launch Calendar. */
+  launchStatus?: LaunchTaskStatus;
+  revision?: number;
   content?: TodoContent;
   contentStatus: 'none' | 'writing' | 'ready';
+  /** Current copy revision plus the restorable versions it replaced. */
+  contentRevision?: number;
+  contentHistory?: TodoContentVersion[];
   /** 浏览器插件发布状态。旧数据没有该字段时视为 not_started。 */
   publishStatus?: PublishStatus;
   /** 平台返回的最终帖子地址。 */
   publishedUrl?: string;
+  /** Publishing can finish before a trustworthy public post URL is available. */
+  linkStatus?: 'pending' | 'confirmed';
   publishedAt?: number;
   publishError?: string;
   trackingStatus?: TrackingStatus;
   metricSnapshots?: PostMetricSnapshot[];
+}
+
+/* ---------- 30-day Launch OS ---------- */
+
+export type LaunchPhase =
+  | 'onboarding'
+  | 'researching'
+  | 'brief_ready'
+  | 'blueprint_ready'
+  | 'building_team'
+  | 'active'
+  | 'completed';
+
+/** Free-tier AI write-backs allowed against Launch Brief before checkout. */
+export const FREE_BRIEF_EDIT_LIMIT = 20;
+
+export type LaunchTaskStatus =
+  | 'planned'
+  | 'generating'
+  | 'draft'
+  | 'ready'
+  | 'needs_action'
+  | 'publishing'
+  | 'published'
+  | 'completed'
+  | 'skipped'
+  | 'failed'
+  | 'replanning';
+
+export type EvidenceConfidence = 'website' | 'inferred' | 'confirmed';
+
+export interface LaunchEvidence {
+  label: string;
+  confidence: EvidenceConfidence;
+  sourceUrl?: string;
+}
+
+export interface LaunchProject {
+  id: string;
+  productUrl: string;
+  productName: string;
+  startDate: string;
+  endDate: string;
+  currentDay: number;
+  phase: LaunchPhase;
+  status: 'building' | 'active' | 'paused' | 'completed';
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ResearchProgressStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'running' | 'done' | 'warning';
+  detail?: string;
+}
+
+export interface LaunchBrief {
+  product: {
+    summary: string;
+    problem: string;
+    features: string[];
+    stage: string;
+    pricing: string;
+  };
+  audience: {
+    primary: string;
+    currentAlternative: string;
+    scenarios: string[];
+    motivations: string[];
+  };
+  competitors: Array<{
+    name: string;
+    url?: string;
+    positioning: string;
+    difference: string;
+  }>;
+  positioning: {
+    statement: string;
+    sellingPoints: string[];
+    painPoints: string[];
+    voice: string;
+    nonGoals: string[];
+  };
+  evidence: LaunchEvidence[];
+  sourceMarkdown?: string;
+  revision: number;
+  updatedAt: number;
+}
+
+export interface LaunchBlueprint {
+  campaignGoal: string;
+  corePositioning: string;
+  targetAudience: string;
+  campaignPillars: string[];
+  weeks: Array<{
+    week: number;
+    objective: string;
+    narrative: string;
+    productIntensity: 'low' | 'low-medium' | 'medium' | 'high';
+  }>;
+  channelRoles: Array<{
+    channelId: string;
+    channelName: string;
+    role: string;
+    priority: 'high' | 'medium' | 'supporting';
+  }>;
+  guardrails: string[];
+  language: string;
+  sourceMarkdown?: string;
+  revision: number;
+  updatedAt: number;
+}
+
+export interface LaunchChannelPlan {
+  channelId: string;
+  channelName: string;
+  mission: string;
+  whyItMatters: string;
+  targetAudience: string;
+  pillars: string[];
+  formats: string[];
+  cadence: string;
+  productMentionRules: string;
+  weeklyPlan: string[];
+  successSignals: string[];
+  risks: string[];
+  status: 'queued' | 'building' | 'ready' | 'blocked';
+  completedTasks: number;
+  revision: number;
+  updatedAt: number;
+}
+
+export type DirectorySubmissionStatus =
+  | 'discovered'
+  | 'matched'
+  | 'prepared'
+  | 'needs_action'
+  | 'submitted'
+  | 'under_review'
+  | 'published'
+  | 'rejected'
+  | 'unavailable';
+
+export type DirectoryMaterialKey =
+  | 'productName'
+  | 'productUrl'
+  | 'tagline'
+  | 'shortDescription'
+  | 'longDescription'
+  | 'categories'
+  | 'tags'
+  | 'pricing'
+  | 'founderName'
+  | 'founderEmail'
+  | 'founderUrl'
+  | 'twitterUrl'
+  | 'linkedinUrl'
+  | 'demoUrl'
+  | 'launchDate'
+  | 'logo'
+  | 'screenshots';
+
+export interface DirectoryAssetSpec {
+  width: number;
+  height: number;
+  type: 'image/png' | 'image/jpeg' | 'image/webp';
+  maxBytes?: number;
+  maxCount?: number;
+  quality?: number;
+}
+
+export interface DirectoryMaterialRequirement {
+  key: DirectoryMaterialKey;
+  resolution: 'ai' | 'user';
+  required: boolean;
+  minLength?: number;
+  detail?: string;
+  assetSpec?: DirectoryAssetSpec;
+}
+
+export interface DirectoryMaterialCheck {
+  key: DirectoryMaterialKey;
+  label: string;
+  status: 'ready' | 'ai_generatable' | 'needs_user';
+  detail?: string;
+}
+
+export interface DirectoryPreflightResult {
+  checkedAt: number;
+  ready: boolean;
+  checks: DirectoryMaterialCheck[];
+  readyCount: number;
+  aiCount: number;
+  userCount: number;
+}
+
+export type DirectorySubmissionJobStatus =
+  | 'checking'
+  | 'needs_materials'
+  | 'queued'
+  | 'opening'
+  | 'filling'
+  | 'needs_action'
+  | 'prepared'
+  | 'submitted'
+  | 'under_review'
+  | 'published'
+  | 'manual'
+  | 'failed'
+  | 'skipped';
+
+export interface DirectorySubmissionJob {
+  id: string;
+  directoryId: string;
+  directoryName: string;
+  adapterId?: string;
+  submissionPolicy?: 'prepare_only' | 'auto_submit_opt_in';
+  allowFinalSubmit?: boolean;
+  idempotencyKey: string;
+  status: DirectorySubmissionJobStatus;
+  preflight: DirectoryPreflightResult;
+  requestId?: string;
+  blocker?: string;
+  blockerDetail?: string;
+  missingRequired?: string[];
+  proof?: string;
+  attempt: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface DirectorySubmission {
+  id: string;
+  name: string;
+  url: string;
+  matchReason: string;
+  pricing: 'free' | 'paid' | 'freemium' | 'unknown';
+  requiredAssets: string[];
+  automationLevel: 'automatic' | 'assisted' | 'manual';
+  lastVerified: string;
+  status: DirectorySubmissionStatus;
+  fitScore?: number;
+  fitTier?: 'recommended' | 'verify' | 'not_suitable';
+  fitReasons?: string[];
+  fitRisks?: string[];
+  proof?: string;
+  publishedUrl?: string;
+}
+
+export interface DirectoryLaunchKit {
+  productName: string;
+  productUrl: string;
+  tagline: string;
+  shortDescription: string;
+  longDescription: string;
+  categories: string[];
+  tags: string[];
+  pricing: string;
+  founderName: string;
+  founderEmail: string;
+  founderUrl: string;
+  twitterUrl: string;
+  linkedinUrl: string;
+  demoUrl: string;
+  launchDate: string;
+  assets: Array<{
+    id: string;
+    kind: 'logo' | 'screenshot';
+    name: string;
+    dataUrl: string;
+    sourceUrl?: string;
+    source?: 'manual' | 'metadata' | 'homepage_capture';
+  }>;
+  confirmedAt?: number;
+}
+
+export interface LaunchWeeklyReview {
+  id: string;
+  week: number;
+  status: 'upcoming' | 'ready' | 'applied';
+  summary: string;
+  channelFindings: Array<{
+    channelId: string;
+    did: string;
+    signal: string;
+    keep: string;
+    change: string;
+  }>;
+  appliedChanges: string[];
+  revision: number;
+  createdAt?: number;
+}
+
+export interface LaunchRevision {
+  id: string;
+  entityType: 'brief' | 'blueprint' | 'channel_plan' | 'calendar';
+  entityId: string;
+  label: string;
+  revision: number;
+  snapshot: unknown;
+  createdAt: number;
+}
+
+export interface LaunchState {
+  project: LaunchProject;
+  researchProgress: ResearchProgressStep[];
+  researchConfidence: 'high' | 'medium' | 'low';
+  researchSources: Array<{ url: string; title: string; kind: string }>;
+  brief?: LaunchBrief;
+  blueprint?: LaunchBlueprint;
+  channelPlans: Record<string, LaunchChannelPlan>;
+  directories: DirectorySubmission[];
+  directoryLaunchKit?: DirectoryLaunchKit;
+  /** Durable, resumable work queue for directory preparation and submission. */
+  directoryJobs?: DirectorySubmissionJob[];
+  weeklyReviews: LaunchWeeklyReview[];
+  revisions: LaunchRevision[];
+  lastUndoLabel?: string;
+  /** Successful free-tier Launch Brief AI write-backs (max FREE_BRIEF_EDIT_LIMIT). */
+  briefEditUsed?: number;
+  /** Idempotency key so post-payment campaign generation is not restarted twice. */
+  campaignBuildId?: string;
 }
 
 /* ---------- 全局 Store ---------- */
@@ -369,9 +724,11 @@ export interface GtmStore {
   /** 距离上次档案总结的消息数 */
   msgSinceContextSync: number;
   updatedAt: number;
+  /** Structured state for the post-purchase 30-day cold-start product. */
+  launch?: LaunchState;
 }
 
-export const GTM_STORE_VERSION = 5;
+export const GTM_STORE_VERSION = 6;
 export const CAMPAIGN_DAYS = 30;
 /** 每积累 6 条消息触发一次上下文总结 */
 export const CONTEXT_SYNC_INTERVAL = 6;
@@ -426,7 +783,14 @@ export type DirectorAction =
     }
   | { type: 'generate_todo_content'; todoId: string }
   | { type: 'rewrite_todo_content'; todoId: string; feedback: string }
-  | { type: 'optimize_plan'; channelIds: string[]; feedback: string };
+  | { type: 'optimize_plan'; channelIds: string[]; feedback: string }
+  | {
+      type: 'update_launch_artifact';
+      entityType: 'brief' | 'blueprint' | 'channel_plan' | 'calendar';
+      entityId?: string;
+      instruction: string;
+    }
+  | { type: 'undo_launch_change' };
 
 export interface DirectorResponse {
   reply: string;
@@ -463,13 +827,17 @@ export interface ChannelTodosResponse {
     phase?: string;
     market?: string;
     audience?: string;
+    purpose?: string;
+    pillar?: string;
+    taskType?: string;
+    launchStatus?: Extract<
+      LaunchTaskStatus,
+      'planned' | 'draft' | 'ready' | 'needs_action'
+    >;
   }>;
 }
 
-export interface ChannelWriteResponse {
-  title: string;
-  body: string;
-}
+export interface ChannelWriteResponse extends TodoContent {}
 
 export interface ChannelChatResponse {
   reply: string;
@@ -484,5 +852,12 @@ export interface ChannelChatResponse {
     phase?: string;
     market?: string;
     audience?: string;
+    purpose?: string;
+    pillar?: string;
+    taskType?: string;
+    launchStatus?: Extract<
+      LaunchTaskStatus,
+      'planned' | 'draft' | 'ready' | 'needs_action'
+    >;
   }> | null;
 }

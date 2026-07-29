@@ -46,7 +46,7 @@ export function StrategyCard({
   const isZh = locale !== 'en';
   return (
     <Link
-      href="/app/strategy"
+      href="/app/blueprint"
       className="group mt-2 block max-w-md overflow-hidden rounded-2xl border border-ink bg-white transition-colors hover:bg-ink"
     >
       <div className="border-b border-hairline px-4 py-2.5 group-hover:border-zinc-700">

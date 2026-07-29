@@ -1,0 +1,110 @@
+[
+  {
+    "domain": "startupfa.me",
+    "status": "entry_verified",
+    "submitUrl": "https://startupfa.me/login",
+    "entryStage": "Authentication gate before startup submission",
+    "blocker": "Submission form is unavailable until authentication completes.",
+    "notes": "Homepage Submit your startup leads to /login. Login supports Continue with Google and Continue with Email. After authentication the expected submission target is the site's Submit flow; downstream stages, image fields, and final button remain hidden. Google is the preferred automatic login action, after which the adapter must wait for the site redirect before resuming.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "turbo0.com",
+    "status": "entry_verified",
+    "submitUrl": "https://turbo0.com/submit",
+    "entryStage": "Authentication gate with callback to /submit",
+    "blocker": "Submission form is unavailable until authentication completes.",
+    "notes": "Direct /submit redirects to /auth/login?callbackUrl=%2Fsubmit. Login supports email/password, Login with Google, and Login with GitHub. The adapter can prefer Google and wait for callbackUrl=/submit. Downstream form stages, image fields, and final button remain hidden.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "alternativeto.net",
+    "status": "entry_verified",
+    "submitUrl": "https://alternativeto.net/login/",
+    "entryStage": "Authentication required before adding software",
+    "blocker": "The previously assumed /software/new/ route is a 404 and no public add-software form is exposed while logged out.",
+    "notes": "Login supports email/password, Google, and GitHub. A logged-in session is required to locate the current Add application entry. The adapter should open /login, prefer Google, then discover the authenticated add-software control rather than hard-code the obsolete /software/new/ route. Form stages, image fields, and final boundary are not yet visible.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "toolpilot.ai",
+    "status": "recording_partial",
+    "submitUrl": "https://form.jotform.com/231772738321053",
+    "entryStage": "Public single-page Jotform submission",
+    "blocker": "",
+    "notes": "The ToolPilot submission page embeds public Jotform 231772738321053; no login is required. One-page fields verified: first name, last name, company, email, optional backlink URL for the free listing, AI tool name, URL, logo, tagline, tags, short description, overview, up to five feature/benefit text fields, API availability, community availability, supported platforms, AI/chatbot integrations, analytics/SEO integrations, subscription package count, and additional category/feature choices. Logo is a custom Image Upload Preview iframe backed by Jotform widget input q15 and requires a square 500x500 JPG with background color; the plugin must inject the NowBuild-hosted asset as an in-memory File into the widget, never use a local path. Free listing requires a backlink. Final external-effect boundary is the single Submit button; Dry Run must stop before it.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "peerlist.io",
+    "status": "entry_verified",
+    "submitUrl": "https://peerlist.io/launchpad",
+    "entryStage": "Public Launchpad browsing; profile authentication required to launch",
+    "blocker": "Logged-out Launchpad exposes Log in/Create Profile but not the project launch editor.",
+    "notes": "Launchpad is the correct product-launch surface. Logged-out entry offers /login and /signup. The flow likely requires a Peerlist profile before a project can be launched. The adapter should authenticate, then locate the current launch-project control inside Launchpad instead of assuming a hidden route. Multi-page stages, image fields, and final button remain unavailable until profile/login completes.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "theresanaiforthat.com",
+    "status": "blocked",
+    "submitUrl": "https://theresanaiforthat.com/",
+    "entryStage": "Domain access attempt",
+    "blocker": "Chrome automation security policy refused access to this domain in the current browser-control environment.",
+    "notes": "No workaround was attempted. The site requires a manual/user-assisted inspection or a future permitted browser session before its real submit URL, login methods, form stages, image fields, and final boundary can be recorded.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "submitaitools.org",
+    "status": "blocked",
+    "submitUrl": "https://submitaitools.org/submit-your-ai-tool/",
+    "entryStage": "Human verification before submission form",
+    "blocker": "The submit route redirects to /verify/submit/ and requires the user to answer a color-choice human-verification challenge.",
+    "notes": "Public submit entry is verified. The verification page displays Human Verification with multiple color buttons; the plugin must pause and ask the user to complete it, then resume after navigation. The downstream product form, image fields, stages, and final button were not accessed because the challenge cannot be solved automatically.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "launchigniter.com",
+    "status": "entry_verified",
+    "submitUrl": "https://launchigniter.com/submit",
+    "entryStage": "Authentication gate before Launch Your Product",
+    "blocker": "The product editor is unavailable until sign-in.",
+    "notes": "The public submit page is titled Launch Your Product and shows Sign in to Launch Your Product / Sign in to Continue. The page states that authenticated users can submit details, choose a launch date, preview, and publish, indicating a multi-stage flow after login. Current logged-out DOM only exposes /login; login methods and image fields need inspection after authentication. Final publishing action must remain user-controlled.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "softwareworld.co",
+    "status": "blocked",
+    "submitUrl": "https://www.softwareworld.co/",
+    "entryStage": "Cloudflare security verification",
+    "blocker": "Cloudflare Turnstile/security verification prevents access to the site and any submission entry.",
+    "notes": "Both the homepage and /write-for-us/ remained on the Cloudflare verification page. No CAPTCHA or verification was attempted automatically. A user-assisted pass is required before identifying whether there is a software-listing form, its stages, image fields, or final button.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "neeed.directory",
+    "status": "entry_verified",
+    "submitUrl": "https://neeed.directory/login?redirect=/submit",
+    "entryStage": "Authentication gate with redirect to /submit",
+    "blocker": "Submission form is hidden until authentication completes.",
+    "notes": "Homepage Submit and Submit your product lead to /login?redirect=/submit. Login supports Continue with Google and Continue with email. The adapter can prefer Google, keep the redirect target, and resume once /submit opens. Downstream fields, image controls, stages, and final boundary remain hidden.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "startupfa.st",
+    "status": "entry_verified",
+    "submitUrl": "https://www.startupfa.st/projects/submit",
+    "entryStage": "Authentication gate before free/premium launch editor",
+    "blocker": "The launch editor is unavailable until Google authentication completes.",
+    "notes": "Public /submit offers Free Launch and Premium Launch; both point to /projects/submit. Opening /projects/submit redirects to /sign-in?redirect=/projects/submit and exposes Login with Google. The adapter should prefer Google and wait for the redirect back to /projects/submit. Premium/sponsor actions are payment boundaries and must not be selected automatically. Downstream stages, image fields, scheduling controls, and the final publish button remain hidden.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  },
+  {
+    "domain": "sideprojectors.com",
+    "status": "entry_verified",
+    "submitUrl": "https://www.sideprojectors.com/submit/type",
+    "entryStage": "Authentication gate before choosing project listing type",
+    "blocker": "The submit route redirects to /auth/login before project type selection.",
+    "notes": "SideProjectors is primarily a marketplace for selling, showcasing, or finding a cofounder for side projects rather than a conventional backlink directory, but it does accept project listings. Login supports Google, GitHub, GitLab, Product Hunt, LinkedIn, and email/password. The adapter can prefer Google and resume at /submit/type. Expected first stage is listing intent/type (sell, cofounder, showcase); subsequent project fields, image controls, and final listing button require authenticated inspection. Any sale or paid-membership action is a final/financial boundary and must not be triggered.",
+    "checkedAt": "2026-07-28T06:17:26Z"
+  }
+]

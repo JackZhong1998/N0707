@@ -12,12 +12,7 @@ import type {
   DirectorResponse,
   StrategyResponse,
 } from '@/lib/gtm/types';
-import {
-  buildChannelPickOptionCard,
-  channelName,
-  formatChannelRecommendationBrief,
-  recommendChannels,
-} from './catalog';
+import { channelName, getChannelCatalog } from './catalog';
 import { getChannelDefinition } from './skills/channel-map';
 
 export function isMockMode(): boolean {
@@ -25,59 +20,6 @@ export function isMockMode(): boolean {
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-function parseKickoffContext(history: ChatMessage[]): {
-  markets: string[];
-  stage?: string;
-  time?: string;
-} {
-  const kickoffMsg = history.find(
-    (m) =>
-      m.role === 'user' &&
-      (/我的基本情况/.test(m.content) || /My basics:/i.test(m.content))
-  );
-  if (!kickoffMsg) return { markets: ['cn'] };
-
-  const content = kickoffMsg.content;
-  const markets: string[] = [];
-  if (/中国市场|China \(Chinese/i.test(content)) markets.push('cn');
-  if (/美国|英语市场|US \/ English/i.test(content)) markets.push('us');
-  if (/东南亚|Southeast Asia/i.test(content)) markets.push('sea');
-  if (/全球|Global/i.test(content)) markets.push('global');
-  if (markets.length === 0) markets.push('cn');
-
-  let stage: string | undefined;
-  if (/想法|规划中|Idea \/ planning/i.test(content)) stage = 'idea';
-  else if (/开发中|In development/i.test(content)) stage = 'building';
-  else if (/已上线且有一些用户|Live with some users/i.test(content)) stage = 'users';
-  else if (/已上线|Live and usable/i.test(content)) stage = 'live';
-
-  let time: string | undefined;
-  if (/30 分钟以内|Under 30 minutes/i.test(content)) time = 'lt30';
-  else if (/30 分钟到 1 小时|30 min to 1 hour/i.test(content)) time = 'm30h1';
-  else if (/1 小时以内|Under 1 hour/i.test(content)) time = 'm30h1';
-  else if (/1–2 小时|1-2 hours/i.test(content)) time = 'h12';
-  else if (/3 小时|3\+ hours/i.test(content)) time = 'h3';
-
-  return { markets, stage, time };
-}
-
-function buildChannelRecommendation(history: ChatMessage[]) {
-  const kickoff = parseKickoffContext(history);
-  const channelIds = recommendChannels(kickoff);
-  const brief = formatChannelRecommendationBrief(channelIds);
-  return {
-    channelIds,
-    reply: `结合你的目标市场、产品状态和可投入时间，我给你推荐下面 ${channelIds.length} 个最合适的渠道——不用你懂行，具体怎么做我们来：
-
-${brief}
-
-**为什么推荐这些？** 每个渠道各有分工：有的负责快速验证、有的负责持续曝光、有的负责转化承接。策略组会按你选的渠道排好每天做什么，渠道专员会写好内容初稿 — 你只需要过一遍、发布。
-
-**勾一下你想先从哪几个做起**（时间紧选 1–2 个也行，充裕可以全选）：`,
-    optionCard: buildChannelPickOptionCard(channelIds),
-  };
-}
 
 /* ------------------------------------------------------------------ */
 /* 市场总监                                                             */
@@ -91,138 +33,52 @@ export async function mockDirector(input: {
   channels: string[];
 }): Promise<DirectorResponse> {
   await delay(700);
-  const assistantTurns = input.history.filter((m) => m.role === 'assistant').length;
   const msg = input.message;
+  const channelIds =
+    input.channels.length > 0
+      ? input.channels
+      : getChannelCatalog().map((channel) => channel.channelId);
+  const websiteUrl = msg.match(/https?:\/\/[^\s<>()]+/i)?.[0];
 
-  // 已有策略：确认后派发渠道专员生成 To-Do
+  // PRD 模式：不让用户选择渠道或审批策略，后台自动覆盖全部支持渠道。
   if (input.hasStrategy && !input.hasTodos) {
-    if (/(确认|没问题|可以|开始|生成|ok|好的|同意)/i.test(msg)) {
-      return {
-        reply:
-          '收到，策略正式生效。我现在把各渠道的渠道专员叫起来，让他们按这份策略排出未来 30 天每天要做的事。排完之后你在「每日行动日历」里就能看到了 — 我们真正的 Go-to-Market 从今天开始。',
-        actions: [{ type: 'generate_todos', channelIds: input.channels }],
-      };
-    }
     return {
       reply:
-        '策略我已经放到「市场策略」页面了，你可以先过一遍。有任何想调整的直接告诉我（比如你的个人背景、想强调的方向），我让策略组改。如果没问题，回复「确认」，我就安排各渠道专员去排 30 天的执行计划。',
+        'Campaign Blueprint 已经就绪。我会直接让全部渠道专员生成未来 30 天的执行骨架；你不需要逐项选择或审批渠道。',
+      actions: [{ type: 'generate_todos', channelIds }],
     };
   }
 
-  // 已有完整计划：陪伴执行 + 支持新增渠道 / 调整
   if (input.hasStrategy && input.hasTodos) {
-    const addChannel = matchChannel(msg);
-    if (addChannel && !input.channels.includes(addChannel)) {
-      return {
-        reply: `好眼光，${channelName(addChannel)} 值得一做。我让策略组针对这个渠道补一份方向文档，完成后会出现在市场策略页，对应的渠道专员也会把 30 天的 To-Do 排进你的日历。`,
-        actions: [
-          { type: 'generate_strategy', channelIds: [addChannel] },
-          { type: 'generate_todos', channelIds: [addChannel] },
-        ],
-      };
-    }
     if (/(今天|今日|待办|做什么|任务)/.test(msg)) {
       return {
         reply:
-          '我看了你今天的日历（见下方）。挑一条先做起来，做内容的部分点进详情页，渠道专员已经把初稿准备好了 — 你只需要过一遍、改成你的语气，然后发布。完成后记得勾掉，我在看着你呢。',
-      };
-    }
-    if (/(改|调整|不满意|重新)/.test(msg)) {
-      return {
-        reply:
-          '可以。策略层面的调整告诉我，我让策略组重写对应渠道的方向文档；单条内容的调整你直接在那条 To-Do 的详情页跟渠道专员说，那边改起来更快。你想动哪一部分？',
+          '我会以今天的行动日历为准：先处理带有「需要操作」的事项，再完成已经准备好的内容。已发布内容不会被后续调整覆盖。',
       };
     }
     return {
       reply:
-        '计划在正常推进。记住我们的节奏：每天完成日历上的事，不需要完美，需要持续。有卡住的地方随时叫我 — 你不是一个人在 go to market。',
+        '计划正在按同一套 Campaign Blueprint 推进。你可以直接告诉我要改哪一部分，我只会更新未来未完成的工作；发布记录保持不变。',
     };
   }
 
-  // 冷启动问询阶段（按轮次推进）
-  // 进入对话时前端已本地插入：问候语 + 固定冷启动问卷卡（共 2 条 assistant 消息），
-  // 因此首条用户消息（问卷答案）到达时 assistantTurns 约为 2
-  const hasProductUrl =
-    /产品链接|Product URL/i.test(msg) ||
-    input.history.some(
-      (m) => m.role === 'user' && /产品链接|Product URL/i.test(m.content)
-    );
-
-  const channelRecommendation = buildChannelRecommendation(input.history);
-
-  const coldStartOptionCard = {
-    question: '冷启动方式偏好',
-    multi: false as const,
-    options: [
-      { id: 'founder', label: '创始人个人号', description: '以你本人的故事和视角输出（推荐）' },
-      { id: 'brand', label: '品牌官方号', description: '以产品品牌的身份运营' },
-      { id: 'mixed', label: '两者结合', description: '个人号讲故事，官方号做承接' },
-    ],
-  };
-
-  if (assistantTurns <= 2) {
-    if (hasProductUrl) {
-      return {
-        reply: `收到，你的基本盘我记下了。我已经读完你的产品官网和主要竞品，对产品和市场有了基本判断。
-
-${channelRecommendation.reply}`,
-        optionCard: channelRecommendation.optionCard,
-      };
-    }
+  if (!websiteUrl) {
     return {
       reply:
-        '收到，你的基本盘我记下了。接着说说产品本身：**它是什么？解决了什么问题？** 如果只能用一句话说服你的目标用户，你会说什么？',
+        '把产品官网链接发给我即可开始。没有官网时，请给我一句产品定义和目标用户；其余缺口我会标成假设，不会卡住整个 Launch。',
     };
   }
 
-  if (hasProductUrl && assistantTurns === 3) {
-    return {
-      reply: '好，渠道方案定了。最后一个问题 — 你的冷启动更想以什么方式打？',
-      optionCard: coldStartOptionCard,
-    };
-  }
-
-  if (assistantTurns === 3) {
-    return {
-      reply: channelRecommendation.reply,
-      optionCard: channelRecommendation.optionCard,
-    };
-  }
-
-  if (assistantTurns === 4) {
-    return {
-      reply: '好，渠道方案定了。最后一个问题 — 你的冷启动更想以什么方式打？',
-      optionCard: coldStartOptionCard,
-    };
-  }
-
-  // 信息足够 → 同时调用策略生成 + 选题规划
-  const channels = input.channels.length > 0 ? input.channels : ['xiaohongshu', 'user_outreach'];
   return {
     reply:
-      '信息足够了。我现在把策略组和选题规划一起叫起来，基于我们刚才聊的这些，给你产出市场策略和首批选题。生成需要一点时间，完成后我会用卡片的形式给你，稍等。',
+      '链接已收到。我会在后台完成产品研究、统一 Campaign Blueprint、全部支持渠道的原生计划和首批执行任务；你只需要在需要登录、提交或发布时确认。',
     actions: [
-      { type: 'generate_strategy', channelIds: channels },
-      { type: 'generate_topics', channelIds: channels, count: 7 },
+      { type: 'research_product', websiteUrl },
+      { type: 'generate_strategy', channelIds },
+      { type: 'generate_topics', channelIds, count: 7 },
+      { type: 'generate_todos', channelIds },
     ],
   };
-}
-
-function matchChannel(msg: string): string | null {
-  const pairs: Array<[RegExp, string]> = [
-    [/小红书/, 'xiaohongshu'],
-    [/(朋友圈|私域|微信群)/, 'user_outreach'],
-    [/(twitter|推特|x\s)/i, 'twitter_x'],
-    [/公众号/, 'wechat_official'],
-    [/reddit/i, 'reddit'],
-    [/linkedin|领英/i, 'linkedin'],
-    [/product\s*hunt/i, 'product_hunt'],
-    [/github/i, 'github_growth'],
-  ];
-  for (const [re, id] of pairs) {
-    if (re.test(msg)) return id;
-  }
-  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -295,33 +151,33 @@ export async function mockStrategy(input: {
     : '';
 
   return {
-    goal: '30 天内获得第一批 100 位真实用户，验证核心价值主张',
+    goal: '30 天内在全部支持渠道建立一致的市场认知，并获得可验证的高意向用户信号',
     overviewMarkdown: `# 30 天冷启动市场策略
 
 ## 总体判断
 
-你的产品处于冷启动阶段，此时最重要的不是规模化投放，而是**用创始人的真实视角换取第一批用户的信任**。我们把 30 天分成四个阶段：${feedbackNote}
+你的产品处于冷启动阶段。全部渠道共享同一定位、目标人群和四周叙事，再由各渠道按原生格式执行。以下内容是没有模型配置时的安全演示骨架，未确认的产品事实必须继续标成假设：${feedbackNote}
 
 | 阶段 | 主题 | 核心动作 |
 | --- | --- | --- |
-| 第 1 周 | 定位与开张 | 立住账号人设，讲清楚你是谁、在解决什么问题 |
-| 第 2 周 | 内容放量 | 干货 + 故事双线输出，测试哪类内容有共鸣 |
-| 第 3 周 | 互动与转化 | 把观众变成对话，把对话变成种子用户 |
-| 第 4 周 | 冲刺与沉淀 | 数据复盘公开化，沉淀方法论与用户资产 |
+| 第 1 周 | 建立问题认知 | 讲清楚目标用户、问题和当前替代方案 |
+| 第 2 周 | 建立可信度 | 用有来源的观察、过程和方法解释判断 |
+| 第 3 周 | 展示解决方案 | 用真实场景和已验证能力说明产品 |
+| 第 4 周 | 集中 Launch | 聚合已有证据，给出清楚、克制的行动邀请 |
 
 ## 方向原则
 
-1. **人比品牌先行**：冷启动期所有内容以创始人第一人称输出
-2. **透明是最大的钩子**：公开数据、公开踩坑、公开决策
-3. **每天一件事**：不追求爆款，追求 30 天不断更
-4. **所有渠道服务一个转化点**：把流量导向你的产品或私域
+1. **事实统一**：所有渠道只使用官网来源或用户确认事实
+2. **表达原生**：共享 Campaign，不机械复制同一篇内容
+3. **节奏合理**：按渠道价值排期，不为了填满 30 天制造任务
+4. **证据优先**：没有真实数据、案例或背书时不把它写进文案
 
 ## 成功信号
 
-- 第 1 周：完成全部账号搭建，发出前 5 篇内容
-- 第 2 周：出现第一批主动评论 / 私信
-- 第 3 周：拿到 20+ 有效对话，转化第一批种子用户
-- 第 4 周：100 位真实用户，形成可复盘的增长认知`,
+- 第 1 周：核心页面和首批渠道交付进入可执行状态
+- 第 2 周：获得可归因的目标用户互动或访问证据
+- 第 3 周：形成可验证的问题、异议和使用场景信号
+- 第 4 周：保留发布 URL、结果证据和下一轮可检验假设`,
     channels: input.channelIds.map((channelId) => {
       const t = fallbackTemplate(channelId);
       const name = channelName(channelId);
@@ -381,7 +237,7 @@ export async function mockContext(input: {
 
   const userDoc =
     input.userProfileDoc ||
-    `# 用户个人档案\n\n## 身份背景\n\n- 独立开发者 / 一人公司创始人\n\n## 对话中提到\n`;
+    `# 用户个人档案\n\n## 身份背景\n\n- 暂无已确认身份信息\n\n## 对话中提到\n`;
   const projectDoc =
     input.projectProfileDoc ||
     `# 项目档案\n\n## 产品概况\n\n（随对话持续累积）\n\n## 关键信息\n`;
@@ -469,40 +325,6 @@ const GENERIC_PATTERN = [
   { day: 29, time: '10:00', title: '发布 30 天复盘', brief: '数据与方法全公开', phase: '第 4 周 · 冲刺与沉淀' },
 ];
 
-/**
- * 无重内容的日子用轻量的发布/新增类任务补位，保证 30 天每天都有新东西产出。
- * 注意：回复评论、回复私信这类维护动作由渠道专员日常自动处理，不进日历。
- */
-const LIGHT_TASKS = [
-  { title: '发布一条轻量短内容', brief: '一个今天的真实工作瞬间 + 一句感受，保持账号活跃' },
-  { title: '把表现最好的内容改编成新形式发布', brief: '换角度或换体裁重写一遍，复用已验证的选题' },
-  { title: '新增一条用户案例素材', brief: '整理一段用户对话或使用场景，发成图文素材' },
-  { title: '发布一条数据小结', brief: '公开今天的一个真实数字 + 一句解读，透明建立信任' },
-];
-
-function phaseForDay(day: number): string {
-  if (day <= 7) return '第 1 周 · 定位与开张';
-  if (day <= 14) return '第 2 周 · 内容放量';
-  if (day <= 21) return '第 3 周 · 互动与转化';
-  return '第 4 周 · 冲刺与沉淀';
-}
-
-function densifyPattern(
-  pattern: Array<{ day: number; time: string; title: string; brief: string; phase: string }>
-): Array<{ day: number; time: string; title: string; brief: string; phase: string }> {
-  const days = new Set(pattern.map((p) => p.day));
-  const filled = [...pattern];
-  let i = 0;
-  for (let d = 1; d <= 30; d++) {
-    if (!days.has(d)) {
-      const lt = LIGHT_TASKS[i % LIGHT_TASKS.length];
-      i++;
-      filled.push({ day: d, time: '21:30', title: lt.title, brief: lt.brief, phase: phaseForDay(d) });
-    }
-  }
-  return filled.sort((a, b) => a.day - b.day);
-}
-
 function channelMarketInfo(channelId: string): { market: string; audience: string } {
   const def = getChannelDefinition(channelId);
   const locales = def?.locales ?? ['zh'];
@@ -520,7 +342,8 @@ export async function mockChannelTodos(input: {
   channelId: string;
 }): Promise<ChannelTodosResponse> {
   await delay(1800);
-  const pattern = densifyPattern(TODO_PATTERNS[input.channelId] ?? GENERIC_PATTERN);
+  const pattern = TODO_PATTERNS[input.channelId] ?? GENERIC_PATTERN;
+  const definition = getChannelDefinition(input.channelId);
   const { market, audience } = channelMarketInfo(input.channelId);
   return {
     todos: pattern.map((p) => ({
@@ -531,6 +354,10 @@ export async function mockChannelTodos(input: {
       phase: p.phase,
       market,
       audience,
+      purpose: p.phase,
+      pillar: p.phase,
+      taskType: definition?.defaultTaskTypes[0] ?? 'content',
+      launchStatus: p.day <= 7 ? 'draft' : 'planned',
     })),
   };
 }
@@ -543,21 +370,15 @@ export async function mockChannelWrite(input: {
   await delay(1500);
   return {
     title: input.title.replace(/^发布/, '').replace(/帖$/, ''),
-    body: `说实话，写这条之前我犹豫了很久要不要发。
+    body: `【安全演示草稿 · 发布前请补充真实细节】
 
-${input.brief}——这件事我最近想了很多。做产品的这段时间，我发现大多数人卡住的地方其实不是「不会做」，而是「不知道自己做的东西有没有人要」。
+主题：${input.title}
 
-我自己也一样。所以我决定把过程摊开来讲：
+核心方向：${input.brief}
 
-1. 我看到的问题是什么
-2. 我试过哪些解法（包括失败的）
-3. 现在的产品是怎么一步步长出来的
+这里需要补充一项可验证的真实材料，例如产品截图、官网公开能力、Founder 的真实观察或已有用户反馈。没有证据时，不加入数字、客户案例、效果承诺或个人经历。
 
-不装专家，只说我真实踩过的坑和验证过的东西。
-
-如果你也在经历类似的阶段，评论区聊聊——我会认真回每一条。
-
-（这是我 30 天冷启动实验的一部分，全程公开数据，欢迎围观。）`,
+补充材料后，再按当前渠道的原生格式完成开头、正文和行动邀请。`,
   };
 }
 
@@ -575,7 +396,7 @@ export async function mockChannelChat(input: {
     return {
       reply:
         '明白，我把这个渠道整个 30 天的 To-Do 方向重新排了一版：前两周更侧重你刚才说的方向，后两周保持转化节奏。新的计划已经更新到日历里，你可以随时再叫我调整。',
-      rewritePlan: densifyPattern(GENERIC_PATTERN).map((p) => ({
+      rewritePlan: GENERIC_PATTERN.map((p) => ({
         dayIndex: p.day,
         title: p.title,
         brief: `${p.brief}（已按你的反馈调整方向）`,
@@ -583,13 +404,20 @@ export async function mockChannelChat(input: {
         phase: p.phase,
         market,
         audience,
+        purpose: p.phase,
+        pillar: p.phase,
+        taskType: 'content',
+        launchStatus: p.day <= 7 ? 'draft' : 'planned',
       })),
     };
   }
 
   if (/(改|重写|语气|口吻|短|长|不满意|换)/.test(msg)) {
+    const durable = /(以后|后续|所有|始终|都这样)/.test(msg);
     return {
-      reply: '收到，我按你的意见改了一版，语气更贴近你平时说话的样子。内容区已经更新，你看看这版感觉对不对。',
+      reply: durable
+        ? '收到，我按你的意见改了当前内容，并把它作为这个渠道未来未发布内容的长期偏好。'
+        : '收到，我只按你的意见修改了当前内容，没有改变其他任务或长期语气。',
       rewriteContent: {
         title: input.todoTitle.replace(/^发布/, ''),
         body: `${(input.currentBody ?? '').split('\n')[0] || '这条内容我重写了一版。'}
@@ -600,9 +428,9 @@ export async function mockChannelChat(input: {
 - 把套话换成了你的真实经历
 - 结尾的行动引导更自然，不硬转
 
-${input.message.slice(0, 60)}——这个方向我记住了，后面写内容都会带上。
+${input.message.slice(0, 60)}
 
-如果还有不对味的地方直接说，我再改。`,
+${durable ? '这项要求会用于本渠道未来未发布内容。' : '这项要求只用于当前这条内容。'}`,
       },
     };
   }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import {
   detectPublisherExtension,
@@ -13,6 +14,18 @@ import {
   PUBLISHER_EXTENSION_VERSION,
   publisherExtensionDownloadUrl,
 } from '@/lib/gtm/publisher-extension-version';
+import { CONFIGURED_DIRECTORY_COUNT } from '@/lib/directories/automation';
+import {
+  capabilityLabels,
+  CHANNEL_CAPABILITIES,
+} from '@/lib/gtm/channel-capabilities';
+
+const STABLE_CHANNEL_COUNT = CHANNEL_CAPABILITIES.filter(
+  (item) => item.extensionSupport === 'stable'
+).length;
+const BETA_CHANNEL_COUNT = CHANNEL_CAPABILITIES.filter(
+  (item) => item.extensionSupport === 'beta'
+).length;
 
 function DownloadIcon() {
   return (
@@ -30,9 +43,15 @@ function CheckIcon() {
   );
 }
 
-export default function PublisherExtensionPage() {
+function PublisherExtensionPageContent() {
   const locale = useLocale();
   const isZh = locale !== 'en';
+  const searchParams = useSearchParams();
+  const requestedReturnTo = searchParams.get('returnTo') ?? '';
+  const returnTo = /^\/app\/calendar\/task\/[a-zA-Z0-9_-]+$/.test(requestedReturnTo)
+    ? requestedReturnTo
+    : '/app/calendar';
+  const returningToTask = returnTo !== '/app/calendar';
   const [publisher, setPublisher] = useState<PublisherAvailability | null>(null);
   const [checking, setChecking] = useState(true);
 
@@ -56,21 +75,21 @@ export default function PublisherExtensionPage() {
 
   const steps = isZh
     ? [
-        ['下载并解压插件', '点击下方按钮下载 ZIP，下载完成后双击解压。'],
-        ['打开 Chrome 扩展程序', '在地址栏输入 chrome://extensions，然后打开“开发者模式”。'],
+        ['下载并解压插件', '点击下方按钮下载 ZIP，下载完成后双击解压。后续要选择解压后的 browser-extension 文件夹，不要选择 ZIP 文件。'],
+        ['打开 Chrome 扩展程序', '在 Chrome 地址栏输入 chrome://extensions → 按回车 → 在页面右上角打开“开发者模式”开关。'],
         needsUpgrade
           ? ['替换旧版本', '删除或覆盖原来的 browser-extension 文件夹，保留 Chrome 里已加载的扩展条目。']
-          : ['加载插件文件夹', '点击“加载已解压的扩展程序”，选择解压后的 browser-extension 文件夹。'],
+          : ['加载插件文件夹', '点击页面左上角“加载已解压的扩展程序”，选择刚才解压出的 browser-extension 文件夹。'],
         needsUpgrade
           ? ['重新加载插件', '在 chrome://extensions 中点击插件卡片上的“重新加载”，然后刷新 NowBuild 页面。']
-          : ['刷新 NowBuild', '回到内容页面并刷新，之后即可自动填写小红书和 X 发布页面。'],
+          : ['刷新 NowBuild', '回到内容页面并刷新；其他平台可先在插件执行测试台中逐个 Dry Run。'],
       ]
     : [
-        ['Download and unzip', 'Download the ZIP below, then unzip it on your computer.'],
-        ['Open Chrome extensions', 'Enter chrome://extensions and enable Developer mode.'],
+        ['Download and unzip', 'Download the ZIP and unzip it. In the next step, select the extracted browser-extension folder—not the ZIP file.'],
+        ['Open Chrome extensions', 'Enter chrome://extensions in the address bar, press Enter, then enable Developer mode in the top-right corner.'],
         needsUpgrade
           ? ['Replace the old folder', 'Delete or overwrite the previous browser-extension folder while keeping the loaded extension entry.']
-          : ['Load the extension folder', 'Choose “Load unpacked” and select the extracted browser-extension folder.'],
+          : ['Load the extension folder', 'Choose “Load unpacked” in the top-left corner and select the extracted browser-extension folder.'],
         needsUpgrade
           ? ['Reload the extension', 'Click Reload on the extension card in chrome://extensions, then refresh NowBuild.']
           : ['Refresh NowBuild', 'Return to your content and refresh the page to start publishing.'],
@@ -80,13 +99,19 @@ export default function PublisherExtensionPage() {
     <div className="min-h-full bg-paper-dim p-3 sm:p-6">
       <div className="mx-auto max-w-4xl">
         <Link
-          href="/app/calendar"
+          href={returnTo}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-ink"
         >
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          {isZh ? '返回行动日历' : 'Back to calendar'}
+          {returningToTask
+            ? isZh
+              ? '返回当前任务'
+              : 'Back to current task'
+            : isZh
+              ? '返回 Launch Calendar'
+              : 'Back to calendar'}
         </Link>
 
         <section className="mt-4 overflow-hidden rounded-3xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.04)]">
@@ -101,8 +126,8 @@ export default function PublisherExtensionPage() {
                 </h1>
                 <p className="mt-3 text-sm leading-relaxed text-zinc-500 sm:text-[15px]">
                   {isZh
-                    ? '安装后，NowBuild 可以在你已经登录的小红书和 X 页面中填写内容。插件不保存账号密码，也不会调用 AI。最终发布仍由你确认。'
-                    : 'The extension fills Xiaohongshu and X using your existing browser sessions. It stores no passwords, calls no AI, and leaves the final publish action to you.'}
+                    ? `安装后，插件会使用浏览器已有登录状态操作真实平台页面。现有 ${STABLE_CHANNEL_COUNT} 个稳定内容适配器、${BETA_CHANNEL_COUNT} 个 Beta 内容适配器和 ${CONFIGURED_DIRECTORY_COUNT} 个产品目录自动提交流程。插件不保存账号密码；遇到验证码、付费或平台要求确认时会交还给你。`
+                    : `The extension uses your existing browser sessions on real platform pages. It currently has ${STABLE_CHANNEL_COUNT} stable content adapters, ${BETA_CHANNEL_COUNT} beta adapters, and automated submission flows for ${CONFIGURED_DIRECTORY_COUNT} directories. It stores no passwords and hands control back for CAPTCHAs, payments, or platform-required confirmation.`}
                 </p>
               </div>
 
@@ -187,10 +212,16 @@ export default function PublisherExtensionPage() {
                         : `You are on the latest version v${publisher.version ?? PUBLISHER_EXTENSION_VERSION}. Return to any Xiaohongshu or X content and choose “Prepare to publish”.`}
                     </p>
                     <Link
-                      href="/app/calendar"
+                      href={returnTo}
                       className="mt-3 inline-flex h-10 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white hover:bg-zinc-800"
                     >
-                      {isZh ? '返回行动日历' : 'Return to calendar'}
+                      {returningToTask
+                        ? isZh
+                          ? '返回当前任务并继续发布'
+                          : 'Return to the task and continue'
+                        : isZh
+                          ? '返回 Launch Calendar'
+                          : 'Return to calendar'}
                     </Link>
                   </div>
                 </div>
@@ -260,13 +291,63 @@ export default function PublisherExtensionPage() {
 
           <div className="border-t border-zinc-100 p-6 sm:p-9">
             <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-ink">
+              {isZh ? '内容平台能力矩阵' : 'Content platform capability matrix'}
+            </h2>
+            <p className="mt-2 text-xs leading-5 text-zinc-500">
+              {isZh
+                ? '“能规划”不等于“能自动发布”。X 与小红书是稳定适配器；其余平台为辅助填充 Beta，最终发布始终由你确认。'
+                : 'Planning a channel is different from automating its publishing. X and Xiaohongshu are stable; the other adapters are assisted-fill betas, and you always confirm publishing.'}
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {CHANNEL_CAPABILITIES.filter(
+                (item) => item.extensionSupport !== 'none'
+              ).map((item) => (
+                <div key={item.channelId} className="rounded-2xl bg-paper-dim p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-ink">
+                      {isZh ? item.name : item.nameEn}
+                    </p>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase ${
+                        item.extensionSupport === 'stable'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {item.extensionSupport}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {capabilityLabels(item, isZh).map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-full bg-white px-2 py-1 text-[10px] text-zinc-500"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                  {!item.planned && (
+                    <p className="mt-2 text-[10px] text-zinc-400">
+                      {isZh
+                        ? '插件支持辅助填充，但当前不是独立 Channel Agent。'
+                        : 'Assisted fill is available, but this is not currently a standalone Channel Agent.'}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-zinc-100 p-6 sm:p-9">
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-ink">
               {isZh ? '插件会做什么' : 'What the extension can do'}
             </h2>
             <div className="mt-4 grid gap-3 text-xs leading-relaxed text-zinc-500 sm:grid-cols-3">
               <div className="rounded-2xl bg-paper-dim p-4">
-                <p className="font-semibold text-ink">{isZh ? '只操作两个渠道' : 'Two channels only'}</p>
+                <p className="font-semibold text-ink">{isZh ? '按平台独立适配' : 'Platform-specific adapters'}</p>
                 <p className="mt-1">
-                  {isZh ? '仅在小红书、X 和 NowBuild 页面运行。' : 'Runs only on Xiaohongshu, X, and NowBuild.'}
+                  {isZh ? `稳定支持 X、小红书，并提供 ${BETA_CHANNEL_COUNT} 个 Beta 内容平台与 ${CONFIGURED_DIRECTORY_COUNT} 个目录自动提交流程。` : `Stable on X and Xiaohongshu, with ${BETA_CHANNEL_COUNT} beta content platforms and automated submission flows for ${CONFIGURED_DIRECTORY_COUNT} directories.`}
                 </p>
               </div>
               <div className="rounded-2xl bg-paper-dim p-4">
@@ -286,5 +367,13 @@ export default function PublisherExtensionPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function PublisherExtensionPage() {
+  return (
+    <Suspense fallback={<div className="min-h-full bg-paper-dim" />}>
+      <PublisherExtensionPageContent />
+    </Suspense>
   );
 }

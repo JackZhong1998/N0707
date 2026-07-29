@@ -21,9 +21,9 @@ export async function POST(request: Request) {
             typeof channelId === 'string' && allowedChannels.has(channelId)
         )
       ),
-    ].slice(0, 5);
+    ].slice(0, 16);
     if (channelIds.length === 0) {
-      return NextResponse.json({ error: '请先选择至少一个市场渠道。' }, { status: 400 });
+      return NextResponse.json({ error: '没有可用的市场渠道。' }, { status: 400 });
     }
     return NextResponse.json(
       await runTopicPlanner({
@@ -53,6 +53,10 @@ export async function POST(request: Request) {
         performanceContext:
           typeof body.performanceContext === 'string'
             ? body.performanceContext.slice(0, 30_000)
+            : '',
+        campaignContext:
+          typeof body.campaignContext === 'string'
+            ? body.campaignContext.slice(0, 60_000)
             : '',
         locale: body.locale === 'en' ? 'en' : 'zh',
       })

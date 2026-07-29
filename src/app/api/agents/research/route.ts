@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runProductResearch } from '@/lib/agents/researcher';
-import { getAgentAccess } from '../_lib/auth';
+import { getSessionAccess } from '../_lib/auth';
 
 export const maxDuration = 300;
 
@@ -28,8 +28,9 @@ function consumeResearchSlot(actor: string): boolean {
 }
 
 export async function POST(request: Request) {
-  const access = await getAgentAccess();
-  if (!access.allowed) {
+  const access = await getSessionAccess();
+  // Free signed-in users may run product research for Launch Brief.
+  if (!access.authenticated) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

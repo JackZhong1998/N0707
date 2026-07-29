@@ -2,11 +2,14 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/landing/Hero';
+import StopRandom from '@/components/landing/StopRandom';
+import AgentTeam from '@/components/landing/AgentTeam';
 import Channels from '@/components/landing/Channels';
-import FlowSteps from '@/components/landing/FlowSteps';
 import CalendarGlimpse from '@/components/landing/CalendarGlimpse';
+import Comparison from '@/components/landing/Comparison';
 import ClosingCta from '@/components/landing/ClosingCta';
 import FAQ from '@/components/landing/FAQ';
+import LandingPricing from '@/components/landing/LandingPricing';
 import Footer from '@/components/landing/Footer';
 import { buildAbsoluteUrl, getBaseUrl, getSiteName, localePath, languageAlternates } from '@/lib/seo';
 
@@ -18,11 +21,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Metadata.home' });
   return {
-    title: t('title'),
+    title: { absolute: t('title') },
     description: t('description'),
     alternates: {
       canonical: localePath(locale),
       languages: languageAlternates(),
+    },
+    openGraph: {
+      title: t('title'),
+      description: t('description'),
+      url: localePath(locale),
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t('title'),
+      description: t('description'),
     },
   };
 }
@@ -32,7 +46,7 @@ export default async function HomePage({ params }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations({ locale, namespace: 'FAQ' });
-  const faqItems = Array.from({ length: 6 }, (_, i) => ({
+  const faqItems = Array.from({ length: 8 }, (_, i) => ({
     question: t(`items.${i}.question`),
     answer: t(`items.${i}.answer`),
   }));
@@ -64,11 +78,6 @@ export default async function HomePage({ params }: Props) {
     '@type': 'WebSite',
     name: getSiteName(),
     url: getBaseUrl(),
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${buildAbsoluteUrl(localePath(locale, '/blog'))}?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
   };
 
   const tMeta = await getTranslations({ locale, namespace: 'Metadata.home' });
@@ -80,13 +89,21 @@ export default async function HomePage({ params }: Props) {
     url: getBaseUrl(),
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
-    offers: {
-      '@type': 'AggregateOffer',
-      lowPrice: '0',
-      highPrice: '19',
-      priceCurrency: 'USD',
-      offerCount: 2,
+    audience: {
+      '@type': 'Audience',
+      audienceType: locale === 'zh' ? '独立开发者和一人公司' : 'Solo founders and one-person companies',
     },
+    featureList: [
+      '30-day product launch plan',
+      'Platform-specific AI marketing agents',
+      'Daily content calendar',
+      'SEO topic clusters',
+      '100+ matched directory opportunities and automated submission to 76 supported directories',
+    ],
+    offers: [
+      { '@type': 'Offer', price: '0', priceCurrency: 'USD', name: 'Free Launch Brief' },
+      { '@type': 'Offer', price: '49', priceCurrency: 'USD', name: '30-Day Agent Launch Team', priceSpecification: { '@type': 'UnitPriceSpecification', price: '49', priceCurrency: 'USD', billingDuration: 'P1M' } },
+    ],
   };
 
   return (
@@ -110,9 +127,12 @@ export default async function HomePage({ params }: Props) {
       <Navbar variant="dark" />
       <main>
         <Hero />
+        <StopRandom />
         <CalendarGlimpse />
-        <FlowSteps />
+        <AgentTeam />
         <Channels />
+        <LandingPricing />
+        <Comparison />
         <FAQ />
         <ClosingCta />
       </main>

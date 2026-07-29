@@ -5,9 +5,9 @@ import {
   type SupportedPublishChannel,
 } from '@/lib/gtm/publisher-extension';
 import type { PostMetricSnapshot, Todo } from '@/lib/gtm/types';
+import { getChannelCapability } from '@/lib/gtm/channel-capabilities';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SYNCABLE_CHANNELS = ['twitter_x', 'xiaohongshu'] as const;
 
 export interface SyncProgress {
   current: number;
@@ -31,9 +31,7 @@ export interface SyncAllMetricsResult {
 export function isSyncableTodo(todo: Todo): boolean {
   return Boolean(
     todo.publishedUrl &&
-      SYNCABLE_CHANNELS.includes(
-        todo.channelId as (typeof SYNCABLE_CHANNELS)[number]
-      )
+      getChannelCapability(todo.channelId).automaticMetrics
   );
 }
 

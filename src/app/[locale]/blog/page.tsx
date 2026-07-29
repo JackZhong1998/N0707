@@ -45,11 +45,34 @@ export default async function BlogPage({ params }: Props) {
     ],
   };
 
+  const blogCollectionData = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: t('title'),
+    description: t('subtitle'),
+    url: buildAbsoluteUrl(localePath(locale, '/blog')),
+    inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: posts.length,
+      itemListElement: posts.map((post, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: post.title,
+        url: buildAbsoluteUrl(localePath(locale, `/blog/${post.slug}`)),
+      })),
+    },
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogCollectionData) }}
       />
       <Navbar />
       <main className="bg-white">

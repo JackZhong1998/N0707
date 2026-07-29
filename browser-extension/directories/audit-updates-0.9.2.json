@@ -1,0 +1,38 @@
+[
+  {
+    "domain": "g2.com",
+    "status": "blocked",
+    "adapterId": null,
+    "submitUrl": "https://www.g2.com/add_product_requests/new",
+    "entryStage": "business_account_gate",
+    "blocker": "G2 的 Add Product Request 会进入 Google Business 登录，并要求重新输入企业邮箱；当前个人 Google 会话不能直接继续。",
+    "notes": "公开产品申请入口有效，但必须由用户提供符合 G2 要求的企业身份后才能录制后续表单。"
+  },
+  {
+    "domain": "reddit.com",
+    "status": "not_directory",
+    "adapterId": "reddit",
+    "submitUrl": null,
+    "entryStage": "community_post",
+    "blocker": null,
+    "notes": "这是社区内容发布渠道，不是产品目录；已有独立 Reddit 发布适配器，不进入目录表单录制。"
+  },
+  {
+    "domain": "news.ycombinator.com",
+    "status": "not_directory",
+    "adapterId": "hacker_news",
+    "submitUrl": "https://news.ycombinator.com/submit",
+    "entryStage": "community_post",
+    "blocker": null,
+    "notes": "这是社区投稿渠道，不是目录；已有 Hacker News 标题与 URL 投稿适配器。"
+  },
+  {
+    "domain": "indiehackers.com",
+    "status": "not_directory",
+    "adapterId": "indie_hackers",
+    "submitUrl": null,
+    "entryStage": "community_post",
+    "blocker": "现有 Indie Hackers 编辑器识别仍需修复。",
+    "notes": "归入内容发布渠道，不作为目录 listing 表单重复录制。"
+  }
+]

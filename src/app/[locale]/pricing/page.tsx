@@ -56,26 +56,24 @@ export default async function PricingPage({ params }: Props) {
   const productStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: `${getSiteName()} Pro`,
+    name: `${getSiteName()} 30-Day Agent Launch Team`,
     description: t('plans.pro.description'),
     url: buildAbsoluteUrl(localePath(locale, '/pricing')),
     brand: { '@type': 'Brand', name: getSiteName() },
     offers: [
       {
         '@type': 'Offer',
-        name: 'Pro Monthly',
-        price: '19',
+        name: 'Agent Launch Team Monthly',
+        price: '49',
         priceCurrency: 'USD',
         availability: 'https://schema.org/InStock',
         url: buildAbsoluteUrl(localePath(locale, '/pricing')),
-      },
-      {
-        '@type': 'Offer',
-        name: 'Pro Yearly',
-        price: '199',
-        priceCurrency: 'USD',
-        availability: 'https://schema.org/InStock',
-        url: buildAbsoluteUrl(localePath(locale, '/pricing')),
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: '49',
+          priceCurrency: 'USD',
+          billingDuration: 'P1M',
+        },
       },
     ],
   };

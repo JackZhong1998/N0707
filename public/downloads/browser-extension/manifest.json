@@ -1,0 +1,133 @@
+{
+  "manifest_version": 3,
+  "name": "NowBuild 发布助手",
+  "description": "使用浏览器已有登录状态填写内容平台和产品目录表单，并回收公开数据。",
+  "version": "0.6.0",
+  "permissions": [
+    "debugger",
+    "storage",
+    "tabs",
+    "windows"
+  ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://creator.xiaohongshu.com/*",
+    "https://www.xiaohongshu.com/*",
+    "https://xhslink.com/*",
+    "https://*.xhslink.com/*",
+    "https://news.ycombinator.com/*",
+    "https://dev.to/*",
+    "https://reddit.com/*",
+    "https://*.reddit.com/*",
+    "https://linkedin.com/*",
+    "https://*.linkedin.com/*",
+    "https://medium.com/*",
+    "https://*.medium.com/*",
+    "https://hashnode.com/*",
+    "https://*.hashnode.com/*",
+    "https://indiehackers.com/*",
+    "https://*.indiehackers.com/*",
+    "https://uneed.best/*",
+    "https://*.uneed.best/*",
+    "https://peerpush.com/*",
+    "https://*.peerpush.com/*",
+    "https://openhunts.com/*",
+    "https://*.openhunts.com/*",
+    "https://toolfio.com/*",
+    "https://*.toolfio.com/*",
+    "https://earlyhunt.com/*",
+    "https://*.earlyhunt.com/*",
+    "https://twelve.tools/*",
+    "https://*.twelve.tools/*",
+    "https://nowbuild.ai/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_title": "NowBuild 发布助手",
+    "default_popup": "popup.html"
+  },
+  "options_page": "test-console/index.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "https://nowbuild.ai/*",
+        "https://*.nowbuild.ai/*"
+      ],
+      "js": [
+        "web-bridge.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "channels/x-text.js",
+        "channels/x.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://creator.xiaohongshu.com/*",
+        "https://www.xiaohongshu.com/*",
+        "https://xhslink.com/*",
+        "https://*.xhslink.com/*"
+      ],
+      "js": [
+        "channels/xiaohongshu.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://news.ycombinator.com/*",
+        "https://dev.to/*",
+        "https://reddit.com/*",
+        "https://*.reddit.com/*",
+        "https://linkedin.com/*",
+        "https://*.linkedin.com/*",
+        "https://medium.com/*",
+        "https://*.medium.com/*",
+        "https://hashnode.com/*",
+        "https://*.hashnode.com/*",
+        "https://indiehackers.com/*",
+        "https://*.indiehackers.com/*"
+      ],
+      "js": [
+        "channels/common.js",
+        "channels/platforms.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://uneed.best/*",
+        "https://*.uneed.best/*",
+        "https://peerpush.com/*",
+        "https://*.peerpush.com/*",
+        "https://openhunts.com/*",
+        "https://*.openhunts.com/*",
+        "https://toolfio.com/*",
+        "https://*.toolfio.com/*",
+        "https://earlyhunt.com/*",
+        "https://*.earlyhunt.com/*",
+        "https://twelve.tools/*",
+        "https://*.twelve.tools/*"
+      ],
+      "js": [
+        "channels/common.js",
+        "directories/catalog.js",
+        "directories/adapter.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

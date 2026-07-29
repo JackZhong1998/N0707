@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocale } from 'next-intl';
 import { useGtm } from '@/lib/gtm/store';
-import { buildKickoffCard } from '@/lib/gtm/kickoff';
 
 /** Adds the single market-partner welcome flow regardless of which view opens first. */
 export default function AgentBootstrap() {
@@ -44,13 +43,8 @@ export default function AgentBootstrap() {
     addDirectorMessage({
       role: 'assistant',
       content: isZh
-        ? '你好，我是你的市场合伙人。你可以一边查看左侧的行动、选题和数据，一边随时把想法补充给我；不用等我回复完。\n\n先用 30 秒告诉我你的基本情况。之后再用一两句话说说：**你的产品是什么，解决了什么问题？**'
-        : "Hi, I'm your marketing partner. Keep looking through actions, topics, and results on the left while adding ideas here—you never need to wait for a reply to finish.\n\nFirst, take 30 seconds to share the basics. Then tell me: **what is your product, and what problem does it solve?**",
-    });
-    addDirectorMessage({
-      role: 'assistant',
-      content: '',
-      card: { kind: 'kickoff', card: buildKickoffCard(isZh) },
+        ? '你好，我是你的**冷启动合伙人**。左侧是我和渠道团队交付的工作成果，这里是你唯一需要使用的修改入口。\n\n先在左侧粘贴产品链接。我会读取网站、研究竞品，并自动建立完整的 30 天全渠道冷启动。缺失的信息，我只会在确实影响执行时再问你。'
+        : "Hi, I'm your **Launch Partner**. The left side holds the work produced by your channel team; this is the one place to explain, question, or change any of it.\n\nPaste your product URL on the left. I'll study the site and competitors, then build the complete 30-day launch across every supported channel. I'll only ask for missing details when they truly block execution.",
     });
   }, [
     addDirectorMessage,

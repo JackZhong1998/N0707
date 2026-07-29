@@ -19,17 +19,21 @@ import { buildDemoTodos } from '@/lib/gtm/demo-calendar';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
 
 function CalendarPageInner() {
-  const { store, updateTodo } = useGtm();
+  const { store, accessStatus, updateTodo } = useGtm();
   const locale = useLocale();
   const isZh = locale !== 'en';
   const searchParams = useSearchParams();
   const { setViewContext, clearViewContext } = useViewContext();
-  const isPreview = !store.paid;
+  // While access is checking (or retrying after an error), prefer the user's
+  // local workspace instead of replacing it with the unpaid demo calendar.
+  const isPreview = accessStatus === 'unpaid';
   const initialView = isPreview
     ? 'week'
-    : searchParams.get('view') === 'week'
-      ? 'week'
-      : 'day';
+    : searchParams.get('view') === 'day'
+      ? 'day'
+      : searchParams.get('view') === 'month'
+        ? 'month'
+        : 'week';
 
   const demoTodos = useMemo(() => buildDemoTodos(locale), [locale]);
 
@@ -49,20 +53,20 @@ function CalendarPageInner() {
       const modeLabel =
         state.mode === 'day'
           ? isZh
-            ? '日视图'
+            ? '按天查看'
             : 'Day view'
           : state.mode === 'week'
             ? isZh
-              ? '周视图'
+              ? '按周查看'
               : 'Week view'
             : isZh
-              ? '月视图'
+              ? '查看全月'
               : 'Month view';
       setViewContext({
-        view: 'action_calendar',
+        view: 'launch_calendar',
         entityType: 'calendar_period',
         entityId: state.date ?? state.rangeStart,
-        title: `${isZh ? '行动日历' : 'Action calendar'} · ${modeLabel}`,
+        title: `Launch Calendar · ${modeLabel}`,
         section: [state.rangeStart, state.rangeEnd].filter(Boolean).join(' → '),
         revision: store.todos.length,
       });
@@ -77,8 +81,8 @@ function CalendarPageInner() {
         <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ink px-4 py-3 sm:mx-6">
           <p className="text-sm text-zinc-200">
             {isZh
-              ? '这是一份示例日历。去和市场总监聊聊，生成真正属于你的 30 天计划。'
-              : 'This is a sample calendar. Talk to your director to generate your own 30-day plan.'}
+              ? '这是一份示例日历。输入产品链接后，NowBuild 会为你生成专属的 30 天冷启动计划。'
+              : 'This is a sample calendar. Add your product URL to build the complete 30-day launch.'}
           </p>
           <button
             type="button"
@@ -87,7 +91,7 @@ function CalendarPageInner() {
             }
             className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
           >
-            {isZh ? '开始对话 →' : 'Start talking →'}
+            {isZh ? '开始制定计划 →' : 'Build my launch →'}
           </button>
         </div>
       )}

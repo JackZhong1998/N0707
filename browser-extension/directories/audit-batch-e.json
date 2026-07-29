@@ -1,0 +1,101 @@
+[
+  {
+    "domain": "proofstories.io",
+    "status": "entry_verified",
+    "submitUrl": "https://proofstories.io/submit/",
+    "entryStage": "Public Submit entry with Google authentication available",
+    "blocker": "The downstream submission form was not inspected after authentication.",
+    "notes": "The product directory is live at /directory/ and exposes a stable /submit/ link. The page also exposes Login with Google. Prefer Google login, wait for the authenticated redirect, then resume. Product fields, images, stages, and final submit boundary remain to be recorded after login.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "dailypings.com",
+    "status": "blocked",
+    "submitUrl": "https://dailypings.com/",
+    "entryStage": "Cloudflare security verification",
+    "blocker": "Cloudflare verification prevented access to the site.",
+    "notes": "No verification or CAPTCHA was attempted. Submission URL, login methods, stages, image fields, and final boundary require a user-assisted Cloudflare pass.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "tinylaunchpad.com",
+    "status": "blocked",
+    "submitUrl": "https://tinylaunchpad.com/",
+    "entryStage": "Homepage request",
+    "blocker": "The live site returned 403 Forbidden.",
+    "notes": "No public content or submission entry was available. The site may block this browser/profile or no longer provide public access.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "startups.fm",
+    "status": "entry_verified",
+    "submitUrl": "https://startups.fm/submit",
+    "entryStage": "Public startup submission entry",
+    "blocker": "The downstream form did not finish loading within the bounded audit window.",
+    "notes": "Homepage repeatedly exposes Submit your startup pointing to /submit and advertises a DR 45+ backlink. The catalog labels this platform paid. Treat any checkout/payment control as the final boundary; do not select or pay automatically. Login, form stages, and image fields need the next pass.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "awesome.tools",
+    "status": "blocked",
+    "submitUrl": "https://awesome.tools/",
+    "entryStage": "Cloudflare block page",
+    "blocker": "Cloudflare returned 'Sorry, you have been blocked'.",
+    "notes": "The site did not expose its directory or submit entry. Requires a user-assisted/network-permitted pass before any flow can be recorded.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "startuplist.ing",
+    "status": "entry_verified",
+    "submitUrl": "https://startuplist.ing/pricing",
+    "entryStage": "Pricing/sign-in gate before listing",
+    "blocker": "No public submission editor is exposed while signed out.",
+    "notes": "The directory is live and exposes Sign in plus Pricing/Claim now. The dataset labels it paid. The adapter should open pricing, choose no paid plan automatically, and pause if checkout is required. After user plan choice/authentication, resume into the listing editor. Downstream stages, images, and final publish button remain hidden.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "findyoursaas.com",
+    "status": "entry_verified",
+    "submitUrl": "https://findyoursaas.com/pricing",
+    "entryStage": "Pricing/sign-in gate",
+    "blocker": "List your SaaS leads to pricing; listing editor is not public.",
+    "notes": "Homepage exposes List your SaaS pointing to /pricing and Sign In controls. The adapter may open pricing and report available options, but must stop before selecting a paid plan or checkout. Authentication, product fields, images, multi-page stages, and final boundary require a later authenticated pass.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "productburst.com",
+    "status": "not_directory",
+    "submitUrl": "https://productburst.com/",
+    "entryStage": "Homepage inspection",
+    "blocker": "No product-directory listing or public submit entry was found.",
+    "notes": "The live product presents itself as 'Launch. Grow. Market. Follow Up' rather than a browseable third-party product directory. It should be removed from the directory-submission queue unless a distinct listing surface is later supplied.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "toolfolio.io",
+    "status": "entry_verified",
+    "submitUrl": "https://toolfolio.com/boosted-listing",
+    "entryStage": "Boosted listing entry after domain redirect",
+    "blocker": "The original toolfolio.io redirects to toolfolio.com and the visible submission entry is a boosted-listing flow.",
+    "notes": "The directory is live on toolfolio.com and exposes Submit tool pointing to /boosted-listing. Treat pricing/payment as a hard boundary and do not purchase. The later pass must determine whether a free path exists and record login, product fields, logo/screenshots, and final submission control.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "saaspa.ge",
+    "status": "entry_verified",
+    "submitUrl": "https://www.saaspa.ge/submit",
+    "entryStage": "Public product-launch entry with sign-in control",
+    "blocker": "The product editor was not fully inspected after sign-in.",
+    "notes": "Homepage exposes Submit Product, Launch Your Product, and Launch This Week, all pointing to /submit, plus Sign In. Pricing upgrades live separately at /promote-now and must never be selected automatically. Resume after login, record product details, launch scheduling, images, preview stages, and stop before final launch.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  },
+  {
+    "domain": "indiehub.best",
+    "status": "entry_verified",
+    "submitUrl": "https://indiehub.best/submit",
+    "entryStage": "Public Submit entry with sign-in control",
+    "blocker": "Submission fields are hidden until authentication/submit-page continuation.",
+    "notes": "IndieHub is a live product/tool directory with a stable /submit entry and Sign In controls. The dataset labels it paid, so any plan/checkout is a hard user boundary. After authentication, record the product-versus-tool branch, details, tags, in-memory image upload, preview, and final submit control.",
+    "checkedAt": "2026-07-28T06:36:13Z"
+  }
+]

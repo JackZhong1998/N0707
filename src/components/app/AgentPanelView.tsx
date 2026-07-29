@@ -60,6 +60,8 @@ export type AgentPanelViewProps = {
   sending?: boolean;
   busy?: boolean;
   pendingCount?: number;
+  /** Live campaign/research progress independent of chat queue busy state. */
+  workspaceStatus?: string | null;
   viewContext?: ViewContext | null;
   onClearViewContext?: () => void;
   collapsed?: boolean;
@@ -165,6 +167,7 @@ export default function AgentPanelView({
   sending = false,
   busy = false,
   pendingCount = 0,
+  workspaceStatus = null,
   viewContext,
   onClearViewContext,
   collapsed = false,
@@ -204,8 +207,8 @@ export default function AgentPanelView({
   if (collapsed) {
     return (
       <aside
-        className={`flex h-full w-14 shrink-0 flex-col items-center rounded-2xl border border-white/[0.08] bg-[#101114]/95 py-3 text-white shadow-2xl backdrop-blur-xl ${className}`}
-        aria-label={isZh ? '市场合伙人（已收起）' : 'Marketing partner (collapsed)'}
+        className={`flex h-full w-14 shrink-0 flex-col items-center rounded-2xl border border-white/[0.08] bg-night-panel/95 py-3 text-white shadow-2xl backdrop-blur-xl ${className}`}
+        aria-label={isZh ? '冷启动合伙人（已收起）' : 'Launch Partner (collapsed)'}
       >
         <button
           type="button"
@@ -217,7 +220,7 @@ export default function AgentPanelView({
         </button>
         <div className="my-3 h-px w-5 bg-white/10" />
         <span className="[writing-mode:vertical-rl] text-[10px] font-medium uppercase tracking-[0.24em] text-zinc-500">
-          {isZh ? '市场合伙人' : 'Market partner'}
+          {isZh ? '冷启动合伙人' : 'Launch Partner'}
         </span>
         <div className="mt-auto flex flex-col items-center gap-2">
           {notifications.length > 0 && (
@@ -228,8 +231,8 @@ export default function AgentPanelView({
               {notifications.length > 9 ? '9+' : notifications.length}
             </span>
           )}
-          {(busy || pendingCount > 0) && (
-            <span className="relative flex h-2.5 w-2.5" title={isZh ? 'Agent 正在行动' : 'Agent is working'}>
+          {(busy || pendingCount > 0 || workspaceStatus) && (
+            <span className="relative flex h-2.5 w-2.5" title={workspaceStatus || (isZh ? 'Agent 正在行动' : 'Agent is working')}>
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
             </span>
@@ -246,32 +249,34 @@ export default function AgentPanelView({
 
   return (
     <aside
-      className={`relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#101114]/95 text-white shadow-2xl backdrop-blur-xl ${className}`}
-      aria-label={isZh ? '市场合伙人' : 'Marketing partner'}
+      className={`relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-night-panel/95 text-white shadow-2xl backdrop-blur-xl ${className}`}
+      aria-label={isZh ? '冷启动合伙人' : 'Launch Partner'}
     >
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.08] px-3.5">
         <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-black">
           <SparkIcon className="h-4 w-4" />
           {busy && (
-            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#101114] bg-emerald-400" />
+            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-night-panel bg-emerald-400" />
           )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold text-white">
-            {isZh ? '市场合伙人' : 'Marketing partner'}
+            {isZh ? '冷启动合伙人' : 'Launch Partner'}
           </p>
           <p className="truncate text-[10px] text-zinc-500">
-            {sending
-              ? isZh
-                ? '正在思考，也可以继续补充'
-                : 'Thinking — you can keep adding'
-              : busy
+            {workspaceStatus
+              ? workspaceStatus
+              : sending
                 ? isZh
-                  ? '正在后台行动'
-                  : 'Working in the background'
-                : isZh
-                  ? '随时接收想法与指令'
-                  : 'Ready for ideas and instructions'}
+                  ? '正在思考，也可以继续补充'
+                  : 'Thinking — you can keep adding'
+                : busy
+                  ? isZh
+                    ? '正在后台行动'
+                    : 'Working in the background'
+                  : isZh
+                    ? '随时接收想法与指令'
+                    : 'Ready for ideas and instructions'}
           </p>
         </div>
         {pendingCount > 0 && (
@@ -425,8 +430,8 @@ export default function AgentPanelView({
                       ? '系统'
                       : 'System'
                     : isZh
-                      ? '市场合伙人'
-                      : 'Market partner'}
+                      ? '冷启动合伙人'
+                      : 'Launch Partner'}
                 </p>
               )}
               {message.role === 'assistant' &&
@@ -516,7 +521,7 @@ export default function AgentPanelView({
             stickToBottomRef.current = true;
             setUnseenCount(0);
           }}
-          className="absolute bottom-[122px] left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/[0.12] bg-[#24262b] px-3 py-1.5 text-[10px] text-zinc-200 shadow-xl hover:bg-[#2d3036]"
+          className="absolute bottom-[122px] left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/[0.12] bg-night-elevated px-3 py-1.5 text-[10px] text-zinc-200 shadow-xl hover:bg-night-hover"
         >
           {isZh ? `${unseenCount} 条新消息 ↓` : `${unseenCount} new ↓`}
         </button>

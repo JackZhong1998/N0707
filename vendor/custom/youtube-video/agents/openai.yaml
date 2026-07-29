@@ -1,0 +1,4 @@
+interface:
+  display_name: "YouTube Video"
+  short_description: "Plan searchable YouTube videos and Shorts"
+  default_prompt: "Use $youtube-video to create a YouTube production package with title concepts, structure, narration, visuals, and retention checks."

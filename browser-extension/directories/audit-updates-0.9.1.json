@@ -1,0 +1,56 @@
+[
+  {
+    "domain": "peerpush.net",
+    "status": "configured",
+    "adapterId": "peerpush",
+    "submitUrl": "https://peerpush.com/submit",
+    "entryStage": "full_form",
+    "blocker": null,
+    "notes": "peerpush.net 会重定向到 peerpush.com；现有登录会话和提交入口均有效。"
+  },
+  {
+    "domain": "auraplusplus.com",
+    "status": "recording_partial",
+    "adapterId": "aura_plus_plus",
+    "submitUrl": "https://auraplusplus.com/projects/submit",
+    "entryStage": "wizard",
+    "blocker": "已验证 Google 登录和五阶段表单。当前浏览器控制工具没有开启文件 URL 权限，无法在本轮穿过必填 Logo 与产品图进入后续阶段；NowBuild 插件内置素材上传不受此限制。",
+    "notes": "阶段为 Project Info、Details、Launch Date、Review、Backlink；第一阶段包含名称、URL、AI Autofill、200+ 词富文本、Logo、16:9 产品图。"
+  },
+  {
+    "domain": "sourceforge.net",
+    "status": "blocked",
+    "adapterId": null,
+    "submitUrl": null,
+    "entryStage": "bot_gate",
+    "blocker": "Cloudflare 安全验证阻止读取页面与提交入口。",
+    "notes": "需要人工通过验证后继续检查项目创建流程。"
+  },
+  {
+    "domain": "g2.com",
+    "status": "entry_verified",
+    "adapterId": null,
+    "submitUrl": "https://www.g2.com/add_product_requests/new",
+    "entryStage": "claim_profile",
+    "blocker": null,
+    "notes": "官网公开提供 Claim your profile / Add product request 入口；待继续登录并检查表单。"
+  },
+  {
+    "domain": "producthunt.com",
+    "status": "entry_verified",
+    "adapterId": null,
+    "submitUrl": null,
+    "entryStage": "login_gate",
+    "blocker": null,
+    "notes": "首页未显示公开提交入口，需先登录后从账号菜单继续确认 launch 流程。"
+  },
+  {
+    "domain": "capterra.com",
+    "status": "blocked",
+    "adapterId": null,
+    "submitUrl": null,
+    "entryStage": "bot_gate",
+    "blocker": "Cloudflare 安全验证阻止读取页面与提交入口。",
+    "notes": "需要人工通过验证后继续检查厂商 listing 流程。"
+  }
+]

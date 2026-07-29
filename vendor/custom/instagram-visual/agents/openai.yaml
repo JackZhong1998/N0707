@@ -1,0 +1,4 @@
+interface:
+  display_name: "Instagram Visual"
+  short_description: "Plan carousels, memes, Reels, and Stories"
+  default_prompt: "Use $instagram-visual to create an Instagram-native carousel, meme, Reel, or Story production package."

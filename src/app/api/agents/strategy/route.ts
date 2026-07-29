@@ -29,7 +29,7 @@ export async function POST(request: Request) {
             typeof channelId === 'string' && allowed.has(channelId)
         )
       ),
-    ].slice(0, 8);
+    ].slice(0, 16);
     if (channelIds.length === 0) {
       return NextResponse.json({ error: 'channelIds required' }, { status: 400 });
     }
@@ -41,7 +41,12 @@ export async function POST(request: Request) {
       feedback: text(body.feedback, 4_000) || undefined,
       performanceContext: text(body.performanceContext, 30_000) || undefined,
       existingOverview: text(body.existingOverview, 30_000) || undefined,
+      campaignContext: text(body.campaignContext, 60_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
+      phase:
+        body.phase === 'blueprint' || body.phase === 'channel' || body.phase === 'full'
+          ? body.phase
+          : 'full',
     });
     return NextResponse.json(result);
   } catch (err) {

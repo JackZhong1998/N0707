@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NowBuild Publisher · Test Console</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">N</span>
+        <div>
+          <strong>NowBuild</strong>
+          <span>Publisher Lab</span>
+        </div>
+      </div>
+
+      <p class="sidebar-label">可测试适配器</p>
+      <nav class="adapter-list" aria-label="适配器列表">
+        <button class="adapter active" type="button" data-channel="twitter_x">
+          <span>X / Twitter</span><em>Ready</em>
+        </button>
+        <button class="adapter" type="button" data-channel="xiaohongshu">
+          <span>小红书</span><em>Ready</em>
+        </button>
+        <button class="adapter" type="button" data-channel="hacker_news">
+          <span>Hacker News</span><em>Beta</em>
+        </button>
+        <button class="adapter" type="button" data-channel="devto">
+          <span>DEV Community</span><em>Beta</em>
+        </button>
+        <button class="adapter" type="button" data-channel="reddit">
+          <span>Reddit</span><em>Beta</em>
+        </button>
+        <button class="adapter" type="button" data-channel="linkedin">
+          <span>LinkedIn</span><em>Beta</em>
+        </button>
+        <button class="adapter" type="button" data-channel="medium">
+          <span>Medium</span><em>Beta</em>
+        </button>
+        <button class="adapter" type="button" data-channel="hashnode">
+          <span>Hashnode</span><em>Beta</em>
+        </button>
+        <button class="adapter" type="button" data-channel="indie_hackers">
+          <span>Indie Hackers</span><em>Beta</em>
+        </button>
+      </nav>
+
+      <p class="sidebar-label">后续阶段</p>
+      <div class="planned-list">
+        <a href="#directory-lab">Directories Beta · 6</a>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">INDEPENDENT EXECUTION CONSOLE</p>
+          <h1>发布助手执行测试台</h1>
+          <p class="subtitle">不依赖 NowBuild 主站，直接测试填写、发布、结果 URL 和数据回收。</p>
+        </div>
+        <div class="runtime-status">
+          <span class="status-dot" id="runtime-dot"></span>
+          <div>
+            <strong id="runtime-label">正在连接插件…</strong>
+            <span id="runtime-version"></span>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid two-columns">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="step">01</p>
+              <h2>发布测试</h2>
+            </div>
+            <div class="button-row">
+              <button type="button" class="quiet-button" id="load-thread-sample">载入 Thread 示例</button>
+              <button type="button" class="quiet-button" id="load-sample">载入示例</button>
+            </div>
+          </div>
+
+          <form id="publish-form">
+            <label>
+              <span>平台</span>
+              <select id="publish-channel">
+                <option value="twitter_x">X / Twitter</option>
+                <option value="xiaohongshu">小红书</option>
+                <option value="hacker_news">Hacker News</option>
+                <option value="devto">DEV Community</option>
+                <option value="reddit">Reddit</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="medium">Medium</option>
+                <option value="hashnode">Hashnode</option>
+                <option value="indie_hackers">Indie Hackers</option>
+              </select>
+            </label>
+
+            <div class="x-settings" id="x-settings">
+              <label>
+                <span>X 账号类型</span>
+                <select id="x-account-type">
+                  <option value="standard">普通账号（自动拆 Thread）</option>
+                  <option value="premium">Premium（仅实际会员，单条长帖）</option>
+                </select>
+              </label>
+              <div class="thread-preview" id="thread-preview" aria-live="polite">
+                <strong id="thread-preview-title">预计 1 条帖子</strong>
+                <span id="thread-preview-detail">0 / 280 加权字符</span>
+              </div>
+            </div>
+
+            <div class="mode-switch" role="group" aria-label="测试模式">
+              <label class="mode-option">
+                <input type="radio" name="mode" value="dry_run" checked>
+                <span>
+                  <strong>Dry Run</strong>
+                  <small>填写完成后停止，不发布</small>
+                </span>
+              </label>
+              <label class="mode-option live">
+                <input type="radio" name="mode" value="live">
+                <span>
+                  <strong>Live Test</strong>
+                  <small>等待你在真实平台确认发布</small>
+                </span>
+              </label>
+            </div>
+
+            <label>
+              <span id="title-label">标题（可选）</span>
+              <input id="publish-title" maxlength="500" placeholder="输入标题">
+            </label>
+
+            <label>
+              <span>正文</span>
+              <textarea id="publish-body" maxlength="20000" rows="10" required placeholder="输入测试正文"></textarea>
+            </label>
+
+            <label>
+              <span>标签 <small>使用逗号分隔</small></span>
+              <input id="publish-hashtags" placeholder="solofounder, buildinpublic">
+            </label>
+
+            <label id="url-field">
+              <span>产品 / 原文 URL <small id="url-help">可选</small></span>
+              <input id="publish-url" type="url" placeholder="https://yourproduct.com">
+            </label>
+
+            <label id="community-field" hidden>
+              <span>Reddit 社区 <small>可写 SideProject 或 r/SideProject</small></span>
+              <input id="publish-community" placeholder="SideProject">
+            </label>
+
+            <div class="notice" id="platform-notice"></div>
+
+            <button type="submit" class="primary-button" id="publish-button">开始 Dry Run</button>
+          </form>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="step">02</p>
+              <h2>数据回收测试</h2>
+            </div>
+          </div>
+
+          <form id="metrics-form">
+            <label>
+              <span>平台</span>
+              <select id="metrics-channel">
+                <option value="twitter_x">X / Twitter</option>
+                <option value="xiaohongshu">小红书</option>
+                <option value="hacker_news">Hacker News</option>
+                <option value="devto">DEV Community</option>
+                <option value="reddit">Reddit</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="medium">Medium</option>
+                <option value="hashnode">Hashnode</option>
+                <option value="indie_hackers">Indie Hackers</option>
+              </select>
+            </label>
+
+            <label>
+              <span>已经发布的内容 URL</span>
+              <input id="metrics-url" type="url" required placeholder="https://x.com/.../status/...">
+            </label>
+
+            <button type="submit" class="secondary-button" id="metrics-button">获取公开数据</button>
+          </form>
+
+          <div class="task-state">
+            <div>
+              <h3>插件临时任务</h3>
+              <p>只显示执行状态，不显示内容和账号信息。</p>
+            </div>
+            <button type="button" class="quiet-button" id="refresh-tasks">刷新</button>
+          </div>
+          <pre class="task-output" id="task-output">尚未查询</pre>
+        </article>
+      </section>
+
+      <section class="panel directory-panel" id="directory-lab">
+        <div class="panel-heading">
+          <div>
+            <p class="step">DIRECTORY BETA</p>
+            <h2>Product Launch Kit · 目录 Dry Run</h2>
+            <p class="panel-copy">填写一次产品资料，逐个测试目录字段映射、图片上传和阻塞状态。不会自动付款、解 CAPTCHA 或点击最终提交。</p>
+          </div>
+          <div class="button-row">
+            <button type="button" class="quiet-button" id="load-directory-sample">载入示例</button>
+            <button type="button" class="quiet-button" id="use-nowbuild-logo">使用 NowBuild Logo</button>
+            <button type="button" class="quiet-button" id="save-launch-kit">保存文字资料</button>
+          </div>
+        </div>
+
+        <form id="directory-form">
+          <div class="kit-grid kit-grid-three">
+            <label>
+              <span>目标目录</span>
+              <select id="directory-id" required></select>
+            </label>
+            <label>
+              <span>产品名称</span>
+              <input id="kit-product-name" required maxlength="120" placeholder="NowBuild">
+            </label>
+            <label>
+              <span>产品网址</span>
+              <input id="kit-product-url" required type="url" placeholder="https://nowbuild.ai">
+            </label>
+          </div>
+
+          <div class="kit-grid">
+            <label>
+              <span>Slogan / Tagline</span>
+              <input id="kit-tagline" required maxlength="180" placeholder="Launch your product everywhere">
+            </label>
+            <label>
+              <span>短介绍</span>
+              <textarea id="kit-short-description" required maxlength="1000" rows="3"></textarea>
+            </label>
+          </div>
+
+          <label>
+            <span>详细介绍</span>
+            <textarea id="kit-long-description" maxlength="12000" rows="6"></textarea>
+          </label>
+
+          <div class="kit-grid kit-grid-three">
+            <label>
+              <span>分类 <small>逗号分隔</small></span>
+              <input id="kit-categories" placeholder="Marketing, Productivity, SaaS">
+            </label>
+            <label>
+              <span>标签 <small>逗号分隔</small></span>
+              <input id="kit-tags" placeholder="automation, solofounder">
+            </label>
+            <label>
+              <span>定价模式</span>
+              <select id="kit-pricing">
+                <option value="Free">Free</option>
+                <option value="Freemium" selected>Freemium</option>
+                <option value="Paid">Paid</option>
+                <option value="Free trial">Free trial</option>
+                <option value="Open source">Open source</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="kit-grid kit-grid-three">
+            <label>
+              <span>创始人姓名</span>
+              <input id="kit-founder-name" autocomplete="name">
+            </label>
+            <label>
+              <span>联系邮箱</span>
+              <input id="kit-founder-email" type="email" autocomplete="email">
+            </label>
+            <label>
+              <span>创始人主页</span>
+              <input id="kit-founder-url" type="url" placeholder="https://...">
+            </label>
+          </div>
+
+          <div class="kit-grid kit-grid-three">
+            <label>
+              <span>Twitter / X URL</span>
+              <input id="kit-twitter-url" type="url" placeholder="https://x.com/...">
+            </label>
+            <label>
+              <span>LinkedIn URL</span>
+              <input id="kit-linkedin-url" type="url" placeholder="https://linkedin.com/in/...">
+            </label>
+            <label>
+              <span>Demo / Video URL</span>
+              <input id="kit-demo-url" type="url" placeholder="https://youtube.com/...">
+            </label>
+          </div>
+
+          <div class="kit-grid kit-grid-three">
+            <label>
+              <span>计划发布日期</span>
+              <input id="kit-launch-date" type="date">
+            </label>
+            <label>
+              <span>Logo <small>PNG/JPG/WebP，建议小于 1.5MB</small></span>
+              <input id="kit-logo" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+            <label>
+              <span>产品截图 <small>最多 5 张，总素材不超过约 5MB</small></span>
+              <input id="kit-screenshots" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+            </label>
+          </div>
+
+          <div class="asset-summary" id="asset-summary">尚未选择 Logo 或截图</div>
+          <div class="notice" id="directory-notice">选择目录后会显示该站的入口阶段、费用和已知阻塞条件。</div>
+          <div class="button-row">
+            <button type="submit" class="primary-button" id="directory-button">开始目录 Dry Run</button>
+            <button type="button" class="quiet-button" id="record-directory">录制这个站点</button>
+            <button type="button" class="quiet-button danger" id="delete-directory-flow">删除已学流程</button>
+          </div>
+          <div class="notice" id="directory-flow-status">这个站点还没有保存的操作流程。</div>
+        </form>
+      </section>
+
+      <section class="grid output-grid">
+        <article class="panel log-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="step">03</p>
+              <h2>实时执行日志</h2>
+            </div>
+            <div class="button-row">
+              <button type="button" class="quiet-button danger" id="cancel-task" disabled>取消当前任务</button>
+              <button type="button" class="quiet-button" id="clear-log">清空</button>
+            </div>
+          </div>
+          <ol class="log-list" id="log-list">
+            <li class="empty-log">等待执行任务</li>
+          </ol>
+        </article>
+
+        <article class="panel result-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="step">04</p>
+              <h2>最近一次结果</h2>
+            </div>
+            <div class="button-row">
+              <button type="button" class="quiet-button" id="copy-report">复制 JSON</button>
+              <button type="button" class="quiet-button" id="download-report">下载报告</button>
+            </div>
+          </div>
+          <pre class="result-output" id="result-output">{}</pre>
+        </article>
+      </section>
+    </main>
+
+    <script src="../channels/x-text.js"></script>
+    <script src="../directories/catalog.js"></script>
+    <script src="sample-payloads.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>

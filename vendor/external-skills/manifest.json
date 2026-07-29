@@ -1,0 +1,73 @@
+{
+  "auditedAt": "2026-07-26",
+  "policy": "Upstream packages are retained for provenance. Runtime channel prompts use compact NowBuild adapters unless explicitly mapped.",
+  "skills": [
+    {
+      "skillId": "external/content-humanizer",
+      "source": "https://github.com/alirezarezvani/claude-skills/tree/main/marketing-skill/skills/content-humanizer",
+      "commit": "aa8d778811a557a2c28ccadda4cf3d0bd028a4cc",
+      "license": "MIT",
+      "auditScore": 86,
+      "decision": "adapt",
+      "strengths": ["voice calibration", "specificity checks", "no-invention warning"],
+      "risks": ["detector framing is not an outcome metric", "too long for unconditional prompt injection"]
+    },
+    {
+      "skillId": "external/content-research-writer",
+      "source": "https://github.com/ComposioHQ/awesome-claude-skills/tree/master/content-research-writer",
+      "commit": "92568c1edaff1bde5371154f036d959346c145a8",
+      "license": "Apache-2.0 (repository license statement)",
+      "auditScore": 78,
+      "decision": "adapt",
+      "strengths": ["research-to-outline workflow", "citation discipline", "voice preservation"],
+      "risks": ["generic examples include unverified placeholder claims", "interactive workflow is too large for a one-shot worker"]
+    },
+    {
+      "skillId": "external/blog-writing-guide",
+      "source": "https://github.com/getsentry/skills/tree/main/skills/blog-writing-guide",
+      "commit": "9a85b59acc928789b49907109483f46aee1050cd",
+      "license": "Apache-2.0",
+      "auditScore": 91,
+      "decision": "install-for-hacker-news",
+      "strengths": ["technical accuracy", "trade-off disclosure", "developer-native editorial checklist"],
+      "risks": ["Sentry-specific brand details require NowBuild platform adaptation"]
+    },
+    {
+      "skillId": "external/cmo-agent",
+      "source": "https://github.com/michaelboeding/skills/tree/master/skills/cmo-agent",
+      "commit": "84abf02d42612ab0b94a54de1a1a454ae25dd131",
+      "license": "MIT",
+      "auditScore": 79,
+      "decision": "adapt-reddit-and-hacker-news-only",
+      "strengths": ["live thread discovery", "exact URL requirement", "channel risk assessment"],
+      "risks": ["overlaps NowBuild orchestration", "some timing heuristics are asserted without evidence", "full package is too broad for direct control"]
+    },
+    {
+      "skillId": "external/social",
+      "source": "https://github.com/coreyhaines31/marketingskills/tree/main/skills/social",
+      "commit": "c21a984a56da10fb6085e6334f6f60929220a4da",
+      "license": "MIT",
+      "auditScore": 92,
+      "decision": "install-for-strategy-adapt-for-runtime",
+      "strengths": ["content-atom repurposing", "short-video scripting", "carousel frameworks", "platform-native format selection"],
+      "risks": ["some frequency and timing recommendations are not stable facts", "some performance percentages are presented without primary evidence"]
+    },
+    {
+      "skillId": "external/video",
+      "source": "https://github.com/coreyhaines31/marketingskills/tree/main/skills/video",
+      "commit": "c21a984a56da10fb6085e6334f6f60929220a4da",
+      "license": "MIT",
+      "auditScore": 86,
+      "decision": "install-for-strategy-adapt-for-runtime",
+      "strengths": ["production-package workflow", "beat-sheet handoff", "tool selection", "originality guardrail"],
+      "risks": ["provider capabilities and prices change quickly", "rendering workflows require tools and assets that may not be connected"]
+    }
+  ],
+  "rejected": [
+    {
+      "skillId": "gingiris-reddit-marketing-as-primary",
+      "auditScore": 58,
+      "reason": "Useful subreddit and content research is mixed with mandatory multi-account, fingerprint-browser, account-loss, and ban-evasion guidance. Retained for provenance but removed from the Reddit runtime mapping."
+    }
+  ]
+}

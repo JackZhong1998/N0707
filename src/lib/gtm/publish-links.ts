@@ -41,6 +41,36 @@ const TARGETS: Record<string, PublishTarget> = {
     label: '打开 Reddit 发帖页',
     labelEn: 'Open Reddit submit',
   },
+  hacker_news: {
+    prefills: false,
+    url: () => 'https://news.ycombinator.com/submit',
+    label: '打开 Hacker News 投稿页',
+    labelEn: 'Open Hacker News submit',
+  },
+  indie_hackers: {
+    prefills: false,
+    url: () => 'https://www.indiehackers.com/new-post',
+    label: '打开 Indie Hackers 发帖页',
+    labelEn: 'Open Indie Hackers composer',
+  },
+  devto: {
+    prefills: false,
+    url: () => 'https://dev.to/new',
+    label: '打开 DEV 编辑器',
+    labelEn: 'Open DEV editor',
+  },
+  medium: {
+    prefills: false,
+    url: () => 'https://medium.com/new-story',
+    label: '打开 Medium 编辑器',
+    labelEn: 'Open Medium editor',
+  },
+  hashnode: {
+    prefills: false,
+    url: () => 'https://hashnode.com/feed',
+    label: '打开 Hashnode',
+    labelEn: 'Open Hashnode',
+  },
   wechat_official: {
     prefills: false,
     url: () => 'https://mp.weixin.qq.com/',

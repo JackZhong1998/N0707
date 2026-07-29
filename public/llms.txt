@@ -1,31 +1,46 @@
 # NowBuild
 
-> NowBuild (nowbuild.ai) is a 30-day GTM (go-to-market) execution calendar for builders who shipped a product with AI but have never done marketing. It turns a 15-minute strategy conversation into a 30-day action calendar: every day it tells you what to post and where to post it, pre-drafts ~80% of the content with AI, and evolves the strategy through lightweight daily reviews.
+> NowBuild is a 30-day agent growth team for solo founders and one-person companies. A founder provides one live product URL; the team researches the market, builds one shared campaign, selects the right channels, prepares daily work, and adjusts around execution and public feedback. The product being marketed does not need to be an AI product.
 
-NowBuild is NOT a generic AI copywriting tool. It connects strategy → daily calendar → pre-filled content → execution feedback into one loop. Alternatives like ChatGPT can discuss strategy but have no calendar or tracking; Notion templates have no AI or strategy binding; Buffer schedules posts but has no strategy layer.
+NowBuild is not a general-purpose copywriting box and does not promise fully autonomous posting. It connects product positioning, channel playbooks, weekly narratives, a daily content calendar, human review, publishing assistance, and public performance signals. The founder keeps final approval for every post and any step that requires account access, verification, or community-rule judgment.
 
-## Who it's for
+## Best fit
 
-- First-time market builders: engineers, PMs and domain experts who shipped a side project (SaaS, AI tool, course, template, consulting) and don't know how to get their first users.
-- Requires only 15–30 minutes per day for 30 days.
+- Solo founders, indie developers, and one-person companies with a live product or demonstrable MVP.
+- Small SaaS products, AI tools, mobile apps, browser extensions, open-source projects, courses, templates, and lightweight consulting.
+- Founders who can review and publish content for 15–30 minutes per day but do not want to invent a marketing plan from scratch.
 
-## Pricing
+## Core capabilities
 
-- Free: GTM kickoff strategy conversation, 7-day calendar preview, 3 AI-generated content pieces, channel recommendations.
-- Pro: $19/month or $199/year. Full 30-day action calendar, unlimited AI content generation, 28+ channel skills, daily review cards, week-1 report and day-30 review.
+- Product and audience analysis from one shared product profile.
+- A connected 30-day campaign blueprint, daily action calendar, weekly reviews, and final cross-channel report.
+- Social and owned-reach capabilities for X, LinkedIn, Xiaohongshu, WeChat, Moments, and direct outreach.
+- Community and launch capabilities for Reddit, Hacker News, Indie Hackers, Product Hunt, GitHub, and developer publishing.
+- Video and visual production packages for TikTok, YouTube, Instagram, Shorts, Reels, carousels, and memes.
+- Website conversion, SEO topic clusters, product-blog content, and long-form repurposing.
+- Intelligent matching across 100+ product-launch directories, with automated form filling for 20 high-value destinations.
+- Human review, conversational editing, publishing handoff, status tracking, and weekly adjustment.
 
-## Key pages
+## Pricing and availability
 
-- [Home (English)](https://nowbuild.ai/en): Product overview and feature comparison vs ChatGPT / Notion / Buffer
-- [Home (中文)](https://nowbuild.ai/zh): 中文产品介绍
-- [Pricing](https://nowbuild.ai/en/pricing): Plans, feature matrix and pricing FAQ
-- [Blog](https://nowbuild.ai/en/blog): Practical guides on go-to-market, channel selection and getting first users
-- [About](https://nowbuild.ai/en/about): Mission and team
+- Free preview: product profile, recommended channels, a first-week calendar, 10 matched directories, and one complete draft.
+- 30-Day Agent Growth Team: $49 per month for one active product and one campaign at a time. It covers the launch-stage work normally split across research, strategy, social, community, video, visual, SEO, and product-distribution roles.
+- A subscription may start one new 30-day campaign per billing cycle. AI generation and revisions are subject to reasonable-use limits.
+- NowBuild prepares content and assists with forms; the user gives final approval for publishing, account access, payments, and directory submissions.
 
-## Facts
+## Canonical pages
 
-- Category: GTM execution software / product launch calendar
-- Platform: Web
-- Languages: English, Chinese (中文)
-- Free tier: Yes
-- Starting price: $0 (Free), Pro from $19/month
+- [Home](https://nowbuild.ai/): English product overview
+- [中文首页](https://nowbuild.ai/zh): Chinese product overview
+- [Pricing](https://nowbuild.ai/pricing): plans, deliverables, and billing FAQ
+- [Product launch directory](https://nowbuild.ai/directories): filtered launch and listing opportunities
+- [Blog](https://nowbuild.ai/blog): practical product-launch and first-user guides
+- [About](https://nowbuild.ai/about): product mission and operating principles
+
+## Editorial facts
+
+- Category: AI-powered product marketing software / product launch planning software
+- Primary audience: solo founders and first-time product marketers
+- Platform: web application
+- Languages: English and Simplified Chinese
+- Public domain: https://nowbuild.ai

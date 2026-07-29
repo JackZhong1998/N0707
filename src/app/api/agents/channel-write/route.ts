@@ -44,10 +44,14 @@ export async function POST(request: Request) {
         phase: text(todo.phase, 300) || undefined,
         market: text(todo.market, 300) || undefined,
         audience: text(todo.audience, 500) || undefined,
+        purpose: text(todo.purpose, 1_000) || undefined,
+        pillar: text(todo.pillar, 500) || undefined,
+        taskType: text(todo.taskType, 120) || undefined,
       },
       channelStrategyMarkdown: text(body.channelStrategyMarkdown, 30_000),
       userProfileDoc: text(body.userProfileDoc, 8_000),
       projectProfileDoc: text(body.projectProfileDoc, 24_000),
+      campaignContext: text(body.campaignContext, 60_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
     });
     return NextResponse.json(result);

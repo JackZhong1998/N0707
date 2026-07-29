@@ -33,6 +33,8 @@ function publicPath(locale, basePath) {
 function priorityFor(basePath) {
   if (basePath === '/') return 1.0;
   if (basePath === '/pricing') return 0.9;
+  if (basePath === '/directories') return 0.85;
+  if (basePath === '/open-source-saas-starter') return 0.85;
   if (basePath.startsWith('/blog')) return 0.8;
   if (basePath === '/about') return 0.6;
   return 0.5;
@@ -48,6 +50,8 @@ module.exports = {
     '/sign-up*',
     '/*/sign-in*',
     '/*/sign-up*',
+    '/app*',
+    '/*/app*',
     '/*/workspace*',
     '/*/dashboard*',
     // Bare root: the '/' entry is emitted from the '/en' build path instead
@@ -61,7 +65,6 @@ module.exports = {
       loc: isDefaultLocalePath ? publicPath(DEFAULT_LOCALE, basePath) : path,
       changefreq: basePath.startsWith('/blog') ? 'weekly' : 'monthly',
       priority: priorityFor(basePath),
-      lastmod: new Date().toISOString(),
       alternateRefs: [
         ...LOCALES.map((locale) => ({
           href: `${siteUrl}${publicPath(locale, basePath)}`,
@@ -85,8 +88,11 @@ module.exports = {
           '/api/',
           '/sign-in',
           '/sign-up',
+          '/app',
           '/workspace',
           '/dashboard',
+          '/en/app',
+          '/zh/app',
           '/en/workspace',
           '/zh/workspace',
           '/en/dashboard',

@@ -43,7 +43,7 @@ export default function ArtifactPage({
 
   if (!artifact) {
     return (
-      <div className="flex min-h-full items-center justify-center bg-[#0a0b0d] p-6 text-zinc-300">
+      <div className="flex min-h-full items-center justify-center bg-night p-6 text-zinc-300">
         <div className="text-center">
           <p className="text-sm font-medium">
             {isZh ? '这份内容不存在或尚未同步。' : 'This artifact is unavailable.'}
@@ -80,7 +80,7 @@ export default function ArtifactPage({
   });
 
   return (
-    <div className="min-h-full bg-[#0a0b0d] bg-grid-dark px-4 py-6 text-zinc-100 sm:px-8 sm:py-8">
+    <div className="min-h-full bg-night bg-grid-dark px-4 py-6 text-zinc-100 sm:px-8 sm:py-8">
       <div className="mx-auto max-w-4xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
@@ -114,7 +114,7 @@ export default function ArtifactPage({
           </div>
         </div>
 
-        <header className="mt-6 rounded-3xl border border-white/[0.09] bg-[#111318]/95 p-6 shadow-2xl sm:p-8">
+        <header className="mt-6 rounded-3xl border border-white/[0.09] bg-night-panel/95 p-6 shadow-2xl sm:p-8">
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
             {artifact.kind.replaceAll('_', ' ')}
           </p>
@@ -133,7 +133,7 @@ export default function ArtifactPage({
           </p>
         </header>
 
-        <article className="mt-4 rounded-3xl border border-white/[0.08] bg-[#111318] p-6 sm:p-8">
+        <article className="mt-4 rounded-3xl border border-white/[0.08] bg-night-panel p-6 sm:p-8">
           <Markdown
             text={artifact.markdown}
             className="doc-prose doc-prose-invert max-w-none !text-zinc-300 [&_a]:text-sky-300 [&_h1]:text-white [&_h2]:text-white [&_h3]:text-zinc-100 [&_strong]:text-white"
@@ -141,7 +141,7 @@ export default function ArtifactPage({
         </article>
 
         {sources.length > 0 && (
-          <section className="mt-4 rounded-3xl border border-white/[0.08] bg-[#111318] p-6">
+          <section className="mt-4 rounded-3xl border border-white/[0.08] bg-night-panel p-6">
             <h2 className="text-sm font-semibold text-white">
               {isZh ? '研究来源' : 'Research sources'}
             </h2>
@@ -163,7 +163,7 @@ export default function ArtifactPage({
 
         <div className="mt-4 rounded-2xl border border-sky-400/15 bg-sky-400/[0.05] px-4 py-3 text-xs leading-5 text-sky-100/70">
           {isZh
-            ? '右侧市场合伙人已经知道你正在查看这份内容。你可以直接说“第三条结论不对”或“按这份方案调整下周选题”。'
+            ? '右侧冷启动合伙人已经知道你正在查看这份内容。你可以直接说“第三条结论不对”或“按这份方案调整下周选题”。'
             : 'Your marketing partner knows this artifact is open. You can refer directly to a conclusion or ask for the next plan to be adjusted.'}
         </div>
 

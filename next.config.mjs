@@ -4,6 +4,11 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Keep server and client chunk manifests in one compiler process.
+    // This avoids intermittent missing-chunk errors in Next.js 15 builds.
+    webpackBuildWorker: false,
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

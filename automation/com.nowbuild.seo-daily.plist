@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nowbuild.seo-daily</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/ChatGPT.app/Contents/Resources/codex</string>
+    <string>exec</string>
+    <string>--cd</string>
+    <string>/Users/bytedance/Documents/1啊啊aaacode/nowbuild0707</string>
+    <string>--sandbox</string>
+    <string>workspace-write</string>
+    <string>--ephemeral</string>
+    <string>--color</string>
+    <string>never</string>
+    <string>--output-last-message</string>
+    <string>/Users/bytedance/Documents/1啊啊aaacode/nowbuild0707/.seo-automation/latest.md</string>
+    <string>Read scripts/seo-daily-prompt.md completely and execute that daily SEO task. Write a concise final report.</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/bytedance/Library/Logs/nowbuild-seo-daily.stdout.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/bytedance/Library/Logs/nowbuild-seo-daily.stderr.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

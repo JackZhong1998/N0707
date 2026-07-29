@@ -21,6 +21,9 @@ export interface ChannelSkill {
   name: string;
   nameEn: string;
   description: string;
+  medium: 'community' | 'social_text' | 'owned' | 'video' | 'visual' | 'research' | 'operations';
+  outputMode: 'publish_ready_text' | 'production_package' | 'operational_plan';
+  deliverables: string[];
   locales: string[];
   tier: 'mvp' | 'p1' | 'p2' | 'extended' | 'phase0';
   postsPerWeek: number;

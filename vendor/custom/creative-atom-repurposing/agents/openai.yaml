@@ -1,0 +1,4 @@
+interface:
+  display_name: "Creative Atom Repurposing"
+  short_description: "Turn one verified idea into native channel variants"
+  default_prompt: "Use $creative-atom-repurposing to turn one verified campaign idea into channel-native deliverables without duplicating the same post."

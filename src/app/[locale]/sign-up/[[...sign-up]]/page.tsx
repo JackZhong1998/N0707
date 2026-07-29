@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   return {
     title: locale === 'zh' ? '注册' : 'Sign Up',
-    description: locale === 'zh' ? '创建新的账户。' : 'Create your account.',
+    description: locale === 'zh' ? '创建 NowBuild 账户，免费生成你的冷启动简报。' : 'Create your account.',
     alternates: {
       canonical: `/${locale}/sign-up`,
       languages: { en: '/en/sign-up', zh: '/zh/sign-up' },

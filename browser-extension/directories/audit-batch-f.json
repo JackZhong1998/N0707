@@ -1,0 +1,65 @@
+[
+  {
+    "domain": "dododirectory.com",
+    "status": "entry_verified",
+    "submitUrl": "https://dododirectory.com/submit",
+    "entryStage": "three_stage_plan_badge_details_publish",
+    "blocker": "免费方案必须先把永久徽章放到产品网站并通过 URL 验证，验证前不能进入详情表单。",
+    "notes": "三阶段为 Submission Type、Details、Publish。免费方案 $0；Premium $9.99；Review Article $49.99。免费方案要求永久 backlink badge，插件应暂停并通知用户完成网站侧动作；付费方案不得自动进入付款。图片字段尚未到达。",
+    "checkedAt": "2026-07-28T14:35:19+08:00"
+  },
+  {
+    "domain": "1000.tools",
+    "status": "entry_verified",
+    "submitUrl": "https://1000.tools/my/tools/create",
+    "entryStage": "signup_multistep_paid_review",
+    "blocker": "首步之后的产品详情、图片字段和收费确认仍需登录/分步继续检查。",
+    "notes": "入口会转到 /signup。首步字段为 Tool URL、email 和月付/年付 plan，Next 进入后续步骤；首月 $1 后 $5.99/月，或 $59.99/年，站点称审核接受后才收费。最终付款必须暂停。",
+    "checkedAt": "2026-07-28T14:35:19+08:00"
+  },
+  {
+    "domain": "buildvoyage.com",
+    "status": "recording_partial",
+    "submitUrl": "https://buildvoyage.com/submit",
+    "entryStage": "public_two_stage_product_and_stack",
+    "blocker": "第二阶段及最终 review 边界仍需使用完整测试数据走到，但不得最终提交。",
+    "notes": "无需登录，提交后由站点创建 maker account。两阶段为 Product Information 和 Tech Stack。已确认 name、tagline、富文本 description、website、category、pricing，以及多组技术栈选择器；页面提示使用方形 Logo 256px+，但本次未到达 Logo 控件。最终提交前可 review。",
+    "checkedAt": "2026-07-28T14:35:19+08:00"
+  },
+  {
+    "domain": "sumodir.com",
+    "status": "entry_verified",
+    "submitUrl": "https://sumodir.com/submit",
+    "entryStage": "three_stage_plan_details_publish",
+    "blocker": "免费方案要求网站反向链接，进入 Details 后的验证方式和图片字段仍需继续录制。",
+    "notes": "三阶段为 Submission Type、Details、Publish。免费 $0、Premium $15、Review Article $49；付费订单由 Polar 处理，插件必须在支付前暂停。页面明确免费方案需要 backlink。",
+    "checkedAt": "2026-07-28T14:35:19+08:00"
+  },
+  {
+    "domain": "confettisaas.com",
+    "status": "recording_partial",
+    "submitUrl": "https://confettisaas.com/submit",
+    "entryStage": "embedded_tally_two_page_form",
+    "blocker": "Tally 标注 Page 1 of 2，第二页和最终提交后的外部动作尚未触发；最终 Submit 必须保留给用户。",
+    "notes": "无需登录。嵌入 Tally 表单字段包括 SaaS name、URL、email、Twitter、Bluesky、tagline、details、如何使用 confetti、category、pricing。必须上传至少一个 png/jpeg/jpg/gif/mp4，最大 10MB，可直接接入 NowBuild 内存图片 File。",
+    "checkedAt": "2026-07-28T14:35:19+08:00"
+  },
+  {
+    "domain": "madewithlovable.com",
+    "status": "configured",
+    "submitUrl": "https://madewithlovable.com/submit-project",
+    "entryStage": "public_single_page_free_or_pro_form",
+    "blocker": "最终提交受 reCAPTCHA 保护，插件必须在 Submit with Free Launch / Pro Launch 前暂停。",
+    "notes": "仅接受使用 Lovable 构建的项目。无需登录；字段为 title、email、newsletter、short description、description、website、Twitter、Reddit。没有图片上传字段，站点说明会为项目制作 dedicated page + photo。免费队列约 6–8 周，Pro $9。",
+    "checkedAt": "2026-07-28T14:35:19+08:00"
+  },
+  {
+    "domain": "shipyardhq.dev",
+    "status": "entry_verified",
+    "submitUrl": "https://shipyardhq.dev/member/products/add",
+    "entryStage": "login_redirect_then_form",
+    "blocker": "登录页停留在 Checking your session，登录方式、后续产品表单和图片字段未能继续检查。",
+    "notes": "主页 Ship Product / Submit your product 均指向稳定 member/products/add，未登录重定向至 /login 并携带 redirect_url。最终发布和付费边界尚未到达。",
+    "checkedAt": "2026-07-28T14:35:19+08:00"
+  }
+]

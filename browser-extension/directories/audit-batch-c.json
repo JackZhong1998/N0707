@@ -1,0 +1,110 @@
+[
+  {
+    "domain": "indiehunt.io",
+    "status": "entry_verified",
+    "submitUrl": "https://indiehunt.io/submit",
+    "entryStage": "authentication",
+    "blocker": "Submission redirects to sign-in; email magic link, Google, or GitHub authentication is required before the form can be inspected.",
+    "notes": "The submit route is stable. The unauthenticated boundary is /auth/signin. Multi-page stages and image inputs remain behind authentication. Do not automate the final submit action.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "aiwith.me",
+    "status": "blocked",
+    "submitUrl": "https://aiwith.me/submit/",
+    "entryStage": "public_paid_form",
+    "blocker": "Payment is required after selecting a one-time or monthly submission plan.",
+    "notes": "Public single-page form exposes website name, website URL, and submission type. No logo or screenshot input is present at this stage; the site states it handles the remaining listing content. Stop before the payment/final submission boundary.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "startupbase.io",
+    "status": "entry_verified",
+    "submitUrl": "https://startupbase.io/launch",
+    "entryStage": "authentication",
+    "blocker": "Google, LinkedIn, X, or email verification-code authentication is required before /submit.",
+    "notes": "The launch page and /submit entry are stable. Free and premium launch options are visible. Product stages and image inputs remain behind authentication. Pause for user authentication, then resume.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "huzzler.so",
+    "status": "entry_verified",
+    "submitUrl": "https://huzzler.so/login",
+    "entryStage": "authentication",
+    "blocker": "Account authentication is required before the launch form.",
+    "notes": "Launch on Huzzler routes to /login. Google login is available alongside email/password registration. The public page promises free launch and a dofollow backlink. Form stages and image fields remain behind authentication.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "unitelist.com",
+    "status": "entry_verified",
+    "submitUrl": "https://unitelist.com/get-started",
+    "entryStage": "authentication",
+    "blocker": "Google authentication or account creation is required before the product form.",
+    "notes": "Stable get-started route with explicit Google redirect back to /get-started. Product stages and asset inputs are not exposed before authentication.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "fridayhunt.com",
+    "status": "entry_verified",
+    "submitUrl": "https://fridayhunt.com/projects/submit",
+    "entryStage": "authentication",
+    "blocker": "The submit route redirects to sign-in; Google or email magic-link authentication is required.",
+    "notes": "Redirect is preserved as /sign-in?redirect=/projects/submit, so the plugin can resume automatically after login. Product stages and image fields remain behind authentication.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "startupslab.site",
+    "status": "entry_verified",
+    "submitUrl": "https://startupslab.site/submit-product",
+    "entryStage": "authentication",
+    "blocker": "The unauthenticated submit page does not expose the form; Google or email/password login is required.",
+    "notes": "The stable submit and login routes were verified. Google login is available. Free, featured, and spotlight plan links are present publicly. Form stages and image inputs remain behind authentication.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "firsto.co",
+    "status": "entry_verified",
+    "submitUrl": "https://firsto.co/projects/submit",
+    "entryStage": "authentication",
+    "blocker": "The submit route redirects to sign-in; Google, GitHub, or email/password authentication is required.",
+    "notes": "The redirect preserves /projects/submit. The adapter should pause for login and resume on the original route. Product stages and image inputs remain behind authentication.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "trylaunch.ai",
+    "status": "blocked",
+    "submitUrl": "https://trylaunch.ai/start",
+    "entryStage": "client_loading",
+    "blocker": "Both /auth and /start remain in a Loading state and expose no stable authentication or submission controls in the current browser session.",
+    "notes": "The public site is a launch directory and exposes Login, Sign Up, Start Here, and Launch Pass links, but the actual entry flow did not render. Revisit later or inspect after the site fixes its client-side flow.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "saashunt.best",
+    "status": "entry_verified",
+    "submitUrl": "https://saashunt.best/projects/submit",
+    "entryStage": "authentication",
+    "blocker": "The submit route redirects to sign-in; Google, GitHub, or email/password authentication is required.",
+    "notes": "Stable redirect to /sign-in?redirect=/projects/submit. The public listing advertises a badge requirement and DR backlink. Product stages and image inputs remain behind authentication.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "launchingnext.com",
+    "status": "blocked",
+    "submitUrl": "https://www.launchingnext.com/",
+    "entryStage": "security_challenge",
+    "blocker": "Cloudflare 'Just a moment...' challenge prevents access to the site and submission entry.",
+    "notes": "No CAPTCHA was solved or bypassed. The submission path, login method, stages, and image fields could not be inspected.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  },
+  {
+    "domain": "aitechviral.com",
+    "status": "entry_verified",
+    "submitUrl": "https://aitechviral.com/get-started",
+    "entryStage": "authentication",
+    "blocker": "Google authentication or account creation is required before the AI tool form.",
+    "notes": "Stable get-started route with explicit Google redirect back to /get-started. Product stages and asset inputs remain behind authentication.",
+    "checkedAt": "2026-07-28T06:15:05Z"
+  }
+]

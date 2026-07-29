@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runDirector, type DirectorInput } from '@/lib/agents/director';
 import type { ChatMessage, MemoryFact, Todo } from '@/lib/gtm/types';
-import { checkAuth } from '../_lib/auth';
+import { checkSignedIn } from '../_lib/auth';
 
 export const maxDuration = 120;
 
@@ -49,7 +49,8 @@ function normalizeDirectorViewContext(
 }
 
 export async function POST(request: Request) {
-  if (!(await checkAuth())) {
+  // Free tier needs director chat to correct Launch Brief before checkout.
+  if (!(await checkSignedIn())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
@@ -169,6 +170,7 @@ export async function POST(request: Request) {
         '尚无已发布帖子。'
       ),
       viewContext: normalizeDirectorViewContext(body.viewContext),
+      campaignContext: text(body.campaignContext, 60_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
     });
     return NextResponse.json(result);

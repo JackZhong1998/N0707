@@ -77,7 +77,7 @@ export async function ensureAppUser(clerkUserId: string, profile: UserProfile = 
   return data as { id: string; clerk_user_id: string };
 }
 
-async function ensureDefaultProject(clerkUserId: string): Promise<{
+export async function ensureDefaultProject(clerkUserId: string): Promise<{
   user: { id: string; clerk_user_id: string };
   project: ProjectRecord;
 }> {
@@ -374,10 +374,16 @@ export async function loadGtmStore(clerkUserId: string): Promise<{
     time: row.due_time ? String(row.due_time).slice(0, 5) : undefined,
     title: row.title,
     brief: row.brief,
+    purpose: row.purpose ?? undefined,
+    pillar: row.pillar ?? undefined,
+    taskType: row.task_type ?? undefined,
     phase: row.phase ?? undefined,
     market: row.market ?? undefined,
     audience: row.audience ?? undefined,
     status: row.status as Todo['status'],
+    launchStatus: row.launch_status ?? undefined,
+    revision:
+      typeof row.revision === 'number' ? row.revision : Number(row.revision ?? 1),
     content:
       row.content_title || row.content_body
         ? { title: row.content_title ?? '', body: row.content_body ?? '' }
@@ -558,6 +564,7 @@ export async function saveGtmStore(
         start_date: store.startDate ?? null,
         state_revision: nextRevision,
         state_snapshot: store,
+        directory_launch_kit: store.launch?.directoryLaunchKit ?? null,
       })
       .eq('id', projectId)
       .eq('state_revision', currentRevision)
@@ -757,10 +764,15 @@ export async function saveGtmStore(
         due_time: todo.time ?? null,
         title: todo.title,
         brief: todo.brief,
+        purpose: todo.purpose ?? null,
+        pillar: todo.pillar ?? null,
+        task_type: todo.taskType ?? null,
         phase: todo.phase ?? null,
         market: todo.market ?? null,
         audience: todo.audience ?? null,
         status: todo.status,
+        launch_status: todo.launchStatus ?? 'planned',
+        revision: Math.max(1, todo.revision ?? 1),
         content_title: todo.content?.title ?? null,
         content_body: todo.content?.body ?? null,
         content_status: todo.contentStatus,
@@ -776,6 +788,48 @@ export async function saveGtmStore(
     let todoError: DatabaseError = todoWrite.error;
     if (
       isMissingSchema(todoWrite.error, [
+        'purpose',
+        'pillar',
+        'task_type',
+        'launch_status',
+        'revision',
+      ])
+    ) {
+      const preLaunchWrite = await supabase.from('todos').upsert(
+        store.todos.map((todo) => ({
+          id: todo.id,
+          project_id: projectId,
+          topic_variant_id:
+            todo.topicVariantId && validVariantIds.has(todo.topicVariantId)
+              ? todo.topicVariantId
+              : null,
+          channel_id: todo.channelId,
+          channel_name: todo.channelName,
+          day_index: todo.dayIndex,
+          due_date: todo.date,
+          due_time: todo.time ?? null,
+          title: todo.title,
+          brief: todo.brief,
+          phase: todo.phase ?? null,
+          market: todo.market ?? null,
+          audience: todo.audience ?? null,
+          status: todo.status,
+          content_title: todo.content?.title ?? null,
+          content_body: todo.content?.body ?? null,
+          content_status: todo.contentStatus,
+          publish_status: todo.publishStatus ?? 'not_started',
+          published_url: todo.publishedUrl ?? null,
+          published_at: todo.publishedAt ? toIso(todo.publishedAt) : null,
+          publish_error: todo.publishError ?? null,
+          tracking_status: todo.trackingStatus ?? 'not_started',
+          metric_snapshots: todo.metricSnapshots ?? [],
+        })),
+        { onConflict: 'project_id,id' }
+      );
+      todoError = preLaunchWrite.error;
+    }
+    if (
+      isMissingSchema(todoError, [
         'topic_variant_id',
         'publish_status',
         'published_url',

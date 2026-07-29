@@ -1,0 +1,74 @@
+[
+  {
+    "domain": "llmrelevance.com",
+    "status": "configured",
+    "submitUrl": "https://www.llmrelevance.com/submit",
+    "entryStage": "public_single_page_form",
+    "blocker": "",
+    "notes": "Public form exposes tool name, URL, category, pricing, optional YouTube video/channel, founder first and last name, and email. No logo or screenshot input is visible. Final boundary is “Submit Tool for Review”; do not click it during dry run.",
+    "checkedAt": "2026-07-28T06:32:10Z"
+  },
+  {
+    "domain": "resource.fyi",
+    "status": "entry_verified",
+    "submitUrl": "https://resource.fyi/",
+    "entryStage": "authentication_modal",
+    "blocker": "Submitting opens an account boundary requiring Google or GitHub authentication.",
+    "notes": "The homepage exposes Submit and Submit Resource actions plus Google/GitHub sign-in. The submission UI is button-driven rather than a visible stable link. Form stages and image fields remain behind authentication.",
+    "checkedAt": "2026-07-28T06:32:10Z"
+  },
+  {
+    "domain": "stellarlaunch.org",
+    "status": "entry_verified",
+    "submitUrl": "https://www.stellarlaunch.org/projects/submit",
+    "entryStage": "submit_entry",
+    "blocker": "The public site exposes sign-in/sign-up and a stable project submission route; the authenticated form was not available in this session.",
+    "notes": "Launch Now points directly to /projects/submit. Free and premium visibility are advertised. Treat authentication as a pause boundary and inspect form stages/image fields after login; never cross the final submission or payment boundary.",
+    "checkedAt": "2026-07-28T06:32:10Z"
+  },
+  {
+    "domain": "startups.fyi",
+    "status": "blocked",
+    "submitUrl": "https://www.startups.fyi/",
+    "entryStage": "homepage_entry",
+    "blocker": "The homepage displays “Share your project” but exposes no stable submission URL or visible form controls in the inspected page state.",
+    "notes": "The platform is a startup directory and shows revenue-oriented listings, but the actual submission workflow, pricing boundary, stages, and image fields could not be reached reliably.",
+    "checkedAt": "2026-07-28T06:32:10Z"
+  },
+  {
+    "domain": "indiehackerstacks.com",
+    "status": "entry_verified",
+    "submitUrl": "https://indiehackerstacks.com/",
+    "entryStage": "button_driven_entry",
+    "blocker": "The “Add your product stack” action is available, but the form is behind the button/login workflow and has no stable link in the public DOM.",
+    "notes": "This is a product-stack directory rather than a conventional launch listing. Automation will need to handle product information plus a collection of technologies. Multi-step stages and image fields remain to be inspected after the entry action.",
+    "checkedAt": "2026-07-28T06:32:10Z"
+  },
+  {
+    "domain": "hunt0.com",
+    "status": "entry_verified",
+    "submitUrl": "https://hunt0.com/submit",
+    "entryStage": "submit_entry",
+    "blocker": "The public site exposes a separate sign-in route; authenticated submission fields are not visible from the homepage.",
+    "notes": "Both SUBMIT and Launch point to the stable /submit route, with authentication at /auth/login. Pause for login, then resume and inspect the form, media fields, and final boundary.",
+    "checkedAt": "2026-07-28T06:32:10Z"
+  },
+  {
+    "domain": "toolhub.me",
+    "status": "blocked",
+    "submitUrl": "https://toolhub.me/",
+    "entryStage": "security_challenge",
+    "blocker": "Cloudflare security verification blocks access to the site.",
+    "notes": "No CAPTCHA or security challenge was solved or bypassed. Submission URL, authentication, stages, image fields, and final boundary remain unknown.",
+    "checkedAt": "2026-07-28T06:32:10Z"
+  },
+  {
+    "domain": "saasgrow.app",
+    "status": "entry_verified",
+    "submitUrl": "https://saasgrow.app/login?callbackUrl=/submit",
+    "entryStage": "authentication",
+    "blocker": "All Submit actions route to login with callbackUrl=/submit.",
+    "notes": "The callback preserves the intended submission destination, allowing the plugin to pause for user login and resume at /submit. Form stages and image inputs remain behind authentication.",
+    "checkedAt": "2026-07-28T06:32:10Z"
+  }
+]

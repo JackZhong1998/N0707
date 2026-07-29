@@ -1,0 +1,74 @@
+[
+  {
+    "domain": "euroalternative.co",
+    "status": "blocked",
+    "submitUrl": null,
+    "entryStage": "domain_redirect_then_bot_gate",
+    "blocker": "域名跳转至 euroalternative.eu 后进入 Cloudflare 安全拦截页。",
+    "notes": "需要用户人工通过安全验证后再继续确认提交入口。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "startuups.com",
+    "status": "blocked",
+    "submitUrl": null,
+    "entryStage": "access_gate",
+    "blocker": "网站直接返回 403 Forbidden。",
+    "notes": "当前无法读取稳定提交入口。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "toollist.ai",
+    "status": "blocked",
+    "submitUrl": "https://toollist.ai/v4/quick-submit",
+    "entryStage": "paid_plan_then_form",
+    "blocker": "填写完整产品资料之前必须选择最低 $29 的套餐并进入付款。",
+    "notes": "第一屏只能填写产品 URL 和套餐；付款后才开放名称、tagline、描述和截图，插件不会代替用户付款。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "productlaunchpad.app",
+    "status": "entry_verified",
+    "submitUrl": "https://productlaunchpad.app/submit",
+    "entryStage": "email_login_then_form",
+    "blocker": "提交页要求先通过邮箱登录，当前没有 Google 登录入口。",
+    "notes": "登录完成后会通过 next=/submit 回到提交流程，需要下一轮继续记录表单。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "saassy-board.com",
+    "status": "not_directory",
+    "submitUrl": "https://saassy-board.com/",
+    "entryStage": "paid_revenue_leaderboard",
+    "blocker": "站点明确说明自身不是目录，加入需要一次性付费并连接 SaaS 收入。",
+    "notes": "这是收入排行榜和竞赛产品，不是通用产品目录提交流程。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "madewithbolt.com",
+    "status": "configured",
+    "submitUrl": "https://madewithbolt.com/submit-project",
+    "entryStage": "full_form",
+    "blocker": null,
+    "notes": "无需登录的单页表单：Project Title、Email、Short Description、Description、Website URL、Twitter/X 和 Reddit；仅接受使用 Bolt 构建的项目。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "postioo.com",
+    "status": "blocked",
+    "submitUrl": "https://postioo.com/submit",
+    "entryStage": "paid_plan_then_wizard",
+    "blocker": "四步提交向导第一步只提供一次性付费方案，必须先选择套餐。",
+    "notes": "当前可见 Premium Launch $3.99 和 Featured Launch $10；插件不会代替用户选择并付款。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "launchy.tools",
+    "status": "entry_verified",
+    "submitUrl": "https://launchy.tools/submit",
+    "entryStage": "google_login_then_form",
+    "blocker": null,
+    "notes": "稳定提交入口；未登录时回到带 callbackURL=/submit 的登录页，支持 Google 登录，登录后继续记录表单。",
+    "checkedAt": "2026-07-28"
+  }
+]

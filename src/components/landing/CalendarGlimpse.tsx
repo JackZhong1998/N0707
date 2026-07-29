@@ -1,144 +1,88 @@
 import { getLocale } from 'next-intl/server';
 import { buildDemoTodos } from '@/lib/gtm/demo-calendar';
-import {
-  addDays,
-  parseDateStr,
-  startOfWeek,
-  todayStr,
-  WEEKDAY_LABELS_EN,
-  WEEKDAY_LABELS_ZH,
-} from '@/lib/gtm/dates';
 
-/**
- * 产品一瞥：行动日历第一周（与产品内页周视图同款样式）
- * - 仅文字渠道名，不显示渠道 Logo
- * - 当天列拉宽展示更多内容；非焦点日隐藏副标题
- * - 中文：中外渠道混排；英文：海外渠道
- */
 export default async function CalendarGlimpse() {
   const locale = await getLocale();
   const isZh = locale === 'zh';
-
   const todos = buildDemoTodos(locale);
-  const today = todayStr();
-  const weekStart = startOfWeek(today);
-  const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const focusDate = weekDates.includes(today) ? today : weekDates[0];
-  const weekdays = isZh ? WEEKDAY_LABELS_ZH : WEEKDAY_LABELS_EN;
-
-  const byDate = new Map<string, typeof todos>();
-  for (const t of todos) {
-    const list = byDate.get(t.date) ?? [];
-    list.push(t);
-    byDate.set(t.date, list);
-  }
+  const columns = [
+    {
+      label: isZh ? '定方向' : 'Direction',
+      day: 'DAY 01',
+      items: todos.slice(0, 2),
+    },
+    {
+      label: isZh ? '做内容' : 'Production',
+      day: 'DAY 07',
+      items: todos.slice(2, 5),
+    },
+    {
+      label: isZh ? '今天' : 'Today',
+      day: isZh ? '下一步已就绪' : 'NEXT MOVE READY',
+      items: todos.slice(5, 8),
+      focus: true,
+    },
+    {
+      label: isZh ? '看反馈' : 'Review',
+      day: 'DAY 30',
+      items: todos.slice(8, 10),
+    },
+  ];
 
   return (
     <section className="bg-paper-dim">
       <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className="index-label">{isZh ? '行动日历' : 'The action calendar'}</p>
-            <h2 className="mt-4 font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              {isZh ? '规划好每一天，也写好每一篇' : 'Every day planned. Every post drafted.'}
+        <div className="grid items-end gap-8 lg:grid-cols-[1.2fr_.8fr]">
+          <div className="max-w-3xl">
+            <p className="index-label">{isZh ? '每天打开，都有事可做' : 'Your team’s daily output'}</p>
+            <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
+              {isZh ? (
+                <>打开 NowBuild，<br />今天该做什么，一目了然。</>
+              ) : (
+                <>Open NowBuild.<br />The next move is ready.</>
+              )}
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-relaxed text-ink-muted">
+          <p className="max-w-lg text-base leading-8 text-ink-muted lg:justify-self-end">
             {isZh
-              ? '行动日历替你做两件事：规划好每天要做的市场动作，也备好当天要发的内容初稿。你只需要用自己的品味做判断 — 每天 15–30 分钟，轻松完成当天的任务。'
-              : 'The calendar plans your daily marketing moves and drafts the content to go with them. You apply your taste — fifteen to thirty minutes a day gets it done.'}
+              ? '每项任务都写清渠道、目标和安排它的理由，草稿或制作说明也已备好。原本数小时的准备工作，浓缩成每天约 30 分钟的审核与决策。'
+              : 'Every task arrives with a channel, goal, finished draft or production brief—and why it matters today. Hours of preparation become about 30 minutes of review and decisions.'}
           </p>
         </div>
 
-        <div className="mt-12 overflow-x-auto rounded-3xl bg-white p-3 shadow-[0_8px_40px_rgba(0,0,0,0.05)]">
-          <div
-            className="grid min-w-[1080px] gap-2"
-            style={{
-              gridTemplateColumns: weekDates
-                .map((d) => (d === focusDate ? '2.1fr' : '1fr'))
-                .join(' '),
-            }}
-          >
-            {weekDates.map((date, i) => {
-              const dayTodos = byDate.get(date) ?? [];
-              const isToday = date === today;
-              const isFocus = date === focusDate;
-              return (
-                <div
-                  key={date}
-                  className={`flex min-h-[520px] flex-col overflow-hidden rounded-2xl transition-[flex-basis] ${
-                    isFocus
-                      ? 'bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]'
-                      : 'bg-white/80'
-                  }`}
-                >
-                  <div
-                    className={`flex items-baseline gap-1.5 px-3 py-2 ${
-                      isToday ? 'rounded-t-2xl bg-ink' : 'rounded-t-2xl bg-paper-dim'
-                    }`}
-                  >
-                    <span className={`index-label ${isToday ? '!text-zinc-300' : ''}`}>
-                      {weekdays[i]}
-                    </span>
-                    <span className={`text-sm font-semibold ${isToday ? 'text-white' : 'text-ink'}`}>
-                      {parseDateStr(date).getDate()}
-                    </span>
-                    {isToday && (
-                      <span className="ml-auto text-[10px] font-medium text-zinc-300">
-                        {isZh ? '今天' : 'Today'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2 p-2">
-                    {dayTodos.map((t) => (
-                      <div
-                        key={t.id}
-                        className={`rounded-xl bg-paper-dim/60 p-2.5 ${
-                          t.status === 'done' ? 'opacity-55' : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="truncate text-[10px] font-medium tracking-wide text-zinc-500">
-                            {t.channelName}
-                          </span>
-                          <span className="flex shrink-0 items-center gap-1.5">
-                            <span className="font-mono text-[10px] text-zinc-400">{t.time}</span>
-                            {t.status === 'done' ? (
-                              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-ink">
-                                <svg className="h-2 w-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                </svg>
-                              </span>
-                            ) : (
-                              <span className="block h-3.5 w-3.5 rounded-full border-2 border-zinc-300 bg-white" />
-                            )}
-                          </span>
-                        </div>
-                        <p
-                          className={`mt-1.5 text-[12px] font-semibold leading-snug text-ink ${
-                            t.status === 'done' ? 'line-through' : ''
-                          }`}
-                        >
-                          {t.title}
-                        </p>
-                        {isFocus && t.brief && (
-                          <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-500">
-                            {t.brief}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+        <div className="mt-12 overflow-x-auto rounded-[2rem] border border-zinc-200 bg-white p-3 shadow-[0_20px_70px_rgba(13,16,17,0.07)]">
+          <div className="grid min-w-[980px] grid-cols-[.8fr_1fr_1.55fr_.8fr] gap-2">
+            {columns.map((column) => (
+              <article key={column.day} className={`min-h-[430px] rounded-[1.35rem] p-3 ${column.focus ? 'bg-ink text-white' : 'bg-paper-dim'}`}>
+                <div className={`flex items-center justify-between border-b px-2 pb-3 pt-1 ${column.focus ? 'border-white/10' : 'border-zinc-200'}`}>
+                  <span className={`font-mono text-[10px] font-semibold uppercase tracking-[.14em] ${column.focus ? 'text-brand-300' : 'text-brand-700'}`}>{column.label}</span>
+                  <span className={`font-mono text-[9px] uppercase tracking-[.1em] ${column.focus ? 'text-zinc-500' : 'text-zinc-400'}`}>{column.day}</span>
                 </div>
-              );
-            })}
+                <div className="mt-3 space-y-2">
+                  {column.items.map((task, index) => (
+                    <div key={task.id} className={`rounded-xl border p-3 ${column.focus ? 'border-white/10 bg-white/[0.055]' : 'border-zinc-200 bg-white'}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className={`text-[10px] font-medium uppercase tracking-[.08em] ${column.focus ? 'text-zinc-400' : 'text-zinc-500'}`}>{task.channelName}</span>
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${column.focus && index === 0 ? 'bg-brand-300 text-black' : column.focus ? 'border border-white/15 text-zinc-500' : 'border border-zinc-200 text-zinc-400'}`}>
+                          {column.focus && index === 0 ? '→' : '✓'}
+                        </span>
+                      </div>
+                      <p className={`mt-3 text-[13px] font-semibold leading-5 ${column.focus ? 'text-white' : 'text-ink'}`}>{task.title}</p>
+                      {column.focus && task.brief && (
+                        <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-zinc-400">{task.brief}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
           </div>
         </div>
 
         <p className="mt-5 text-center text-xs text-zinc-400">
           {isZh
-            ? '第 1 周示例 · 完整计划覆盖 30 天 · 面向海外市场写英文、面向中国市场写中文'
-            : 'Week 1 of 30 · overseas channels for EN users · CN + global mix for zh users'}
+            ? '工作台示例 · 完整计划覆盖 30 天 · 草稿、进度与反馈始终围绕同一套策略'
+            : 'Product workspace example · the full campaign spans 30 days · drafts, status, and feedback stay in one context'}
         </p>
       </div>
     </section>

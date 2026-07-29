@@ -7,6 +7,8 @@ import type {
   ChatMessage,
   ContextResponse,
   DirectorResponse,
+  DirectoryLaunchKit,
+  DirectoryMaterialKey,
   GtmStore,
   StrategyResponse,
   Todo,
@@ -16,6 +18,7 @@ import type { ViewContext } from './view-context';
 import type { ProductResearchResult } from '@/lib/agents/researcher';
 import type { WeeklyReflectionResult } from '@/lib/agents/reflection';
 import type { TopicPlanResponse } from '@/lib/agents/topic-planner';
+import { buildAgentContextEnvelope } from './agent-context';
 
 async function post<T>(
   url: string,
@@ -65,6 +68,9 @@ export function callDirector(input: {
       })),
       performanceContext: buildPerformanceContext(input.store.todos),
       viewContext: input.viewContext,
+      campaignContext: buildAgentContextEnvelope(input.store, {
+        viewContext: input.viewContext,
+      }),
       locale: input.locale,
     },
     { signal: input.signal }
@@ -76,6 +82,8 @@ export function callStrategist(input: {
   store: GtmStore;
   feedback?: string;
   locale: string;
+  phase?: 'blueprint' | 'channel' | 'full';
+  existingOverview?: string;
 }): Promise<StrategyResponse> {
   const digest = input.store.directorChat
     .slice(-14)
@@ -88,8 +96,11 @@ export function callStrategist(input: {
     conversationDigest: digest,
     feedback: input.feedback,
     performanceContext: buildPerformanceContext(input.store.todos),
-    existingOverview: input.store.strategy?.overviewMarkdown,
+    existingOverview:
+      input.existingOverview ?? input.store.strategy?.overviewMarkdown,
+    campaignContext: buildAgentContextEnvelope(input.store),
     locale: input.locale,
+    phase: input.phase ?? 'full',
   });
 }
 
@@ -104,6 +115,7 @@ export function callContextAgent(input: {
     projectProfileDoc: input.store.projectProfileDoc,
     conversationSummary: input.store.conversationSummary,
     memoryFacts: input.store.memoryFacts,
+    campaignContext: buildAgentContextEnvelope(input.store),
     locale: input.locale,
   });
 }
@@ -123,6 +135,9 @@ export function callChannelTodos(input: {
       '',
     userProfileDoc: input.store.userProfileDoc,
     projectProfileDoc: input.store.projectProfileDoc,
+    campaignContext: buildAgentContextEnvelope(input.store, {
+      channelId: input.channelId,
+    }),
     locale: input.locale,
   });
 }
@@ -141,12 +156,50 @@ export function callChannelWrite(input: {
       phase: input.todo.phase,
       market: input.todo.market,
       audience: input.todo.audience,
+      purpose: input.todo.purpose,
+      pillar: input.todo.pillar,
+      taskType: input.todo.taskType,
     },
     channelStrategyMarkdown:
       input.store.channelStrategies[input.todo.channelId]?.markdown ?? '',
     userProfileDoc: input.store.userProfileDoc,
     projectProfileDoc: input.store.projectProfileDoc,
+    campaignContext: buildAgentContextEnvelope(input.store, {
+      channelId: input.todo.channelId,
+      todoId: input.todo.id,
+    }),
     locale: input.locale,
+  });
+}
+
+export function callDirectoryMaterialGeneration(input: {
+  store: GtmStore;
+  requestedFields: DirectoryMaterialKey[];
+  locale: string;
+}): Promise<
+  Partial<
+    Pick<
+      DirectoryLaunchKit,
+      | 'tagline'
+      | 'shortDescription'
+      | 'longDescription'
+      | 'categories'
+      | 'tags'
+    >
+  >
+> {
+  const launch = input.store.launch;
+  if (!launch) return Promise.resolve({});
+  return post('/api/agents/directory-materials', {
+    productName: launch.project.productName,
+    productUrl: launch.project.productUrl,
+    productSummary: launch.brief?.product.summary ?? '',
+    positioning: launch.brief?.positioning.statement ?? '',
+    sellingPoints: launch.brief?.positioning.sellingPoints ?? [],
+    pricing: launch.brief?.product.pricing ?? '',
+    sourceMarkdown: launch.brief?.sourceMarkdown ?? '',
+    requestedFields: input.requestedFields,
+    locale: input.locale === 'en' ? 'en' : 'zh',
   });
 }
 
@@ -179,6 +232,10 @@ export function callChannelChat(input: {
       .join('\n'),
     userProfileDoc: input.store.userProfileDoc,
     projectProfileDoc: input.store.projectProfileDoc,
+    campaignContext: buildAgentContextEnvelope(input.store, {
+      channelId: input.todo.channelId,
+      todoId: input.todo.id,
+    }),
     locale: input.locale,
   });
 }
@@ -199,8 +256,29 @@ export function callWeeklyReflection(input: {
     projectProfileDoc: input.store.projectProfileDoc,
     strategyMarkdown: input.store.strategy?.overviewMarkdown ?? '',
     performanceContext: buildPerformanceContext(input.store.todos),
+    campaignContext: buildAgentContextEnvelope(input.store),
     locale: input.locale,
   });
+}
+
+export function callLaunchPatch(input: {
+  entityType: 'brief' | 'blueprint' | 'channel_plan' | 'calendar';
+  current: unknown;
+  instruction: string;
+  campaignContext: string;
+  baseRevision: number;
+  channelId?: string;
+  locale: string;
+  editToken?: string;
+}): Promise<{
+  updated: unknown;
+  summary: string;
+  impact: 'local' | 'week' | 'channel' | 'global';
+  baseRevision: number;
+  briefEditUsed?: number;
+  briefEditRemaining?: number;
+}> {
+  return post('/api/agents/launch-patch', input);
 }
 
 export function callTopicPlanner(input: {
@@ -222,6 +300,7 @@ export function callTopicPlanner(input: {
       ])
     ),
     performanceContext: buildPerformanceContext(input.store.todos),
+    campaignContext: buildAgentContextEnvelope(input.store),
     locale: input.locale,
   });
 }

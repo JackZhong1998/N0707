@@ -12,13 +12,14 @@ import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { UserButton } from '@clerk/nextjs';
 import { Link, useRouter } from '@/i18n/navigation';
-import Logo from '@/components/Logo';
+import Logo, { LogoMark } from '@/components/Logo';
 import AgentPanelView, {
   type AgentPanelMessage,
 } from '@/components/app/AgentPanelView';
 import AgentBootstrap from '@/components/app/AgentBootstrap';
 import AutoMetricsSync from '@/components/app/AutoMetricsSync';
 import Paywall from '@/components/app/Paywall';
+import CampaignBootstrap from '@/components/app/launch/CampaignBootstrap';
 import { GtmProvider, useGtm } from '@/lib/gtm/store';
 import type { ChatMessage, MessageCard } from '@/lib/gtm/types';
 import { useDirector } from '@/lib/gtm/use-director';
@@ -39,19 +40,31 @@ const isClerkConfigured =
   !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('xxxxx');
 
 type NavigationKey =
+  | 'command'
   | 'calendar'
-  | 'topics'
+  | 'blueprint'
+  | 'channels'
   | 'posts'
-  | 'strategy'
+  | 'reviews'
+  | 'report'
   | 'publisher'
-  | 'chat';
+  ;
 
 type NavigationItem = {
   key: NavigationKey;
   href: string;
   label: string;
   description: string;
-  icon: 'calendar' | 'topics' | 'posts' | 'strategy' | 'plugin';
+  icon:
+    | 'command'
+    | 'calendar'
+    | 'blueprint'
+    | 'channels'
+    | 'posts'
+    | 'reviews'
+    | 'report'
+    | 'plugin';
+  iconTone: string;
   lowFrequency?: boolean;
 };
 
@@ -82,25 +95,66 @@ function NavIcon({
       </svg>
     );
   }
-  if (name === 'calendar') {
+  if (name === 'command') {
     return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25A2.25 2.25 0 0 1 18.75 21H5.25A2.25 2.25 0 0 1 3 18.75Zm0-9.75h18" />
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55">
+        <circle cx="12" cy="12" r="8.25" />
+        <circle cx="12" cy="12" r="2.25" fill="currentColor" stroke="none" />
+        <path strokeLinecap="round" d="M12 1.75v3M12 19.25v3M1.75 12h3M19.25 12h3" />
+        <path strokeLinecap="round" d="m14.15 9.85 3.1-3.1-3.1 3.1Z" strokeWidth="2.2" />
       </svg>
     );
   }
-  if (name === 'topics') {
+  if (name === 'calendar') {
     return (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 4.5h9m-9 5h9m-9 5h5.25M5.25 2.75h13.5A2.25 2.25 0 0 1 21 5v14a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 19V5a2.25 2.25 0 0 1 2.25-2.25Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 3v3M17 3v3M4 9h16M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5Z" />
+        <path strokeLinecap="round" d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01" strokeWidth="2.4" />
+      </svg>
+    );
+  }
+  if (name === 'blueprint') {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m3.5 6.5 5-3 7 3 5-3v14l-5 3-7-3-5 3v-14Z" />
+        <path strokeLinecap="round" d="M8.5 3.5v14M15.5 6.5v14" />
+        <path strokeLinecap="round" strokeDasharray="1.5 2.2" d="m5.8 12.5 2.7-1.6 7 3 2.2-1.3" />
+      </svg>
+    );
+  }
+  if (name === 'channels') {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <circle cx="12" cy="12" r="2.75" />
+        <circle cx="5" cy="6" r="2" />
+        <circle cx="19" cy="6" r="2" />
+        <circle cx="5" cy="18" r="2" />
+        <circle cx="19" cy="18" r="2" />
+        <path strokeLinecap="round" d="m7 7.7 2.9 2.5M17 7.7l-2.9 2.5M7 16.3l2.9-2.5M17 16.3l-2.9-2.5" />
       </svg>
     );
   }
   if (name === 'posts') {
     return (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7.5 16.5l3.75-4.5 3 2.25L19.5 7.5" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 7.5h3v3" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v9A1.5 1.5 0 0 1 19 16.5h-8L6.5 20v-3.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5Z" />
+        <path strokeLinecap="round" d="M8 9h8M8 12.5h5" />
+      </svg>
+    );
+  }
+  if (name === 'reviews') {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.2A8.25 8.25 0 1 0 20 15M19.5 3.5v4.7h-4.7" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="m8.2 12.1 2.45 2.45 5.2-5.2" />
+      </svg>
+    );
+  }
+  if (name === 'report') {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 3.5h9l3 3V20.5H6v-17Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 3.5v3h3M9 16v-3M12 16V9M15 16v-5" />
       </svg>
     );
   }
@@ -113,7 +167,8 @@ function NavIcon({
   }
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.63a3.38 3.38 0 0 0-3.38-3.37h-1.5a1.13 1.13 0 0 1-1.12-1.13v-1.5a3.38 3.38 0 0 0-3.38-3.37H5.63A1.13 1.13 0 0 0 4.5 3.38v17.24a1.13 1.13 0 0 0 1.13 1.13h12.74a1.13 1.13 0 0 0 1.13-1.13v-6.37ZM8.25 15h7.5m-7.5 3H12" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v4.25M15.75 3v4.25M6 7.25h12v3A5.75 5.75 0 0 1 12.25 16H11.75A5.75 5.75 0 0 1 6 10.25v-3ZM12 16v5" />
+      <path strokeLinecap="round" d="M9.5 11.25h5" />
     </svg>
   );
 }
@@ -127,11 +182,13 @@ function AvatarFallback() {
 }
 
 function getActiveKey(pathname: string): NavigationKey {
-  if (pathname.includes('/app/topics')) return 'topics';
+  if (/\/app\/?$/.test(pathname)) return 'command';
   if (pathname.includes('/app/posts')) return 'posts';
-  if (pathname.includes('/app/strategy')) return 'strategy';
+  if (pathname.includes('/app/blueprint') || pathname.includes('/app/brief')) return 'blueprint';
+  if (pathname.includes('/app/channels') || pathname.includes('/app/directories')) return 'channels';
+  if (pathname.includes('/app/reviews')) return 'reviews';
+  if (pathname.includes('/app/report')) return 'report';
   if (pathname.includes('/app/publisher-extension')) return 'publisher';
-  if (pathname.includes('/app/chat')) return 'chat';
   return 'calendar';
 }
 
@@ -145,28 +202,49 @@ function getRouteViewContext(
       view: 'todo_detail',
       entityType: 'todo',
       entityId: decodeURIComponent(taskMatch[1]),
-      title: isZh ? 'To-Do 详情' : 'To-do details',
+      title: isZh ? '任务详情' : 'To-do details',
     };
   }
-  if (pathname.includes('/app/topics')) {
+  if (/\/app\/?$/.test(pathname)) {
     return {
-      view: 'topic_library',
-      entityType: 'topic_collection',
-      title: isZh ? '选题库' : 'Topic library',
+      view: 'launch_command_center',
+      entityType: 'launch_project',
+      title: isZh ? '冷启动工作台' : 'Launch Command Center',
     };
+  }
+  const channelMatch = pathname.match(/\/app\/channels\/([^/?]+)/);
+  if (channelMatch) {
+    return {
+      view: 'channel_workspace',
+      entityType: 'channel_plan',
+      entityId: decodeURIComponent(channelMatch[1]),
+      channelId: decodeURIComponent(channelMatch[1]),
+      title: `${decodeURIComponent(channelMatch[1])} Agent`,
+    };
+  }
+  if (pathname.includes('/app/channels')) {
+    return { view: 'channel_agents', entityType: 'channel_plan_collection', title: isZh ? '渠道团队' : 'Channel Agents' };
+  }
+  if (pathname.includes('/app/directories')) {
+    return { view: 'directory_pipeline', entityType: 'directory_pipeline', channelId: 'directory', title: isZh ? '目录发布专员' : 'Directory Agent' };
+  }
+  if (pathname.includes('/app/brief')) {
+    return { view: 'launch_brief', entityType: 'launch_brief', title: isZh ? '冷启动简报' : 'Launch Brief' };
+  }
+  if (pathname.includes('/app/blueprint')) {
+    return { view: 'launch_blueprint', entityType: 'launch_blueprint', title: isZh ? '30 天推广蓝图' : '30-Day Campaign Blueprint' };
+  }
+  if (pathname.includes('/app/reviews')) {
+    return { view: 'weekly_review', entityType: 'weekly_review_collection', title: isZh ? '每周复盘' : 'Weekly Reviews' };
+  }
+  if (pathname.includes('/app/report')) {
+    return { view: 'launch_report', entityType: 'launch_report', title: isZh ? '30 天冷启动报告' : 'Day 30 Launch Report' };
   }
   if (pathname.includes('/app/posts')) {
     return {
       view: 'post_metrics',
       entityType: 'post_collection',
       title: isZh ? '帖子与数据' : 'Posts & metrics',
-    };
-  }
-  if (pathname.includes('/app/strategy')) {
-    return {
-      view: 'market_strategy',
-      entityType: 'strategy',
-      title: isZh ? '市场策略' : 'Market strategy',
     };
   }
   if (pathname.includes('/app/publisher-extension')) {
@@ -176,16 +254,10 @@ function getRouteViewContext(
       title: isZh ? '发布插件' : 'Publishing extension',
     };
   }
-  if (pathname.includes('/app/chat')) {
-    return {
-      view: 'legacy_conversation',
-      title: isZh ? '市场合伙人对话' : 'Partner conversation',
-    };
-  }
   return {
-    view: 'action_calendar',
+    view: 'launch_calendar',
     entityType: 'calendar',
-    title: isZh ? '行动日历' : 'Action calendar',
+    title: isZh ? '推广日历' : 'Launch Calendar',
   };
 }
 
@@ -198,7 +270,7 @@ function mapMessageArtifact(
     return { label: card.label, status: card.status };
   }
   if (card.kind === 'strategy') {
-    return { label: card.title, status: 'done', href: '/app/strategy' };
+    return { label: card.title, status: 'done', href: '/app/blueprint' };
   }
   if (card.kind === 'calendar') {
     return { label: card.title, status: 'done', href: '/app/calendar' };
@@ -235,7 +307,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const locale = useLocale();
   const isZh = locale !== 'en';
-  const { store, hydrated, markAgentNotificationRead } = useGtm();
+  const {
+    store,
+    hydrated,
+    accessStatus,
+    update,
+    markAgentNotificationRead,
+  } = useGtm();
   const { viewContext, setViewContext, clearViewContext } = useViewContext();
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -244,6 +322,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [input, setInput] = useState('');
   const [extensionNeedsUpdate, setExtensionNeedsUpdate] = useState(false);
   const autoReviewStarted = useRef(false);
+
+  useEffect(() => {
+    const openPaywall = () => setPaywallOpen(true);
+    window.addEventListener('nowbuild:open-paywall', openPaywall);
+    return () => window.removeEventListener('nowbuild:open-paywall', openPaywall);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -259,35 +343,86 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!store.launch || store.launch.project.status !== 'active') return;
+    const start = new Date(`${store.launch.project.startDate}T12:00:00`).getTime();
+    const currentDay = Math.max(
+      1,
+      Math.min(30, Math.floor((Date.now() - start) / 86_400_000) + 1)
+    );
+    if (currentDay === store.launch.project.currentDay) return;
+    update({
+      launch: {
+        ...store.launch,
+        project: {
+          ...store.launch.project,
+          currentDay,
+          ...(currentDay >= 30
+            ? { phase: 'completed' as const, status: 'completed' as const }
+            : {}),
+          updatedAt: Date.now(),
+        },
+      },
+    });
+  }, [store.launch, update]);
+
   const items = useMemo<NavigationItem[]>(
     () => [
       {
-        key: 'calendar',
-        href: '/app/calendar',
-        label: isZh ? '行动日历' : 'Action calendar',
-        description: isZh ? '今天和未来要推进的行动' : 'Actions for today and what comes next',
-        icon: 'calendar',
+        key: 'command',
+        href: '/app',
+        label: isZh ? '冷启动工作台' : 'Launch Command Center',
+        description: isZh ? '今天的重点任务和团队进度' : 'Today’s priorities and team status',
+        icon: 'command',
+        iconTone: 'bg-brand-500/12 text-brand-300',
       },
       {
-        key: 'topics',
-        href: '/app/topics',
-        label: isZh ? '选题库' : 'Topic library',
-        description: isZh ? '核心选题与渠道表达版本' : 'Core topics and channel variants',
-        icon: 'topics',
+        key: 'calendar',
+        href: '/app/calendar',
+        label: isZh ? '推广日历' : 'Launch Calendar',
+        description: isZh ? '跨渠道的 30 天行动安排' : 'Cross-channel 30-day execution timeline',
+        icon: 'calendar',
+        iconTone: 'bg-amber-400/12 text-amber-300',
+      },
+      {
+        key: 'blueprint',
+        href: '/app/blueprint',
+        label: isZh ? '推广蓝图' : 'Campaign Blueprint',
+        description: isZh ? '产品定位、内容主线与四周节奏' : 'Brief, positioning, pillars, and four-week story',
+        icon: 'blueprint',
+        iconTone: 'bg-brand-500/12 text-brand-300',
+      },
+      {
+        key: 'channels',
+        href: '/app/channels',
+        label: isZh ? '渠道团队' : 'Channel Agents',
+        description: isZh ? '各平台的打法、任务与复盘' : 'Channel playbooks, queues, and reviews',
+        icon: 'channels',
+        iconTone: 'bg-cyan-500/12 text-cyan-300',
       },
       {
         key: 'posts',
         href: '/app/posts',
         label: isZh ? '帖子与数据' : 'Posts & data',
-        description: isZh ? '已发布内容与表现证据' : 'Published work and performance evidence',
+        description: isZh ? '已发布内容及真实表现' : 'Published work and performance evidence',
         icon: 'posts',
+        iconTone: 'bg-emerald-500/12 text-emerald-300',
       },
       {
-        key: 'strategy',
-        href: '/app/strategy',
-        label: isZh ? '市场策略' : 'Market strategy',
-        description: isZh ? '定位、渠道和增长计划' : 'Positioning, channels, and growth plan',
-        icon: 'strategy',
+        key: 'reviews',
+        href: '/app/reviews',
+        label: isZh ? '每周复盘' : 'Weekly Reviews',
+        description: isZh ? '根据反馈调整下一周计划' : 'Execution signals and next-week adjustments',
+        icon: 'reviews',
+        iconTone: 'bg-blue-500/12 text-blue-300',
+      },
+      {
+        key: 'report',
+        href: '/app/report',
+        label: isZh ? '冷启动报告' : 'Launch Report',
+        description: isZh ? '30 天执行结果与后续建议' : 'Complete Day 30 execution result',
+        icon: 'report',
+        iconTone: 'bg-fuchsia-500/12 text-fuchsia-300',
         lowFrequency: true,
       },
       {
@@ -296,6 +431,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         label: isZh ? '发布插件' : 'Publishing extension',
         description: isZh ? '安装、检测与连接状态' : 'Install, inspect, and check connections',
         icon: 'plugin',
+        iconTone: 'bg-orange-500/12 text-orange-300',
         lowFrequency: true,
       },
     ],
@@ -318,6 +454,35 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     submitKickoff,
     enqueueActions,
   } = useDirector(resolvedViewContext);
+
+  const workspaceStatus = useMemo(() => {
+    const launch = store.launch;
+    if (!launch) return null;
+    if (!['researching', 'building_team', 'blueprint_ready'].includes(launch.project.phase)) {
+      return null;
+    }
+    const done = launch.researchProgress.filter((step) =>
+      ['done', 'warning'].includes(step.status)
+    ).length;
+    const total = launch.researchProgress.length;
+    const active = launch.researchProgress.find((step) => step.status === 'running');
+    if (launch.project.phase === 'building_team') {
+      const channelStep = launch.researchProgress.find((step) => step.id === 'channels' || step.id === 'calendar');
+      return (
+        channelStep?.detail ||
+        active?.label ||
+        (isZh
+          ? `正在生成推广计划 · ${done}/${total}`
+          : `Building campaign · ${done}/${total}`)
+      );
+    }
+    return (
+      active?.label ||
+      (isZh ? `正在分析 · ${done}/${total}` : `Analyzing · ${done}/${total}`)
+    );
+  }, [isZh, store.launch]);
+
+  const panelBusy = busy || Boolean(workspaceStatus);
 
   const panelMessages = useMemo<AgentPanelMessage[]>(
     () => store.directorChat.map((message) => toPanelMessage(message, isZh)),
@@ -387,17 +552,48 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       window.removeEventListener('nowbuild:write-todo', writeTodo);
   }, [enqueueActions]);
 
-  // 未支付时只允许查看示例日历。
+  // Free tier may stay on onboarding, research progress, and Launch Brief.
+  // Paid-only destinations keep the paywall; do not force unpaid users to calendar.
   useEffect(() => {
-    if (!hydrated) return;
-    if (!store.paid && !isCalendarIndex) {
-      router.replace('/app/calendar');
+    if (!hydrated || accessStatus !== 'unpaid' || !store.launch) return;
+    const phase = store.launch.project.phase;
+    const freePath =
+      /\/app\/?$/.test(pathname) ||
+      pathname.includes('/app/brief');
+    if (phase === 'brief_ready' && !pathname.includes('/app/brief')) {
+      router.replace('/app/brief');
+      return;
     }
-  }, [hydrated, store.paid, isCalendarIndex, router]);
+    if (
+      (phase === 'researching' || phase === 'building_team') &&
+      !/\/app\/?$/.test(pathname)
+    ) {
+      router.replace('/app');
+      return;
+    }
+    if (!freePath && phase === 'brief_ready') {
+      router.replace('/app/brief');
+    }
+  }, [accessStatus, hydrated, pathname, router, store.launch]);
 
   // 主动复盘不插队到当前会话：满足一周数据条件后静默执行，结果进入通知箱。
   useEffect(() => {
     if (!hydrated || !store.paid || autoReviewStarted.current) return;
+    const dueWeek = store.launch
+      ? Math.min(4, Math.floor(store.launch.project.currentDay / 7))
+      : 0;
+    const dueLaunchReview = store.launch?.weeklyReviews.find(
+      (review) => review.week === dueWeek && review.status === 'upcoming'
+    );
+    if (dueLaunchReview) {
+      autoReviewStarted.current = true;
+      enqueueActions(
+        [{ type: 'generate_weekly_review', silent: true }],
+        [],
+        `launch-weekly-review-${store.launch!.project.id}-${dueWeek}`
+      );
+      return;
+    }
     const measuredTodos = store.todos.filter(
       (todo) =>
         Boolean(todo.publishedUrl) && (todo.metricSnapshots?.length ?? 0) > 0
@@ -435,6 +631,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     hydrated,
     enqueueActions,
     store.lastReflectionAt,
+    store.launch,
     store.paid,
     store.todos,
   ]);
@@ -455,7 +652,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     });
   }, [resolvedViewContext, setViewContext]);
 
-  const locked = hydrated && !store.paid;
+  // Free workspace: onboarding URL form, research progress, and Launch Brief.
+  // Paywall only locks paid execution surfaces (calendar, tasks, blueprint, etc.).
+  const onboarding = hydrated && !store.launch;
+  const freeUnpaidWorkspace =
+    accessStatus === 'unpaid' &&
+    (onboarding ||
+      /\/app\/?$/.test(pathname) ||
+      pathname.includes('/app/brief'));
+  const locked = accessStatus === 'unpaid' && !freeUnpaidWorkspace;
   const restrictedUnpaidView = locked && !isCalendarIndex;
 
   const navigationMenu = menuOpen && (
@@ -466,13 +671,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         onClick={() => setMenuOpen(false)}
         className="fixed inset-0 z-40 cursor-default bg-black/25 backdrop-blur-[1px]"
       />
-      <nav className="fixed left-2 top-[60px] z-50 w-[min(288px,calc(100vw-16px))] overflow-hidden rounded-2xl border border-white/10 bg-[#151619]/95 p-2 text-white shadow-2xl backdrop-blur-xl md:left-16 md:top-2">
+      <nav className="fixed left-2 top-[60px] z-50 w-[min(288px,calc(100vw-16px))] overflow-hidden rounded-2xl border border-white/10 bg-night-panel/95 p-2 text-white shadow-2xl backdrop-blur-xl md:left-16 md:top-2">
         <div className="px-2.5 pb-2 pt-1.5">
           <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-zinc-600">
-            {isZh ? '工作空间' : 'Workspace'}
+            {isZh ? '工作台导航' : 'Workspace'}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
-            {isZh ? '查看 Agent 的行动与结果' : 'See your agent’s actions and results'}
+            {isZh ? '查看团队正在做什么、已经完成什么' : 'See your agent’s actions and results'}
           </p>
         </div>
         <div className="space-y-0.5">
@@ -496,7 +701,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                 >
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                      active ? 'bg-black/[0.06]' : 'bg-white/[0.05]'
+                      active ? 'bg-black/[0.06] text-black' : item.iconTone
                     }`}
                   >
                     <NavIcon name={item.icon} className="h-4 w-4" />
@@ -545,7 +750,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="bg-grid-dark relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#08090b] md:flex-row">
+    <div className="bg-grid-dark relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-night md:flex-row">
       <AutoMetricsSync />
       <AgentBootstrap />
 
@@ -554,10 +759,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <Link
           href="/"
           title="NowBuild"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] font-[family-name:var(--font-display)] text-sm font-black tracking-tighter text-white transition-colors hover:bg-white/[0.08]"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-white transition-transform hover:scale-105"
         >
-          <span className="-rotate-6 text-red-500">N</span>
-          <span className="text-red-500">B</span>
+          <LogoMark className="h-5 w-12 text-canvas" />
         </Link>
 
         <nav className="mt-4 flex flex-col items-center gap-1.5">
@@ -584,12 +788,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                   className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
                     active
                       ? 'bg-white text-black'
-                      : 'text-zinc-400 hover:bg-white/[0.08] hover:text-white'
+                      : `${item.iconTone} hover:brightness-125`
                   }`}
                 >
                   <NavIcon name={item.icon} />
                   {item.key === 'publisher' && extensionNeedsUpdate && (
-                    <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-[#08090b]" />
+                    <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-night" />
                   )}
                 </Link>
               </div>
@@ -621,15 +825,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           type="button"
           onClick={() => setMobileAgentOpen(true)}
           className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black"
-          aria-label={isZh ? '打开市场合伙人' : 'Open marketing partner'}
+          aria-label={isZh ? '打开市场合伙人' : 'Open Launch Partner'}
         >
           <NavIcon name="agent" className="h-4 w-4" />
           {panelNotifications.length > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-[#08090b] bg-amber-300 px-0.5 text-[8px] font-bold text-black">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-night bg-amber-300 px-0.5 text-[8px] font-bold text-black">
               {panelNotifications.length > 9 ? '9+' : panelNotifications.length}
             </span>
-          ) : (busy || pendingCount > 0) && (
-            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#08090b] bg-emerald-400" />
+          ) : (panelBusy || pendingCount > 0) && (
+            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-night bg-emerald-400" />
           )}
         </button>
       </header>
@@ -641,7 +845,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <main
           onMouseUp={captureWorkspaceSelection}
           onKeyUp={captureWorkspaceSelection}
-          className="agent-workspace bg-grid-dark min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0b0c0e] text-zinc-200 shadow-2xl"
+          className="agent-workspace bg-grid-dark min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/[0.08] bg-night text-zinc-200 shadow-2xl"
         >
           <div className="h-full overflow-y-auto">{children}</div>
         </main>
@@ -658,8 +862,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           onSubmitKickoff={submitKickoff}
           onReadNotification={markAgentNotificationRead}
           sending={sending}
-          busy={busy}
+          busy={panelBusy}
           pendingCount={pendingCount}
+          workspaceStatus={workspaceStatus}
           viewContext={resolvedViewContext}
           onClearViewContext={viewContext ? clearViewContext : undefined}
           collapsed={agentCollapsed}
@@ -675,7 +880,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
       {/* 移动端 Agent 抽屉，不挤压工作画布。 */}
       {mobileAgentOpen && (
-        <div className="fixed inset-0 z-40 bg-[#08090b] p-2 md:hidden">
+        <div className="fixed inset-0 z-40 bg-night p-2 md:hidden">
           <AgentPanelView
             messages={panelMessages}
             artifacts={store.artifacts}
@@ -687,24 +892,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             onSubmitKickoff={submitKickoff}
             onReadNotification={markAgentNotificationRead}
             sending={sending}
-            busy={busy}
+            busy={panelBusy}
             pendingCount={pendingCount}
+            workspaceStatus={workspaceStatus}
             viewContext={resolvedViewContext}
             onClearViewContext={viewContext ? clearViewContext : undefined}
             onToggleCollapsed={() => setMobileAgentOpen(false)}
             isZh={isZh}
             className="w-full"
           />
-        </div>
-      )}
-
-      {/* 服务端订阅状态返回前不暴露可交互页面。 */}
-      {!hydrated && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#08090b]/90 backdrop-blur-sm">
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#151619] px-5 py-4 text-sm text-zinc-400 shadow-2xl">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-700 border-t-white" />
-            {isZh ? '正在检查订阅状态…' : 'Checking subscription…'}
-          </div>
         </div>
       )}
 
@@ -715,12 +911,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           aria-label={isZh ? '解锁' : 'Unlock'}
           onClick={() => setPaywallOpen(true)}
           className={`absolute inset-0 z-50 block w-full cursor-pointer ${
-            restrictedUnpaidView ? 'bg-[#08090b]' : 'bg-transparent'
+            restrictedUnpaidView ? 'bg-night' : 'bg-transparent'
           }`}
         />
       )}
 
       <Paywall open={paywallOpen} onClose={() => setPaywallOpen(false)} />
+      <CampaignBootstrap />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   CHANNEL_ROUTER_SKILL_IDS,
   KICKOFF_SKILL_IDS,
   getChannelDefinition,
+  getResolvedChannelSkillIds,
 } from './channel-map';
 import {
   getCombinedSkillContent,
@@ -36,15 +37,19 @@ function buildPlaybookFromContent(fullContent: string, skillId: string): SkillPl
 }
 
 function buildChannelSkill(def: (typeof CHANNEL_DEFINITIONS)[number]): ChannelSkill {
-  const fullContent = getCombinedSkillContent(def.skillIds);
+  const resolvedSkillIds = getResolvedChannelSkillIds(def);
+  const fullContent = getCombinedSkillContent(resolvedSkillIds);
 
   return {
     channelId: def.channelId,
     skillId: def.skillIds[0],
-    skillIds: def.skillIds,
+    skillIds: resolvedSkillIds,
     name: def.name,
     nameEn: def.nameEn,
     description: def.description,
+    medium: def.medium,
+    outputMode: def.outputMode,
+    deliverables: def.deliverables,
     locales: def.locales,
     tier: def.tier,
     postsPerWeek: def.postsPerWeek,
@@ -124,6 +129,9 @@ export interface PlaybookDisplay {
   name: string;
   nameEn: string;
   description: string;
+  medium: ChannelSkill['medium'];
+  outputMode: ChannelSkill['outputMode'];
+  deliverables: string[];
   skillIds: string[];
   playbook: SkillPlaybook;
   postsPerWeek: number;
@@ -137,6 +145,9 @@ export function getPlaybookDisplay(channelId: string): PlaybookDisplay | undefin
     name: s.name,
     nameEn: s.nameEn,
     description: s.description,
+    medium: s.medium,
+    outputMode: s.outputMode,
+    deliverables: s.deliverables,
     skillIds: s.skillIds,
     playbook: s.playbook,
     postsPerWeek: s.postsPerWeek,

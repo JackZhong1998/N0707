@@ -272,14 +272,14 @@ export default function PostsPage() {
               </p>
               <p className="mt-1 text-xs text-zinc-400">
                 {isZh
-                  ? '从行动日历发布第一条内容后，它会出现在这里。'
+                  ? '从 Launch Calendar 发布第一条内容后，它会出现在这里。'
                   : 'Publish your first calendar item and it will appear here.'}
               </p>
               <Link
                 href="/app/calendar"
                 className="mt-4 inline-flex h-10 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white"
               >
-                {isZh ? '返回行动日历' : 'Open calendar'}
+                {isZh ? '返回 Launch Calendar' : 'Open calendar'}
               </Link>
             </div>
           ) : (

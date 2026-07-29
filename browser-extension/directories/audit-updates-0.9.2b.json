@@ -1,0 +1,11 @@
+[
+  {
+    "domain": "sourceforge.net",
+    "status": "blocked",
+    "adapterId": null,
+    "submitUrl": "https://sourceforge.net/p/add_project",
+    "entryStage": "open_source_project_registration",
+    "blocker": "浏览器页面被 Cloudflare 拦截；首次项目注册还要求账号登录、开源许可资格和电话 PIN 验证。",
+    "notes": "它是开源项目托管创建流程，不适用于所有 SaaS；通过验证后可继续录制 Project Name、URL Name、工具选择与后续 Metadata。"
+  }
+]

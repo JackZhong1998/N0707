@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <a href="https://NowBuild.ai">🌐 NowBuild.ai</a> · <a href="./README.en.md">English</a> | 中文
+  <a href="https://NowBuild.ai/zh/open-source-saas-starter">🌐 项目主页</a> · <a href="./README.en.md">English</a> | 中文
 </p>
 
 ---

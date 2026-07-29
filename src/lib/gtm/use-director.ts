@@ -18,19 +18,27 @@ import {
   callChannelWrite,
   callContextAgent,
   callDirector,
+  callLaunchPatch,
   callProductResearch,
   callStrategist,
   callTopicPlanner,
   callWeeklyReflection,
 } from './api-client';
 import { addDays, parseDateStr, todayStr } from './dates';
+import { buildAgentContextEnvelope } from './agent-context';
 import { formatKickoffAnswers } from './kickoff';
 import {
   CONTEXT_SYNC_INTERVAL,
+  FREE_BRIEF_EDIT_LIMIT,
   type ChatMessage,
   type DirectorAction,
   type GtmStore,
   type KickoffCard,
+  type LaunchBlueprint,
+  type LaunchBrief,
+  type LaunchChannelPlan,
+  type LaunchRevision,
+  type MemoryFact,
   type OptionCard,
   type Todo,
 } from './types';
@@ -43,8 +51,6 @@ const MAX_BATCH_CHARACTERS = 12_000;
 export interface DirectorSendMeta {
   fromOptionCard?: boolean;
   selectedIds?: string[];
-  /** 用户在「策略确认卡」里选择了确认 */
-  confirmStrategy?: boolean;
   /** Overrides the view captured by useDirector(defaultViewContext). */
   viewContext?: ViewContext;
 }
@@ -142,6 +148,37 @@ function enrichViewContext(
     detail = store.channelStrategies[context.channelId]?.markdown ?? '';
   } else if (context.entityType === 'strategy') {
     detail = store.strategy?.overviewMarkdown ?? '';
+  } else if (context.entityType === 'launch_brief') {
+    detail = store.launch?.brief
+      ? JSON.stringify(store.launch.brief, null, 2)
+      : '';
+  } else if (context.entityType === 'launch_blueprint') {
+    detail = store.launch?.blueprint
+      ? JSON.stringify(store.launch.blueprint, null, 2)
+      : '';
+  } else if (context.entityType === 'channel_plan' && context.channelId) {
+    const plan = store.launch?.channelPlans[context.channelId];
+    detail = plan ? JSON.stringify(plan, null, 2) : '';
+  } else if (
+    ['calendar', 'calendar_period'].includes(context.entityType ?? '')
+  ) {
+    detail = JSON.stringify(
+      store.todos.map((todo) => ({
+        id: todo.id,
+        channelId: todo.channelId,
+        dayIndex: todo.dayIndex,
+        date: todo.date,
+        time: todo.time,
+        title: todo.title,
+        purpose: todo.purpose,
+        pillar: todo.pillar,
+        status: todo.status,
+        launchStatus: todo.launchStatus,
+        publishedUrl: todo.publishedUrl,
+      })),
+      null,
+      2
+    );
   }
 
   return detail
@@ -184,6 +221,36 @@ function isStopCommand(text: string): boolean {
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function launchEntityRevision(
+  store: GtmStore,
+  entityType: 'brief' | 'blueprint' | 'channel_plan' | 'calendar',
+  entityId?: string
+): number {
+  const launch = store.launch;
+  if (entityType === 'brief') return launch?.brief?.revision ?? 1;
+  if (entityType === 'blueprint') return launch?.blueprint?.revision ?? 1;
+  if (entityType === 'channel_plan') {
+    return launch?.channelPlans[entityId ?? '']?.revision ?? 1;
+  }
+  return Math.max(
+    1,
+    store.todos.reduce((sum, todo) => sum + (todo.revision ?? 1), 0)
+  );
+}
+
+function launchEntityValue(
+  store: GtmStore,
+  entityType: 'brief' | 'blueprint' | 'channel_plan' | 'calendar',
+  entityId?: string
+): unknown {
+  if (entityType === 'brief') return store.launch?.brief;
+  if (entityType === 'blueprint') return store.launch?.blueprint;
+  if (entityType === 'channel_plan') {
+    return store.launch?.channelPlans[entityId ?? ''];
+  }
+  return store.todos;
 }
 
 function withResearchSection(existing: string, research: string): string {
@@ -323,8 +390,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
   const runGenerateStrategy = useCallback(
     async (
       channelIds: string[],
-      feedback?: string,
-      options?: { skipConfirmation?: boolean }
+      feedback?: string
     ) => {
       const taskId = `strategy-${Date.now()}`;
       setBackgroundTasks((t) => [...t, taskId]);
@@ -380,39 +446,12 @@ export function useDirector(defaultViewContext?: ViewContext) {
               `**${c.channelName}**\n- ${isZh ? '定位' : 'Positioning'}：${c.positioning}\n- ${isZh ? '主打内容' : 'Pillars'}：${c.contentPillars.slice(0, 3).join(' / ')}`
           )
           .join('\n\n');
-        if (options?.skipConfirmation) {
-          await publishDirectorMessage({
-            role: 'assistant',
-            content: isZh
-              ? `我已经把最新帖子表现写进策略，调整后的渠道方向是：\n\n${channelSummary}\n\n接下来只会重排尚未发布的任务，已发布帖子和历史数据都会保留。`
-              : `I incorporated the latest post performance into the strategy:\n\n${channelSummary}\n\nOnly future unpublished tasks will be replanned; published history remains intact.`,
-          });
-        } else {
-          await publishDirectorMessage({
-            role: 'assistant',
-            content: isZh
-              ? `策略出来了，先给你划一下每个渠道的关键打法：\n\n${channelSummary}\n\n完整文档在「市场策略」页，可以点上面的卡片细看。**你先过一遍** — 哪里不对味直接告诉我（比如「小红书想更偏个人故事」），我让策略组改；方向没问题的话，我就安排各渠道把 30 天每日 To-Do 排进你的行动日历。`
-              : `Strategy is ready. Here are the key plays per channel:\n\n${channelSummary}\n\nFull docs live on the Strategy page (tap the card above). **Review it first** — tell me anything that feels off and I'll have it revised; if it looks right, I'll schedule your 30-day daily to-dos.`,
-            card: {
-              kind: 'options',
-              card: {
-                question: isZh ? '这份策略方向可以吗？' : 'Happy with this direction?',
-                multi: false,
-                options: [
-                  {
-                    id: 'confirm_strategy',
-                    label: isZh ? '确认，开始排 30 天 To-Do' : 'Confirm — schedule my 30 days',
-                  },
-                  {
-                    id: 'adjust_strategy',
-                    label: isZh ? '我要调整（在下方说明想改哪里）' : 'I want changes (tell me below)',
-                  },
-                ],
-                allowCustom: true,
-              },
-            },
-          });
-        }
+        await publishDirectorMessage({
+          role: 'assistant',
+          content: isZh
+            ? `Campaign Blueprint 和各渠道打法已经更新：\n\n${channelSummary}\n\n系统会继续生成或重排未来未完成任务；已发布内容和历史数据保持不变。你随时可以直接指出要改的部分。`
+            : `The Campaign Blueprint and channel plays are updated:\n\n${channelSummary}\n\nThe system will continue generating or replanning future unfinished work. Published content and history stay unchanged, and you can request a correction at any time.`,
+        });
         return true;
       } catch (err) {
         gtm.patchDirectorMessage(cardMsg.id, {
@@ -433,12 +472,13 @@ export function useDirector(defaultViewContext?: ViewContext) {
   const runGenerateTodos = useCallback(
     async (
       channelIds: string[],
-      options?: { preservePublished?: boolean }
+      options?: { preservePublished?: boolean; storeOverride?: GtmStore }
     ) => {
       const taskId = `todos-${Date.now()}`;
       setBackgroundTasks((t) => [...t, taskId]);
-      const startDate = storeRef.current.startDate ?? todayStr();
-      if (!storeRef.current.startDate) {
+      const executionStore = options?.storeOverride ?? storeRef.current;
+      const startDate = executionStore.startDate ?? todayStr();
+      if (!executionStore.startDate) {
         gtm.update({ startDate });
       }
       const cardMsg = await publishDirectorMessage({
@@ -455,11 +495,11 @@ export function useDirector(defaultViewContext?: ViewContext) {
           channelIds.map(async (channelId) => {
             const res = await callChannelTodos({
               channelId,
-              store: storeRef.current,
+              store: executionStore,
               locale,
               strategyMarkdownOverride: freshStrategiesRef.current[channelId]?.markdown,
             });
-            const channelDoc = storeRef.current.channelStrategies[channelId];
+            const channelDoc = executionStore.channelStrategies[channelId];
             const todos: Todo[] = res.todos.map((t, i) => ({
               id: `${channelId}-${t.dayIndex}-${i}-${Date.now()}`,
               channelId,
@@ -472,14 +512,19 @@ export function useDirector(defaultViewContext?: ViewContext) {
               time: t.time,
               title: t.title,
               brief: t.brief,
+              purpose: t.purpose ?? t.brief,
+              pillar: t.pillar ?? t.phase,
+              taskType: t.taskType ?? 'content',
               phase: t.phase,
               market: t.market,
               audience: t.audience,
               status: 'pending',
+              launchStatus: t.launchStatus ?? (t.dayIndex <= 7 ? 'draft' : 'planned'),
               contentStatus: 'none',
+              revision: 1,
             }));
             const preserved = options?.preservePublished
-              ? storeRef.current.todos.filter(
+              ? executionStore.todos.filter(
                   (todo) => todo.channelId === channelId && todo.publishedUrl
                 )
               : [];
@@ -581,36 +626,14 @@ export function useDirector(defaultViewContext?: ViewContext) {
           role: 'assistant',
           content:
             locale !== 'en'
-              ? `${result.summary}\n\n完整选题计划已经放到左侧工作区，所有渠道版本也已经进入选题库。**你先过一遍这些选题方向** — 哪里不对味直接告诉我，确认没问题后我们再推进策略确认和排期。`
-              : `${result.summary}\n\nThe full plan is in the workspace and every channel variant has been added to the topic library. **Review these topic directions first** — tell me anything that feels off; once confirmed we'll move to strategy sign-off and scheduling.`,
+              ? `${result.summary}\n\n完整选题计划已经放到左侧工作区，所有渠道版本也已进入选题库并可继续排期。哪里不对味直接告诉我，我会只修改未来未发布的内容。`
+              : `${result.summary}\n\nThe full plan is in the workspace and every channel variant is in the topic library, ready for scheduling. Tell me what feels off and I will change only future unpublished work.`,
           card: {
             kind: 'artifact',
             artifactId: artifact.id,
             title: artifact.title,
             summary: artifact.summary,
             status: artifact.status,
-          },
-        });
-        await publishDirectorMessage({
-          role: 'assistant',
-          content: '',
-          card: {
-            kind: 'options',
-            card: {
-              question: locale !== 'en' ? '这些选题方向可以吗？' : 'Happy with these topic directions?',
-              multi: false,
-              options: [
-                {
-                  id: 'confirm_topics',
-                  label: locale !== 'en' ? '选题方向没问题' : 'Topics look good',
-                },
-                {
-                  id: 'adjust_topics',
-                  label: locale !== 'en' ? '我要调整选题（在下方说明）' : 'I want changes (tell me below)',
-                },
-              ],
-              allowCustom: true,
-            },
           },
         });
       } catch (error) {
@@ -759,14 +782,144 @@ export function useDirector(defaultViewContext?: ViewContext) {
         store: storeRef.current,
         locale,
       });
+      const safeProposals = result.evidenceSufficient
+        ? result.proposals.filter((proposal) => !proposal.requiresConfirmation)
+        : [];
+      const confirmationProposals = result.proposals.filter(
+        (proposal) => proposal.requiresConfirmation
+      );
+      let appliedChanges: string[] = [];
+      let calendarPatchSummary = '';
+
+      if (safeProposals.length > 0 && storeRef.current.todos.length > 0) {
+        const reviewStore = storeRef.current;
+        const baseRevision = launchEntityRevision(reviewStore, 'calendar');
+        const patchResult = await callLaunchPatch({
+          entityType: 'calendar',
+          current: reviewStore.todos,
+          instruction: `${
+            locale !== 'en'
+              ? '把以下周复盘建议以最小、可逆的方式应用到未来未完成任务。只调整确有必要的任务；不改变全局定位，不删除大量任务，不执行任何外部动作。'
+              : 'Apply these weekly-review proposals to future unfinished tasks using the smallest reversible changes. Do not change global positioning, delete a large set of tasks, or perform an external action.'
+          }\n\n${JSON.stringify(safeProposals)}`,
+          campaignContext: buildAgentContextEnvelope(reviewStore),
+          baseRevision,
+          locale,
+        });
+        if (
+          patchResult.baseRevision !==
+          launchEntityRevision(storeRef.current, 'calendar')
+        ) {
+          throw new Error(
+            locale !== 'en'
+              ? '复盘期间行动日历发生了变化，本次没有覆盖新版本。请重新发起复盘。'
+              : 'The calendar changed during the review, so the newer version was not overwritten. Please run the review again.'
+          );
+        }
+        if (!Array.isArray(patchResult.updated)) {
+          throw new Error('Weekly review did not return a valid calendar update');
+        }
+        const originalById = new Map(
+          reviewStore.todos.map((todo) => [todo.id, todo])
+        );
+        const updated = (patchResult.updated as Todo[]).flatMap((candidate) => {
+          if (!candidate || typeof candidate.id !== 'string') return [];
+          const original = originalById.get(candidate.id);
+          if (!original) return [];
+          if (original.publishedUrl || original.status === 'done') {
+            return [original];
+          }
+          return [
+            {
+              ...original,
+              ...candidate,
+              id: original.id,
+              revision: (original.revision ?? 1) + 1,
+            },
+          ];
+        });
+        const seen = new Set(updated.map((todo) => todo.id));
+        const preserved = reviewStore.todos.filter(
+          (todo) => !seen.has(todo.id)
+        );
+        gtm.update({
+          todos: [...updated, ...preserved].sort(
+            (a, b) =>
+              a.dayIndex - b.dayIndex ||
+              (a.time ?? '').localeCompare(b.time ?? '')
+          ),
+        });
+        appliedChanges = safeProposals.map((proposal) => proposal.title);
+        calendarPatchSummary = patchResult.summary;
+      }
+
+      const currentLaunch = storeRef.current.launch;
+      if (currentLaunch) {
+        const dueWeek = Math.max(
+          1,
+          Math.min(4, Math.floor(currentLaunch.project.currentDay / 7))
+        );
+        const calendarRevision: LaunchRevision | undefined =
+          appliedChanges.length > 0
+            ? {
+                id: crypto.randomUUID(),
+                entityType: 'calendar',
+                entityId: currentLaunch.project.id,
+                label:
+                  calendarPatchSummary ||
+                  (locale !== 'en'
+                    ? '自动应用本周安全调整'
+                    : 'Applied safe weekly adjustments'),
+                revision: launchEntityRevision(storeRef.current, 'calendar'),
+                snapshot: storeRef.current.todos,
+                createdAt: Date.now(),
+              }
+            : undefined;
+        gtm.update({
+          launch: {
+            ...currentLaunch,
+            weeklyReviews: currentLaunch.weeklyReviews.map((review) =>
+              review.week === dueWeek
+                ? {
+                    ...review,
+                    status: 'applied',
+                    summary: result.summary,
+                    appliedChanges,
+                    channelFindings: result.proposals.map((proposal) => ({
+                      channelId: proposal.channelId ?? 'campaign',
+                      did: proposal.reason,
+                      signal: proposal.expectedSignal,
+                      keep: locale !== 'en' ? '保留已有强信号做法' : 'Keep the approaches with stronger signals',
+                      change: proposal.title,
+                    })),
+                    revision: review.revision + 1,
+                    createdAt: result.generatedAt,
+                  }
+                : review
+            ),
+            revisions: calendarRevision
+              ? [...currentLaunch.revisions, calendarRevision].slice(-20)
+              : currentLaunch.revisions,
+            lastUndoLabel: calendarRevision?.label,
+            project: { ...currentLaunch.project, updatedAt: Date.now() },
+          },
+        });
+      }
       const artifact = gtm.createArtifact({
         kind: 'weekly_review',
         title: result.headline,
         summary: result.summary,
         markdown: result.reviewMarkdown,
-        status: result.proposals.length > 0 ? 'waiting_approval' : 'draft',
+        status:
+          confirmationProposals.length > 0
+            ? 'waiting_approval'
+            : appliedChanges.length > 0
+              ? 'applied'
+              : 'draft',
         metadata: {
-          proposals: result.proposals,
+          proposals: confirmationProposals,
+          allProposals: result.proposals,
+          appliedChanges,
           evidenceSufficient: result.evidenceSufficient,
           generatedAt: result.generatedAt,
           agentJobId: options?.agentJobId,
@@ -777,7 +930,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
         title: result.headline,
         summary: result.summary,
         artifactId: artifact.id,
-        priority: result.proposals.length > 0 ? 'important' : 'normal',
+        priority:
+          confirmationProposals.length > 0 ? 'important' : 'normal',
       });
       if (cardMessage) {
         gtm.patchDirectorMessage(cardMessage.id, {
@@ -785,7 +939,21 @@ export function useDirector(defaultViewContext?: ViewContext) {
         });
         await publishDirectorMessage({
           role: 'assistant',
-          content: result.summary,
+          content: [
+            result.summary,
+            appliedChanges.length > 0
+              ? locale !== 'en'
+                ? `已自动应用 ${appliedChanges.length} 项安全调整到未来未完成任务。`
+                : `Applied ${appliedChanges.length} safe adjustment(s) to future unfinished work.`
+              : '',
+            confirmationProposals.length > 0
+              ? locale !== 'en'
+                ? `${confirmationProposals.length} 项全局或高风险变化仍在等你确认。`
+                : `${confirmationProposals.length} global or high-risk change(s) still require your confirmation.`
+              : '',
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
           card: {
             kind: 'artifact',
             artifactId: artifact.id,
@@ -860,7 +1028,26 @@ export function useDirector(defaultViewContext?: ViewContext) {
             store: storeRef.current,
             locale,
           }));
-        gtm.updateTodo(todo.id, { content, contentStatus: 'ready' });
+        const latest = storeRef.current.todos.find((item) => item.id === todo.id);
+        const previousVersion = latest?.contentRevision ?? 1;
+        const history = latest?.content
+          ? [
+              ...(latest.contentHistory ?? []),
+              {
+                id: crypto.randomUUID(),
+                version: previousVersion,
+                content: latest.content,
+                createdAt: Date.now(),
+                reason: feedback,
+              },
+            ].slice(-10)
+          : latest?.contentHistory ?? [];
+        gtm.updateTodo(todo.id, {
+          content,
+          contentStatus: 'ready',
+          contentRevision: previousVersion + 1,
+          contentHistory: history,
+        });
         gtm.patchDirectorMessage(cardMessage.id, {
           card: { kind: 'agent-task', label: '内容已更新到左侧', status: 'done' },
         });
@@ -916,6 +1103,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
         gtm.updateTodo(todoId, {
           content: result,
           contentStatus: 'ready',
+          contentRevision: latest.contentRevision ?? 1,
+          contentHistory: latest.contentHistory ?? [],
         });
         gtm.patchDirectorMessage(cardMessage.id, {
           card: {
@@ -1105,6 +1294,269 @@ export function useDirector(defaultViewContext?: ViewContext) {
     [gtm, locale, publishDirectorMessage]
   );
 
+  const runUpdateLaunchArtifact = useCallback(
+    async (
+      action: Extract<DirectorAction, { type: 'update_launch_artifact' }>,
+      agentJobId?: string
+    ) => {
+      const launch = storeRef.current.launch;
+      if (!launch) {
+        await publishDirectorMessage({ role: 'assistant', content: locale !== 'en' ? '当前还没有可修改的 Launch。请先在左侧输入产品链接。' : 'There is no launch to edit yet. Add the product URL on the left first.' });
+        return;
+      }
+      const unpaid = !storeRef.current.paid;
+      if (unpaid && action.entityType !== 'brief') {
+        await publishDirectorMessage({
+          role: 'assistant',
+          content:
+            locale !== 'en'
+              ? '支付前只能修改 Launch Brief。完整 Blueprint、渠道计划和任务会在解锁 Agent Team 后生成。'
+              : 'Before payment you can only edit the Launch Brief. Blueprint, channel plans, and tasks generate after unlocking the Agent Team.',
+        });
+        return;
+      }
+      if (unpaid && action.entityType === 'brief') {
+        const used = launch.briefEditUsed ?? 0;
+        if (used >= FREE_BRIEF_EDIT_LIMIT) {
+          await publishDirectorMessage({
+            role: 'assistant',
+            content:
+              locale !== 'en'
+                ? `免费 Brief 修改次数已用完（${FREE_BRIEF_EDIT_LIMIT}/${FREE_BRIEF_EDIT_LIMIT}）。Brief 仍可查看；点击「组建我的 30 天 Agent Team」解锁后可继续。`
+                : `Free Brief edits are used up (${FREE_BRIEF_EDIT_LIMIT}/${FREE_BRIEF_EDIT_LIMIT}). The Brief stays readable; unlock the Agent Team to keep editing.`,
+          });
+          return;
+        }
+      }
+      const current = launchEntityValue(
+        storeRef.current,
+        action.entityType,
+        action.entityId
+      );
+      if (!current) {
+        await publishDirectorMessage({ role: 'assistant', content: locale !== 'en' ? '我没有找到左侧当前对象，暂时没有覆盖任何内容。' : 'I could not find the current object, so nothing was overwritten.' });
+        return;
+      }
+
+      const taskId = `launch-patch-${Date.now()}`;
+      setBackgroundTasks((tasks) => [...tasks, taskId]);
+      const card = await publishDirectorMessage({
+        role: 'assistant',
+        lane: 'background',
+        agentJobId,
+        content: '',
+        card: {
+          kind: 'agent-task',
+          label: action.entityType === 'calendar'
+            ? (locale !== 'en' ? '正在计算日历调整影响范围…' : 'Calculating the calendar impact…')
+            : (locale !== 'en' ? '正在更新左侧当前内容…' : 'Updating the current workspace…'),
+          status: 'running',
+        },
+      });
+      try {
+        const editToken = crypto.randomUUID();
+        let patchCurrent = current;
+        let baseRevision = launchEntityRevision(
+          storeRef.current,
+          action.entityType,
+          action.entityId
+        );
+        let result = await callLaunchPatch({
+          entityType: action.entityType,
+          current: patchCurrent,
+          instruction: action.instruction,
+          campaignContext: buildAgentContextEnvelope(storeRef.current, {
+            channelId: action.entityId,
+          }),
+          baseRevision,
+          channelId: action.entityId,
+          locale,
+          editToken,
+        });
+        let latestRevision = launchEntityRevision(
+          storeRef.current,
+          action.entityType,
+          action.entityId
+        );
+        if (result.baseRevision !== latestRevision) {
+          const latestValue = launchEntityValue(
+            storeRef.current,
+            action.entityType,
+            action.entityId
+          );
+          if (!latestValue) {
+            throw new Error(
+              locale !== 'en'
+                ? '这部分内容已被移除，无法安全合并本次修改。'
+                : 'This content was removed, so the edit cannot be merged safely.'
+            );
+          }
+          patchCurrent = latestValue;
+          baseRevision = latestRevision;
+          result = await callLaunchPatch({
+            entityType: action.entityType,
+            current: patchCurrent,
+            instruction: action.instruction,
+            campaignContext: buildAgentContextEnvelope(storeRef.current, {
+              channelId: action.entityId,
+            }),
+            baseRevision,
+            channelId: action.entityId,
+            locale,
+            editToken,
+          });
+          latestRevision = launchEntityRevision(
+            storeRef.current,
+            action.entityType,
+            action.entityId
+          );
+          if (result.baseRevision !== latestRevision) {
+            throw new Error(
+              locale !== 'en'
+                ? '这部分内容在合并期间再次更新，本次没有覆盖任何新版本。请重新发送修改要求。'
+                : 'This content changed again during the merge. No newer version was overwritten; please retry.'
+            );
+          }
+        }
+        const latestLaunch = storeRef.current.launch;
+        if (!latestLaunch) throw new Error('Launch no longer exists');
+        const revision: LaunchRevision = {
+          id: crypto.randomUUID(),
+          entityType: action.entityType,
+          entityId: action.entityId ?? latestLaunch.project.id,
+          label: result.summary,
+          revision: baseRevision,
+          snapshot: patchCurrent,
+          createdAt: Date.now(),
+        };
+        const revisions = [...latestLaunch.revisions, revision].slice(-20);
+        gtm.setMemoryState(
+          storeRef.current.conversationSummary,
+          [
+            {
+              id: crypto.randomUUID(),
+              category: action.entityType === 'brief' ? 'product' : 'decision',
+              key: `launch_${action.entityType}_correction`,
+              value: action.instruction.slice(0, 2_000),
+              confidence: 1,
+              confirmed: true,
+              sourceMessageIds: [],
+              updatedAt: Date.now(),
+            } as MemoryFact,
+            ...storeRef.current.memoryFacts.filter(
+              (fact) => fact.key !== `launch_${action.entityType}_correction`
+            ),
+          ].slice(0, 120),
+          0
+        );
+        const briefEditUsed =
+          action.entityType === 'brief' && unpaid
+            ? typeof result.briefEditUsed === 'number'
+              ? result.briefEditUsed
+              : (latestLaunch.briefEditUsed ?? 0) + 1
+            : latestLaunch.briefEditUsed;
+        const baseLaunch = {
+          ...latestLaunch,
+          revisions,
+          lastUndoLabel: result.summary,
+          briefEditUsed,
+          project: { ...latestLaunch.project, updatedAt: Date.now() },
+        };
+
+        if (action.entityType === 'brief' && result.updated && typeof result.updated === 'object' && !Array.isArray(result.updated)) {
+          const brief = result.updated as LaunchBrief;
+          const nextLaunch = { ...baseLaunch, brief: { ...brief, revision: (latestLaunch.brief?.revision ?? 1) + 1, updatedAt: Date.now() } };
+          gtm.update({ launch: nextLaunch });
+          // Pre-payment Brief corrections must not regenerate campaign tasks.
+          if (!unpaid && storeRef.current.planReady && result.impact !== 'local') {
+            await runGenerateTodos(storeRef.current.channels, {
+              preservePublished: true,
+              storeOverride: { ...storeRef.current, launch: nextLaunch },
+            });
+          }
+        } else if (action.entityType === 'blueprint' && result.updated && typeof result.updated === 'object' && !Array.isArray(result.updated)) {
+          const blueprint = result.updated as LaunchBlueprint;
+          const nextLaunch = { ...baseLaunch, blueprint: { ...blueprint, revision: (latestLaunch.blueprint?.revision ?? 1) + 1, updatedAt: Date.now() } };
+          gtm.update({ launch: nextLaunch });
+          if (result.impact === 'global' || result.impact === 'week') {
+            await runGenerateTodos(storeRef.current.channels, {
+              preservePublished: true,
+              storeOverride: { ...storeRef.current, launch: nextLaunch },
+            });
+          }
+        } else if (action.entityType === 'channel_plan' && action.entityId && result.updated && typeof result.updated === 'object' && !Array.isArray(result.updated)) {
+          const channelPlan = result.updated as LaunchChannelPlan;
+          const nextLaunch = { ...baseLaunch, channelPlans: { ...latestLaunch.channelPlans, [action.entityId]: { ...channelPlan, revision: (latestLaunch.channelPlans[action.entityId]?.revision ?? 1) + 1, updatedAt: Date.now() } } };
+          gtm.update({ launch: nextLaunch });
+          await runGenerateTodos([action.entityId], {
+            preservePublished: true,
+            storeOverride: { ...storeRef.current, launch: nextLaunch },
+          });
+        } else if (action.entityType === 'calendar' && Array.isArray(result.updated)) {
+          const originalById = new Map(storeRef.current.todos.map((todo) => [todo.id, todo]));
+          const updated = (result.updated as Todo[]).flatMap((candidate) => {
+            if (!candidate || typeof candidate.id !== 'string') return [];
+            const original = originalById.get(candidate.id);
+            if (!original) return [];
+            if (original.publishedUrl || original.status === 'done') return [original];
+            return [{ ...original, ...candidate, id: original.id, revision: (original.revision ?? 1) + 1 }];
+          });
+          const seen = new Set(updated.map((todo) => todo.id));
+          const preserved = storeRef.current.todos.filter((todo) => !seen.has(todo.id));
+          gtm.update({ launch: baseLaunch, todos: [...updated, ...preserved].sort((a, b) => a.dayIndex - b.dayIndex || (a.time ?? '').localeCompare(b.time ?? '')) });
+        } else {
+          throw new Error('The patch did not match the artifact schema');
+        }
+        gtm.patchDirectorMessage(card.id, { card: { kind: 'agent-task', label: result.summary, status: 'done' } });
+        const remaining =
+          typeof result.briefEditRemaining === 'number'
+            ? result.briefEditRemaining
+            : unpaid && action.entityType === 'brief'
+              ? Math.max(0, FREE_BRIEF_EDIT_LIMIT - (briefEditUsed ?? 0))
+              : null;
+        const quotaNote =
+          remaining === null
+            ? ''
+            : locale !== 'en'
+              ? `\n\n已使用免费修改 ${briefEditUsed ?? 0}/${FREE_BRIEF_EDIT_LIMIT}，剩余 ${remaining} 次。`
+              : `\n\nFree edits used ${briefEditUsed ?? 0}/${FREE_BRIEF_EDIT_LIMIT}; ${remaining} left.`;
+        const nextHint =
+          unpaid && action.entityType === 'brief'
+            ? locale !== 'en'
+              ? '\n\n还可以继续完善目标用户、竞品差异或定位语气；准备好后点击「组建我的 30 天 Agent Team」。'
+              : '\n\nYou can still refine audience, competitor differences, or voice. When ready, tap “Assemble my 30-day Agent Team”.'
+            : '';
+        await publishDirectorMessage({
+          role: 'assistant',
+          lane: 'background',
+          agentJobId,
+          content: `${result.summary}${!unpaid && result.impact !== 'local' ? (locale !== 'en' ? `\n\n影响范围：${result.impact}。未来未完成任务已同步更新；已发布内容保持不变。` : `\n\nImpact: ${result.impact}. Future unfinished work was updated; published content was preserved.`) : ''}${quotaNote}${nextHint}\n\n${locale !== 'en' ? '需要撤回时直接说“撤销刚才的修改”。' : 'Say “undo that change” if you want to revert it.'}`,
+        });
+      } catch (error) {
+        gtm.patchDirectorMessage(card.id, { card: { kind: 'agent-task', label: `${locale !== 'en' ? '修改失败' : 'Update failed'}：${error instanceof Error ? error.message : 'Unknown error'}`, status: 'error' } });
+      } finally {
+        setBackgroundTasks((tasks) => tasks.filter((id) => id !== taskId));
+      }
+    },
+    [gtm, locale, publishDirectorMessage, runGenerateTodos]
+  );
+
+  const runUndoLaunchChange = useCallback(async (agentJobId?: string) => {
+    const launch = storeRef.current.launch;
+    const revision = launch?.revisions.at(-1);
+    if (!launch || !revision) {
+      await publishDirectorMessage({ role: 'assistant', lane: 'background', agentJobId, content: locale !== 'en' ? '目前没有可撤销的 Launch 修改。' : 'There is no Launch change to undo.' });
+      return;
+    }
+    const nextLaunch = { ...launch, revisions: launch.revisions.slice(0, -1), lastUndoLabel: undefined, project: { ...launch.project, updatedAt: Date.now() } };
+    if (revision.entityType === 'brief') nextLaunch.brief = revision.snapshot as LaunchBrief;
+    else if (revision.entityType === 'blueprint') nextLaunch.blueprint = revision.snapshot as LaunchBlueprint;
+    else if (revision.entityType === 'channel_plan') nextLaunch.channelPlans = { ...launch.channelPlans, [revision.entityId]: revision.snapshot as LaunchChannelPlan };
+    if (revision.entityType === 'calendar') gtm.update({ launch: nextLaunch, todos: revision.snapshot as Todo[] });
+    else gtm.update({ launch: nextLaunch });
+    await publishDirectorMessage({ role: 'assistant', lane: 'background', agentJobId, content: locale !== 'en' ? `已撤销：${revision.label}` : `Undone: ${revision.label}` });
+  }, [gtm, locale, publishDirectorMessage]);
+
   const runActions = useCallback(
     async (
       actions: DirectorAction[],
@@ -1162,8 +1614,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
           if (ids.length === 0) continue;
           const strategyUpdated = await runGenerateStrategy(
             ids,
-            action.feedback,
-            { skipConfirmation: true }
+            action.feedback
           );
           if (strategyUpdated) {
             await runGenerateTodos(ids, { preservePublished: true });
@@ -1192,6 +1643,10 @@ export function useDirector(defaultViewContext?: ViewContext) {
                   : 'Performance optimization applied. Future unpublished tasks were updated; published posts and metric history were preserved.',
             });
           }
+        } else if (action.type === 'update_launch_artifact') {
+          await runUpdateLaunchArtifact(action, executionId);
+        } else if (action.type === 'undo_launch_change') {
+          await runUndoLaunchChange(executionId);
         }
       }
     },
@@ -1203,6 +1658,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
       runGenerateTopics,
       runGenerateTodoContent,
       runProductResearch,
+      runUndoLaunchChange,
+      runUpdateLaunchArtifact,
       runReviseTopicVariant,
       runRewriteTodoContent,
       runScheduleTopicVariant,
@@ -1407,24 +1864,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
             });
             void syncContext();
 
-            let actions = res.actions ?? [];
-            const confirmStrategy = activeBatch.some(
-              (item) => item.meta?.confirmStrategy
-            );
-            // 兜底：用户已明确确认策略，但模型没有派发排期动作 → 前端补上，保证流程不断
-            if (
-              confirmStrategy &&
-              storeRef.current.todos.length === 0 &&
-              !actions.some((action) => action.type === 'generate_todos')
-            ) {
-              actions = [
-                ...actions,
-                {
-                  type: 'generate_todos',
-                  channelIds: storeRef.current.channels,
-                },
-              ];
-            }
+            const actions = res.actions ?? [];
             if (actions.length > 0) {
               // Workers continue independently from the foreground conversation,
               // but mutating action sets retain FIFO order.
@@ -1557,18 +1997,6 @@ export function useDirector(defaultViewContext?: ViewContext) {
         return userMessage;
       }
 
-      // 用户在渠道选择卡中勾选的渠道 → 直接落到 store
-      if (meta?.selectedIds && meta.selectedIds.length > 0) {
-        const known = meta.selectedIds.filter((id) =>
-          /^(xiaohongshu|user_outreach|twitter_x|wechat_official|reddit|linkedin|product_hunt|github_growth|website_copy|user_interview|competitor_research)$/.test(id)
-        );
-        if (known.length > 0) {
-          gtm.setChannels([
-            ...new Set([...storeRef.current.channels, ...known]),
-          ]);
-        }
-      }
-
       mailboxRef.current.push({
         id: userMessage.id,
         text: normalized,
@@ -1584,7 +2012,6 @@ export function useDirector(defaultViewContext?: ViewContext) {
           ? {
               fromOptionCard: meta.fromOptionCard,
               selectedIds: meta.selectedIds,
-              confirmStrategy: meta.confirmStrategy,
             }
           : undefined,
         createdAt: userMessage.createdAt,
@@ -1610,24 +2037,12 @@ export function useDirector(defaultViewContext?: ViewContext) {
         .map((o) => o.label);
       if (customText) labels.push(customText);
 
-      if (card.recommendedChannelIds?.length) {
-        const selectedChannels = selected.filter((id) =>
-          card.recommendedChannelIds!.includes(id)
-        );
-        if (selectedChannels.length > 0) {
-          gtm.setChannels([...new Set(selectedChannels)]);
-        } else if (selected.includes('confirm_recommended_channels')) {
-          gtm.setChannels([...new Set(card.recommendedChannelIds)]);
-        }
-      }
-
       gtm.patchDirectorMessage(messageId, {
         card: { kind: 'options', card: { ...card, answered: labels } },
       });
       void send(`我的选择：${labels.join('、')}`, {
         fromOptionCard: true,
         selectedIds: selected,
-        confirmStrategy: selected.includes('confirm_strategy'),
       });
     },
     [gtm, send]

@@ -1,0 +1,202 @@
+{
+  "batch": "M",
+  "catalogVersionObserved": "0.9.7",
+  "checkedAt": "2026-07-28T00:00:00+08:00",
+  "policy": {
+    "assets": "Launch Kit dataUrl only; never read a user-local file path",
+    "allowedActions": ["fill", "upload-from-memory", "next", "save", "preview"],
+    "forbiddenActions": ["pay", "final-submit"]
+  },
+  "summary": {
+    "configured_candidate": 1,
+    "recording_partial": 6,
+    "blocked": 0
+  },
+  "sites": [
+    {
+      "domain": "auraplusplus.com",
+      "status": "recording_partial",
+      "submitUrl": "https://auraplusplus.com/projects/submit",
+      "entryStage": "authenticated_wizard",
+      "stages": ["Project Info", "Details", "Launch Date", "Review", "Backlink"],
+      "verifiedFields": [
+        "Project Name",
+        "Website URL",
+        "Affiliate URL (optional)",
+        "Project Description (minimum 200 words)",
+        "Logo (required, maximum 1MB)",
+        "Product Image (required)"
+      ],
+      "imageFields": [
+        {
+          "kind": "logo",
+          "selectorEvidence": "first visible image file input; no stable id/name observed"
+        },
+        {
+          "kind": "screenshot",
+          "selectorEvidence": "second visible image file input; no stable id/name observed"
+        }
+      ],
+      "assetPipeline": {
+        "supported": true,
+        "implementation": "Launch Kit dataUrl -> fetch Blob -> File -> DataTransfer -> input/change",
+        "risk": "The generic ordered-input fallback can work, but this site needs a learned label/order action because the upload controls have no stable id/name."
+      },
+      "finalBoundary": "Stop before final submission, backlink confirmation, or paid option.",
+      "notes": "Authenticated first stage is visible. Multi-page replay still needs an end-to-end pass with Launch Kit memory assets."
+    },
+    {
+      "domain": "aitools.inc",
+      "status": "recording_partial",
+      "submitUrl": "https://loxr142exnq.typeform.com/to/RB6ZnEf2",
+      "entryStage": "external_typeform",
+      "stages": ["Tool Name", "Website URL", "remaining sequential Typeform questions"],
+      "verifiedFields": ["Tool Name", "Website URL"],
+      "imageFields": [],
+      "assetPipeline": {
+        "supported": true,
+        "implementation": "The Typeform host is included in the directory catalog; any later file question can receive Launch Kit dataUrl assets through DataTransfer.",
+        "risk": "Later questions have not yet been traversed, so branching and the final Submit boundary remain unrecorded."
+      },
+      "finalBoundary": "Stop on the last Typeform screen before Submit; do not enter Fast Lane payment.",
+      "notes": "The free sequential form opens successfully. Continue question-by-question in a later authenticated/test-data pass."
+    },
+    {
+      "domain": "buildvoyage.com",
+      "status": "configured",
+      "submitUrl": "https://buildvoyage.com/submit",
+      "entryStage": "public_two_stage_wizard",
+      "stages": ["Product Information", "Tech Stack"],
+      "verifiedFields": [
+        "Product Name",
+        "Tagline (10-80 characters)",
+        "Description (minimum 50, maximum 1000 characters)",
+        "Website",
+        "Category",
+        "Pricing (optional)",
+        "Tech Stack groups (optional)"
+      ],
+      "imageFields": [],
+      "assetPipeline": {
+        "supported": true,
+        "implementation": "No asset upload occurs in this two-stage submission. The site explicitly asks for logo/screenshots after account creation.",
+        "risk": "Post-account asset enrichment is a separate follow-up flow."
+      },
+      "finalBoundary": "Submit & create account",
+      "notes": "Stage 1 was filled with test data and Next safely reached Tech Stack. Tech Stack is optional. The final submit was not clicked."
+    },
+    {
+      "domain": "confettisaas.com",
+      "status": "recording_partial",
+      "submitUrl": "https://confettisaas.com/submit",
+      "entryStage": "embedded_tally_two_page_wizard",
+      "stages": ["Product and founder details", "remaining Tally page"],
+      "verifiedFields": [
+        "SaaS name",
+        "URL",
+        "Email",
+        "Twitter",
+        "Bluesky",
+        "Tagline",
+        "Details",
+        "How the product uses confetti",
+        "Category",
+        "Pricing"
+      ],
+      "imageFields": [
+        {
+          "kind": "screenshot",
+          "accept": "png,jpeg,jpg,gif,mp4",
+          "required": true,
+          "maxSize": "10MB"
+        }
+      ],
+      "assetPipeline": {
+        "supported": true,
+        "implementation": "The catalog includes both confettisaas.com and tally.so; the file input can receive a Launch Kit dataUrl-derived File.",
+        "risk": "The embedded cross-host step transition and second-page controls still need a replay recording."
+      },
+      "finalBoundary": "Stop before the final Tally Submit.",
+      "notes": "Page 1 of 2 is known. A complete dry run requires an in-memory screenshot asset."
+    },
+    {
+      "domain": "indiehub.best",
+      "status": "recording_partial",
+      "submitUrl": "https://indiehub.best/submit",
+      "entryStage": "authenticated_three_stage_wizard",
+      "stages": ["Product details (1/3)", "Payment (2/3)", "Publish (3/3)"],
+      "verifiedFields": ["Product link", "Product name", "Brief description"],
+      "imageFields": [
+        {
+          "kind": "logo",
+          "selectorEvidence": "#dropzone-file-icon",
+          "accept": "image/png,image/jpeg"
+        },
+        {
+          "kind": "screenshot",
+          "selectorEvidence": "#dropzone-file-image",
+          "accept": "image/png,image/jpeg",
+          "constraints": "16:9, maximum 1MB"
+        }
+      ],
+      "assetPipeline": {
+        "supported": true,
+        "implementation": "Stable file input ids are available and compatible with Launch Kit dataUrl -> File -> DataTransfer.",
+        "risk": "The adapter must stop when stage 2 presents payment, and must distinguish a stage-advance Submit button from the final publish action."
+      },
+      "finalBoundary": "Stop before payment or the final Publish action.",
+      "notes": "Authenticated stage 1 is visible. Asset injection and transition to stage 2 remain to be tested."
+    },
+    {
+      "domain": "stellarlaunch.org",
+      "status": "recording_partial",
+      "submitUrl": "https://www.stellarlaunch.org/projects/submit",
+      "entryStage": "authenticated_four_stage_wizard",
+      "stages": ["Project Info", "Details", "Launch Date", "Review"],
+      "verifiedFields": ["Project Name", "Website URL", "Tagline"],
+      "imageFields": [
+        {
+          "kind": "logo",
+          "selectorEvidence": "#s3-upload-logo",
+          "required": true,
+          "maxSize": "1MB"
+        },
+        {
+          "kind": "screenshot",
+          "selectorEvidence": "#s3-upload-product",
+          "required": false
+        }
+      ],
+      "assetPipeline": {
+        "supported": true,
+        "implementation": "Stable file input ids are available and compatible with Launch Kit in-memory files.",
+        "risk": "The upload response and later wizard transitions have not yet been validated end-to-end."
+      },
+      "finalBoundary": "Stop on Review before final submission or paid choice.",
+      "notes": "Authenticated first stage is visible; a Launch Kit asset dry run is still required."
+    },
+    {
+      "domain": "launchy.tools",
+      "status": "recording_partial",
+      "submitUrl": "https://launchy.tools/submit",
+      "entryStage": "public_wizard",
+      "stages": ["Product information", "remaining wizard pages"],
+      "verifiedFields": ["Product name", "Tagline", "URL"],
+      "imageFields": [
+        {
+          "kind": "screenshot",
+          "selectorEvidence": "#thumbnail",
+          "accept": "image/jpeg,image/png,image/webp",
+          "constraints": "1280x720, 16:9"
+        }
+      ],
+      "assetPipeline": {
+        "supported": true,
+        "implementation": "The stable thumbnail input can receive a Launch Kit screenshot converted from dataUrl to File.",
+        "risk": "Client-side dimension validation and the remaining wizard pages need an end-to-end memory-asset test."
+      },
+      "finalBoundary": "Stop before the final submit or paid option.",
+      "notes": "First page is visible. Next is a stage transition, but was not activated without the required in-memory thumbnail."
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
 type PricingModalProps = {
@@ -11,7 +10,6 @@ type PricingModalProps = {
 export default function PricingModal({ isOpen, onClose }: PricingModalProps) {
   const t = useTranslations('Pricing');
   const locale = useLocale();
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   if (!isOpen) return null;
 
@@ -28,7 +26,7 @@ export default function PricingModal({ isOpen, onClose }: PricingModalProps) {
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, billingCycle, locale }),
+        body: JSON.stringify({ plan, billingCycle: 'monthly', locale }),
       });
       const { url } = await response.json();
       if (url) window.location.href = url;
@@ -60,42 +58,17 @@ export default function PricingModal({ isOpen, onClose }: PricingModalProps) {
           </h2>
           <p className="mt-2 text-gray-500">{t('subtitle')}</p>
 
-          {/* Billing Toggle */}
-          <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-gray-100 p-1">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {t('monthly')}
-            </button>
-            <button
-              onClick={() => setBillingCycle('yearly')}
-              className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
-                billingCycle === 'yearly'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {t('yearly')}
-              <span className="ml-1.5 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                {t('yearlyDiscount')}
-              </span>
-            </button>
-          </div>
+          <p className="mt-4 text-sm text-gray-500">
+            {locale === 'zh' ? '按月订阅，随时可以取消；只使用一个月也完全可以。' : 'Monthly, cancel anytime, and one month is fine.'}
+          </p>
         </div>
 
         {/* Plans Grid */}
         <div className="grid gap-6 sm:grid-cols-2">
           {plans.map((planKey) => {
             const isPro = planKey === 'pro';
-            const price = billingCycle === 'monthly'
-              ? t(`plans.${planKey}.priceMonthly`)
-              : t(`plans.${planKey}.priceYearly`);
-            const period = billingCycle === 'monthly' ? t('perMonth') : t('perYear');
+            const price = t(`plans.${planKey}.priceMonthly`);
+            const period = t('perMonth');
 
             const features: string[] = [];
             let i = 0;

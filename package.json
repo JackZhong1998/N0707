@@ -6,17 +6,20 @@
     "dev": "next dev",
     "dev:stripe": "bash scripts/stripe-dev.sh",
     "db:smoke": "node scripts/supabase-smoke-test.mjs",
+    "db:campaign-smoke": "node scripts/campaign-jobs-smoke-test.mjs",
     "stripe:webhook:smoke": "node scripts/stripe-webhook-smoke-test.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "postbuild": "next-sitemap",
-    "skills:download": "bash scripts/download-gingiris-skills.sh"
+    "skills:download": "bash scripts/download-gingiris-skills.sh",
+    "skills:audit": "node scripts/audit-agent-skills.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",
     "@stripe/stripe-js": "^5.5.0",
     "@supabase/supabase-js": "^2.49.0",
+    "gsap": "^3.15.0",
     "next": "^15.3.0",
     "next-intl": "^4.1.0",
     "next-sitemap": "^4.2.0",

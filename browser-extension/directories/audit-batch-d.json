@@ -1,0 +1,101 @@
+[
+  {
+    "domain": "shipybara.com",
+    "status": "blocked",
+    "submitUrl": null,
+    "entryStage": "access_gate",
+    "blocker": "网站直接返回 403 Forbidden，无法读取提交入口。",
+    "notes": "需要站点恢复访问或人工确认地区/防火墙限制。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "rankinpublic.xyz",
+    "status": "entry_verified",
+    "submitUrl": "https://rankinpublic.xyz/",
+    "entryStage": "login_then_launch",
+    "blocker": null,
+    "notes": "首页提供 Launch 按钮和登录入口；需要登录后继续确认表单阶段。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "appalist.com",
+    "status": "entry_verified",
+    "submitUrl": "https://appalist.com/get-started",
+    "entryStage": "google_login_then_plan",
+    "blocker": null,
+    "notes": "稳定提交入口；未登录时显示 Log in with Google，登录后才展示套餐和工具表单。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "openalternative.co",
+    "status": "blocked",
+    "submitUrl": null,
+    "entryStage": "bot_gate",
+    "blocker": "Cloudflare 安全验证阻止读取页面。",
+    "notes": "需要用户人工通过验证后继续。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "weliketools.com",
+    "status": "entry_verified",
+    "submitUrl": "https://weliketools.com/get-started",
+    "entryStage": "google_login_then_form",
+    "blocker": null,
+    "notes": "稳定提交入口；未登录时显示 Log in with Google，登录后继续工具表单。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "startuptrusted.com",
+    "status": "entry_verified",
+    "submitUrl": "https://startuptrusted.com/submit",
+    "entryStage": "google_login_then_form",
+    "blocker": null,
+    "notes": "访问 /submit 会转到带 callbackUrl 的登录页，支持 Continue with Google 和邮箱登录。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "ideakiln.com",
+    "status": "entry_verified",
+    "submitUrl": "https://ideakiln.com/dashboard/submit-idea",
+    "entryStage": "login_then_dynamic_form",
+    "blocker": null,
+    "notes": "首页公开 Submit idea，未登录的 dashboard 页面只显示动态加载状态；需登录后继续。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "promoteproject.com",
+    "status": "entry_verified",
+    "submitUrl": "https://www.promoteproject.com/",
+    "entryStage": "modal_or_login_gate",
+    "blocker": null,
+    "notes": "首页存在 href=# 的 Submit startup 入口，需要继续点击确认弹窗和账号要求。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "microsaasexamples.com",
+    "status": "configured",
+    "submitUrl": "https://www.microsaasexamples.com/submit",
+    "entryStage": "full_form",
+    "blocker": null,
+    "notes": "无需登录的单页表单：Product name、URL、one-line description、Logo(256x256/1MB)、thumbnail(1200x630/4MB)、context、category、contact email；最终按钮 Submit for review。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "saasbison.com",
+    "status": "entry_verified",
+    "submitUrl": "https://saasbison.com/submit",
+    "entryStage": "plan_then_wizard",
+    "blocker": "免费方案要求在产品官网放置 Badge；Premium 为一次性付费。",
+    "notes": "已确认 Step 1 of 3 套餐页。免费方案 $0、1 个 dofollow backlink、人工审核；点击 Select Free Listing 后才能继续字段表单。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "aitools.fyi",
+    "status": "blocked",
+    "submitUrl": "https://tally.so/r/2EkV4g?ref=boostmytool.com",
+    "entryStage": "paid_external_form",
+    "blocker": "站点的提交入口跳转到 Boost My Tool 的 Tally 付费表单，强制收取 $47 并要求银行卡。",
+    "notes": "表单字段包括 Email、Tool Link、Tool Name、Description、Pricing 和 Additional Information，但付款是必填。",
+    "checkedAt": "2026-07-28"
+  }
+]

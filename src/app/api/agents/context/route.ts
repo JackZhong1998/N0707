@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { runContextAgent } from '@/lib/agents/context-agent';
 import type { ChatMessage, MemoryFact } from '@/lib/gtm/types';
 import type { ViewContext } from '@/lib/gtm/view-context';
-import { checkAuth } from '../_lib/auth';
+import { checkSignedIn } from '../_lib/auth';
 
 export const maxDuration = 60;
 
@@ -34,7 +34,7 @@ function viewContext(value: unknown): ViewContext | undefined {
 }
 
 export async function POST(request: Request) {
-  if (!(await checkAuth())) {
+  if (!(await checkSignedIn())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
@@ -117,6 +117,7 @@ export async function POST(request: Request) {
       projectProfileDoc: text(body.projectProfileDoc, 24_000),
       conversationSummary: text(body.conversationSummary, 4_000),
       memoryFacts,
+      campaignContext: text(body.campaignContext, 60_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
     });
     return NextResponse.json(result);

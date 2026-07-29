@@ -3,12 +3,16 @@ import path from 'path';
 
 const GINGIRIS_ROOT = path.join(process.cwd(), 'vendor/gingiris-skills');
 const CUSTOM_ROOT = path.join(process.cwd(), 'vendor/custom');
+const EXTERNAL_ROOT = path.join(process.cwd(), 'vendor/external-skills');
 
 const contentCache = new Map<string, string>();
 
 function skillDir(skillId: string): string {
   if (skillId.startsWith('custom/')) {
     return path.join(CUSTOM_ROOT, skillId.replace('custom/', ''));
+  }
+  if (skillId.startsWith('external/')) {
+    return path.join(EXTERNAL_ROOT, skillId.replace('external/', ''));
   }
   return path.join(GINGIRIS_ROOT, skillId);
 }
@@ -106,6 +110,7 @@ export function listGingirisSkillIds(): string[] {
 export function listAllSkillIds(): string[] {
   const gingiris = listGingirisSkillIds();
   const custom: string[] = [];
+  const external: string[] = [];
   if (fs.existsSync(CUSTOM_ROOT)) {
     for (const name of fs.readdirSync(CUSTOM_ROOT)) {
       if (fs.existsSync(path.join(CUSTOM_ROOT, name, 'SKILL.md'))) {
@@ -113,5 +118,12 @@ export function listAllSkillIds(): string[] {
       }
     }
   }
-  return [...gingiris, ...custom.sort()];
+  if (fs.existsSync(EXTERNAL_ROOT)) {
+    for (const name of fs.readdirSync(EXTERNAL_ROOT)) {
+      if (fs.existsSync(path.join(EXTERNAL_ROOT, name, 'SKILL.md'))) {
+        external.push(`external/${name}`);
+      }
+    }
+  }
+  return [...gingiris, ...custom.sort(), ...external.sort()];
 }

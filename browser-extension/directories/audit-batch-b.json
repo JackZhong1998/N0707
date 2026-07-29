@@ -1,0 +1,101 @@
+[
+  {
+    "domain": "magicbox.tools",
+    "status": "entry_verified",
+    "submitUrl": "https://magicbox.tools/submit",
+    "entryStage": "public_multistep_initial_form",
+    "blocker": "首屏 Continue 之后的后续字段需要继续录制；本次未向站点发送测试表单数据。",
+    "notes": "公开首屏无需登录，字段为 name、url、email，按钮为 Continue。首屏没有图片字段，最终提交按钮尚未到达。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "futuretools.io",
+    "status": "configured",
+    "submitUrl": "https://futuretools.io/submit-a-tool",
+    "entryStage": "public_single_page_form",
+    "blocker": "最终提交受 Cloudflare Turnstile 保护，插件必须在最终按钮前暂停。",
+    "notes": "无需登录。单页字段包括提交人姓名、工具名、URL、简介、分类、价格类型、邮箱和可选 newsletter；没有 Logo 或截图字段。最终按钮为 Submit Tool。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "pitchwall.co",
+    "status": "entry_verified",
+    "submitUrl": "https://pitchwall.co/product/submit?plan=free",
+    "entryStage": "plan_then_login_then_form",
+    "blocker": "免费计划会重定向到登录页，登录后的产品表单及图片字段仍需继续录制。",
+    "notes": "套餐页提供 Free、$49 Pro、$99 Premium。免费入口稳定；登录支持 Google、GitHub、Microsoft、Discord，成功后返回 free plan 提交地址。未触碰付费套餐或最终提交。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "trustmrr.com",
+    "status": "not_directory",
+    "submitUrl": "https://trustmrr.com/",
+    "entryStage": "revenue_marketplace",
+    "blocker": "Add startup 属于收入验证和创业项目交易市场流程，不是普通产品目录冷启动提交。",
+    "notes": "站点核心是 verified startup revenues 和 Buy/Sell Startups，列表包含 MRR、售价和交易倍数。不能作为通用外链目录适配器处理。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "aitools.inc",
+    "status": "entry_verified",
+    "submitUrl": "https://loxr142exnq.typeform.com/to/RB6ZnEf2",
+    "entryStage": "external_typeform_multistep",
+    "blocker": "Typeform 后续问题和可能的图片字段需要分步继续录制；不得自动越过最终 Typeform 提交。",
+    "notes": "官网 /submit 提供免费和 $129 Fast Lane。免费 Submit Now 指向独立 Typeform；已确认前两步依次询问工具名称和网站 URL，无需先登录。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "nxgntools.com",
+    "status": "entry_verified",
+    "submitUrl": "https://www.nxgntools.com/",
+    "entryStage": "launch_button_then_login_modal",
+    "blocker": "登录后的 Launch Tool 表单、多页阶段和图片字段仍需继续录制。",
+    "notes": "主页 Launch 按钮会打开登录弹窗，支持 Google 或邮箱 OTP；没有暴露固定提交 URL。登录完成后应从同一主页继续接管。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "acidtools.com",
+    "status": "entry_verified",
+    "submitUrl": "https://acidtools.com/get-started",
+    "entryStage": "google_login_then_form",
+    "blocker": "登录后的实际表单、多页阶段和图片字段仍需继续录制。",
+    "notes": "稳定提交入口为 /get-started；未登录时显示 Log in with Google，登录后应回到提交流程继续。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "toolsfine.com",
+    "status": "blocked",
+    "submitUrl": "https://toolsfine.com/submit-ai-tools-or-product",
+    "entryStage": "public_single_page_paid_form",
+    "blocker": "最终按钮直接进入 PayPal $10 支付，插件必须在 Continue to PayPal 前暂停。",
+    "notes": "无需登录。单页字段包括工具名、URL、公司、邮箱、价格类型、起价、短介绍、详细介绍、功能、Logo URL、反向链接和来源。Logo 使用 URL 字段而非文件上传。最终按钮为 Continue to PayPal - $10。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "startupstash.com",
+    "status": "blocked",
+    "submitUrl": "https://startupstash.com/add-listing/",
+    "entryStage": "obsolete_or_broken_listing_page",
+    "blocker": "公开 List A Product 入口当前没有产品表单，只剩 newsletter 邮箱字段和 reCAPTCHA。",
+    "notes": "无法确认可用的产品名称、URL、描述或图片字段；页面看起来是失效或被替换的旧提交入口，需后续寻找人工联系或新的供应商入口。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "tools.launchllama.co",
+    "status": "entry_verified",
+    "submitUrl": "https://tools.launchllama.co/submit",
+    "entryStage": "login_redirect_then_form",
+    "blocker": "登录后的产品表单和图片字段仍需继续录制。",
+    "notes": "提交入口稳定并重定向至 /auth?redirect=%2Fsubmit。登录支持 Google 或邮箱密码；官网称免费提交、AI prefill、约 30 秒。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  },
+  {
+    "domain": "indie.deals",
+    "status": "entry_verified",
+    "submitUrl": "https://indie.deals/submit",
+    "entryStage": "login_redirect_then_form",
+    "blocker": "登录后的产品表单、多页阶段和图片字段仍需继续录制。",
+    "notes": "提交入口稳定并重定向至 /auth/login?callbackUrl=%2Fsubmit。登录支持 Google、GitHub 或邮箱密码；页面另有付费 PRO Plan，但本次未进入付款或最终提交。",
+    "checkedAt": "2026-07-28T14:17:55+08:00"
+  }
+]

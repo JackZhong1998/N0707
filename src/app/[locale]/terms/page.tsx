@@ -26,7 +26,7 @@ export default async function TermsPage({ params }: Props) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Terms' });
 
-  const sections = Array.from({ length: 12 }, (_, i) => ({
+  const sections = Array.from({ length: 13 }, (_, i) => ({
     title: t(`sections.${i}.title`),
     content: t(`sections.${i}.content`),
   }));

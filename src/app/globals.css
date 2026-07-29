@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /*
- * NowBuild 设计系统 — 数字化瑞士现代主义
+ * NowBuild 设计系统 — Launch Desk
  * 骨架：瑞士网格 / 无衬线字体 / 不对称布局
- * 视觉：黑白灰、去装饰化、依赖排版与留白建立层次
+ * 气质：中性墨黑建立秩序，冷白保持清晰，荧光青柠标记行动与品牌重点
  */
 @theme {
   /* 灰阶即品牌色：primary 全部映射到 ink 灰阶，旧页面自动降为黑白灰 */
@@ -19,21 +19,46 @@
   --color-primary-900: #09090b;
   --color-primary-950: #050506;
 
-  --color-ink: #0a0a0a;
-  --color-ink-soft: #3f3f46;
-  --color-ink-muted: #71717a;
-  --color-ink-faint: #a1a1aa;
-  --color-paper: #ffffff;
-  --color-paper-dim: #fafafa;
-  --color-hairline: #e4e4e7;
-  --color-hairline-dark: #26262a;
+  /* 品牌信号色：亮阶用于深色界面，深阶用于浅色背景上的文字 */
+  --color-brand-50: #f8ffe7;
+  --color-brand-100: #efffc6;
+  --color-brand-200: #e1ff94;
+  --color-brand-300: #d5fa7b;
+  --color-brand-400: #c6f455;
+  --color-brand-500: #b7f23a;
+  --color-brand-600: #8dc51f;
+  --color-brand-700: #5c810f;
+  --color-brand-800: #45620b;
+  --color-brand-900: #344a08;
+  --color-brand-950: #1d2b05;
 
-  --color-surface: #fafafa;
-  --color-surface-elevated: #ffffff;
-  --color-border: #e4e4e7;
-  --color-text-primary: #0a0a0a;
-  --color-text-secondary: #3f3f46;
-  --color-text-muted: #71717a;
+  /* 全站基础画布：组件优先使用这些语义色，避免继续增加临时 hex */
+  --color-night: #080a0b;
+  --color-night-panel: #131617;
+  --color-night-elevated: #1d2122;
+  --color-night-hover: #292e30;
+  --color-night-text: #f7f9fa;
+  --color-night-text-soft: #d9dde0;
+  --color-night-text-muted: #969da1;
+  --color-canvas: #fcfdfe;
+  --color-canvas-warm: #f3f5f7;
+  --color-line-warm: #dce1e5;
+
+  --color-ink: #0d1011;
+  --color-ink-soft: #3c4346;
+  --color-ink-muted: #687176;
+  --color-ink-faint: #9aa2a7;
+  --color-paper: #fcfdfe;
+  --color-paper-dim: #f4f6f8;
+  --color-hairline: #dfe4e7;
+  --color-hairline-dark: #2a3032;
+
+  --color-surface: #f4f6f8;
+  --color-surface-elevated: #fcfdfe;
+  --color-border: #dfe4e7;
+  --color-text-primary: #0d1011;
+  --color-text-secondary: #3c4346;
+  --color-text-muted: #687176;
 
   --font-display: var(--font-inter-tight), 'Helvetica Neue', ui-sans-serif, system-ui, 'PingFang SC', 'Noto Sans SC', sans-serif;
   --font-body: var(--font-inter), 'Helvetica Neue', ui-sans-serif, system-ui, 'PingFang SC', 'Noto Sans SC', sans-serif;
@@ -61,8 +86,8 @@
   }
 
   ::selection {
-    background: var(--color-ink);
-    color: var(--color-paper);
+    background: var(--color-brand-500);
+    color: var(--color-night);
   }
 }
 
@@ -151,73 +176,110 @@
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
 
-/*
- * 手电筒 Hero（性能版）
- * 旧实现每帧改 CSS 变量驱动全屏 mask/background 渐变 → 每帧整屏重绘导致卡顿。
- * 新实现：两个仅靠 transform 移动的图层（合成器处理，不触发重绘）：
- * - .torch-hole：巨大黑色遮罩，中心挖一个透明圆洞
- * - .torch-glow：暖白光斑
- */
-.torch-hole {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 8000px;
-  height: 8000px;
+@keyframes hero-marquee-left {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes hero-marquee-right {
+  from { transform: translate3d(-50%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+.hero-marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 7%,
+    black 93%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 7%,
+    black 93%,
+    transparent
+  );
+}
+
+.hero-marquee-track {
+  display: flex;
+  width: max-content;
   will-change: transform;
-  background: radial-gradient(
-    circle var(--torch-r, 320px) at center,
-    rgba(10, 10, 10, 0) 0%,
-    rgba(10, 10, 10, 0.04) 50%,
-    rgba(10, 10, 10, 0.6) 80%,
-    rgba(10, 10, 10, 0.94) 100%
-  );
+  animation: hero-marquee-left 58s linear infinite;
 }
 
-.torch-glow {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: calc(var(--torch-r, 320px) * 2.4);
-  height: calc(var(--torch-r, 320px) * 2.4);
-  border-radius: 9999px;
-  will-change: transform;
-  mix-blend-mode: screen;
-  background: radial-gradient(
-    circle closest-side,
-    rgba(255, 248, 235, 0.32) 0%,
-    rgba(255, 248, 235, 0.12) 55%,
-    transparent 100%
-  );
+.hero-marquee-reverse .hero-marquee-track {
+  animation-name: hero-marquee-right;
+  animation-duration: 44s;
 }
 
-/* Hero 中央展板的常亮光：标题区始终被照亮，与背景融为一体 */
-.hero-board-light {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(1080px, 94vw);
-  height: min(720px, 88%);
-  transform: translate(-50%, -50%);
-  mix-blend-mode: screen;
-  background: radial-gradient(
-    ellipse closest-side,
-    rgba(255, 246, 228, 0.24) 0%,
-    rgba(255, 246, 228, 0.1) 50%,
-    transparent 100%
-  );
+.hero-marquee:hover .hero-marquee-track {
+  animation-play-state: paused;
 }
 
-/* 挂在墙上的画：目光（鼠标）扫过时轻轻晃动 */
-.char-card {
-  transform-origin: 50% -10px;
-  transition:
-    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.55s ease;
+.hero-marquee-group {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.75rem;
+  padding-right: 0.75rem;
 }
-.char-card:hover {
-  transform: rotate(var(--tilt, 4deg)) translateY(4px) scale(1.04);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.65);
+
+.hero-logo-card {
+  display: inline-flex;
+  height: 3.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 0 1rem;
+  color: #d4d4d8;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(12px);
+}
+
+.hero-directory-card {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-slide-in-right,
+  .animate-pulse-soft {
+    animation: none;
+  }
+
+  .hero-marquee {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+    scrollbar-width: none;
+  }
+
+  .hero-marquee::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hero-marquee-track {
+    animation: none;
+    will-change: auto;
+  }
+
+  .hero-marquee-group[aria-hidden] {
+    display: none;
+  }
 }
 
 /* Markdown 文档正文（策略文档 / to-do 内容） */
@@ -275,7 +337,7 @@
 .doc-prose th { background: var(--color-paper-dim); font-weight: 600; }
 
 /*
- * 深色气泡内的 Markdown：doc-prose 默认把 strong / 标题写死为墨色（#0a0a0a），
+ * 深色气泡内的 Markdown：doc-prose 默认把 strong / 标题写死为墨色，
  * 在黑色用户气泡里会变成"黑底黑字"。加上 doc-prose-invert 后全部继承气泡文字色。
  */
 .doc-prose-invert,
@@ -312,49 +374,49 @@
  * 这些语义类，不需要每个数据组件各维护一套深色 JSX。
  */
 .agent-workspace {
-  --color-ink: #f4f4f5;
-  --color-ink-soft: #d4d4d8;
-  --color-ink-muted: #a1a1aa;
+  --color-ink: var(--color-night-text);
+  --color-ink-soft: var(--color-night-text-soft);
+  --color-ink-muted: var(--color-night-text-muted);
   --color-ink-faint: #71717a;
-  --color-paper: #111216;
-  --color-paper-dim: #18191d;
+  --color-paper: var(--color-night-panel);
+  --color-paper-dim: var(--color-night-elevated);
   --color-hairline: #2a2c31;
   --color-hairline-dark: #35373d;
-  --color-surface: #101114;
-  --color-surface-elevated: #15161a;
+  --color-surface: var(--color-night);
+  --color-surface-elevated: var(--color-night-panel);
   --color-border: #2a2c31;
-  --color-text-primary: #f4f4f5;
-  --color-text-secondary: #d4d4d8;
+  --color-text-primary: var(--color-night-text);
+  --color-text-secondary: var(--color-night-text-soft);
   --color-text-muted: #8b8b95;
   color-scheme: dark;
 }
 
 .agent-workspace .bg-white {
-  background-color: #121316 !important;
+  background-color: var(--color-night-panel) !important;
 }
 
 .agent-workspace .bg-white.text-black {
-  background-color: #f4f4f5 !important;
-  color: #09090b !important;
+  background-color: var(--color-night-text) !important;
+  color: var(--color-night) !important;
 }
 
 .agent-workspace .bg-white.text-black * {
-  color: #09090b !important;
+  color: var(--color-night) !important;
 }
 
 .agent-workspace .bg-white\/80 {
-  background-color: rgba(18, 19, 22, 0.84) !important;
+  background-color: color-mix(in srgb, var(--color-night-panel) 84%, transparent) !important;
 }
 
 .agent-workspace .bg-white\/50 {
-  background-color: rgba(18, 19, 22, 0.56) !important;
+  background-color: color-mix(in srgb, var(--color-night-panel) 56%, transparent) !important;
 }
 
 .agent-workspace .bg-ink,
 .agent-workspace .bg-ink *,
 .agent-workspace .bg-ink.text-white,
 .agent-workspace .bg-ink .text-white {
-  color: #09090b !important;
+  color: var(--color-night) !important;
 }
 
 .agent-workspace input,

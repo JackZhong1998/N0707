@@ -1,0 +1,119 @@
+[
+  {
+    "domain": "rankinpublic.xyz",
+    "status": "configured",
+    "submitUrl": "https://rankinpublic.xyz/launch",
+    "entryStage": "final_tournament_selection",
+    "blocker": "",
+    "notes": "Google login and first-time profile onboarding were completed with the authorized current account. Stable replay: Launch → Start with a new product → website URL, product name, short description, long description → Next → automatically captured 16:9 website screenshot with optional Upload Another/Retry Capture → Next → select at least three AI-suggested tags → Next → tournament choice. Website reachability is validated before Next. Final boundaries are Select Free, which creates the launch entry, and Select Premium $29, which enters payment. Neither was clicked.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "appalist.com",
+    "status": "recording_partial",
+    "submitUrl": "https://appalist.com/get-started",
+    "entryStage": "authentication",
+    "blocker": "Google authentication or account creation is required before the form.",
+    "notes": "Stable /get-started route and explicit Google redirect back to /get-started were verified. The page first presents a plan selection area, then authentication. Logged-in stages and image fields remain unrecorded.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "weliketools.com",
+    "status": "recording_partial",
+    "submitUrl": "https://weliketools.com/get-started",
+    "entryStage": "authentication",
+    "blocker": "Google authentication or account creation is required before the form.",
+    "notes": "Stable /get-started route and explicit Google redirect back to /get-started were verified. Logged-in stages, product fields, asset fields, and final action remain unrecorded.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "startuptrusted.com",
+    "status": "recording_partial",
+    "submitUrl": "https://startuptrusted.com/submit",
+    "entryStage": "authentication",
+    "blocker": "Submission redirects to /login?callbackUrl=%2Fsubmit; Google or email authentication is required.",
+    "notes": "Continue with Google is available and the callback preserves the target submit route. The product form, multi-page stages, asset fields, and final boundary remain behind login.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "ideakiln.com",
+    "status": "blocked",
+    "submitUrl": "https://ideakiln.com/dashboard/submit-idea",
+    "entryStage": "empty_authenticated_route",
+    "blocker": "The stable dashboard submission route rendered no visible controls or authentication prompt in the current session.",
+    "notes": "The public homepage exposes Submit idea and Sign in, but the destination page is blank. Fields, stages, image inputs, save actions, and final boundary could not be inspected.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "promoteproject.com",
+    "status": "recording_partial",
+    "submitUrl": "https://www.promoteproject.com/",
+    "entryStage": "authentication_modal",
+    "blocker": "Submit startup opens a login modal before the product form.",
+    "notes": "The button-driven flow is stable. The modal offers a Google redirect, email/password login, and email registration. Logged-in submission stages and image fields remain unrecorded. The final submission boundary was not reached.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "saasbison.com",
+    "status": "recording_partial",
+    "submitUrl": "https://saasbison.com/submit",
+    "entryStage": "free_badge_verification",
+    "blocker": "The free path requires adding a permanent dofollow SaaSBison badge to the product website and verifying the badge URL before stage 2.",
+    "notes": "Step 1 of 3 was recorded. Plan choices are Select Free Listing and one-time Premium $9.99. Free selection reveals badge HTML, badge placement instructions, a website URL field, and Verify badge. Premium skips verification but leads toward payment. No external website was modified and no payment action was clicked, so later product/image fields remain unrecorded.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "proofstories.io",
+    "status": "recording_partial",
+    "submitUrl": "https://proofstories.io/submit/",
+    "entryStage": "authentication",
+    "blocker": "The submit route returns to the public page and requires Login with Google before the launch form.",
+    "notes": "Launch on ProofStories and the /submit/ route are present, but authenticated fields and stages are not exposed. The directory emphasizes verified revenue and editorial stories, so later stages may require proof/revenue data in addition to product assets.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "startups.fm",
+    "status": "configured",
+    "submitUrl": "https://startups.fm/submit",
+    "entryStage": "final_plan_selection",
+    "blocker": "",
+    "notes": "Stable no-account two-stage flow was exercised with test data. Stage 1 fields: website, startup name, tagline, description, category, optional funding stage, optional country, optional logo/favicon file, optional featured landscape image, submitter name, email, and acquisition source. The site can auto-fetch logo/favicon and og:image from the website, while uploads override them. Continue leads to final plan selection: Continue for free requires a persistent badge and creates the submission; Pay £49 & skip the queue enters payment. Neither final action was clicked.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "startuplist.ing",
+    "status": "blocked",
+    "submitUrl": "https://startuplist.ing/products/new",
+    "entryStage": "authentication",
+    "blocker": "Submission requires an existing email/password account; no Google login is exposed and no credentials were entered.",
+    "notes": "Pricing exposes Submit your product and /products/new, but unauthenticated users are routed to /signin. Paid featured-ad date and duration controls are separate from the base product submission. Product/image fields remain unrecorded.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "findyoursaas.com",
+    "status": "recording_partial",
+    "submitUrl": "https://findyoursaas.com/onboard",
+    "entryStage": "pricing_and_sign_in",
+    "blocker": "The onboard route resolves to pricing and exposes Sign In/Submit Your Tool buttons rather than the listing form.",
+    "notes": "The visible plans are a limited-time free standard listing and a paid monthly featured listing. No Google login, form fields, or image controls were exposed in this state. The stable next internal route must be captured after sign-in.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "toolfolio.io",
+    "status": "recording_partial",
+    "submitUrl": "https://toolfolio.com/boosted-listing",
+    "entryStage": "paid_package_builder",
+    "blocker": "toolfolio.io redirects to toolfolio.com, where Submit tool opens a boosted-listing sales page rather than a public listing form.",
+    "notes": "The page exposes Build Your Package, placement/banner options, monthly/yearly pricing, listing tiers, and booking. The product form is downstream of package selection and likely payment. No checkout, payment, or final action was taken; asset fields remain unrecorded.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  },
+  {
+    "domain": "saaspa.ge",
+    "status": "blocked",
+    "submitUrl": "https://www.saaspa.ge/submit",
+    "entryStage": "email_magic_link_authentication",
+    "blocker": "The submit route requires an email magic link; no Google login is available and no email/OTP flow was initiated.",
+    "notes": "The route and authentication boundary are stable. After authentication, product stages, images, save actions, and final launch boundary remain unknown.",
+    "checkedAt": "2026-07-28T07:47:48Z"
+  }
+]

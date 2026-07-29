@@ -68,6 +68,7 @@ export default function Navbar({ variant = 'light' }: { variant?: 'dark' | 'ligh
 
   const navLinks = [
     { href: '/#channels', label: t('features') },
+    { href: '/directories', label: t('directories') },
     { href: '/pricing', label: t('pricing') },
     { href: '/blog', label: t('blog') },
     { href: '/about', label: t('about') },
@@ -81,13 +82,13 @@ export default function Navbar({ variant = 'light' }: { variant?: 'dark' | 'ligh
     <header
       className={
         dark
-          ? 'fixed top-0 z-50 w-full border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl'
+          ? 'fixed top-0 z-50 w-full border-b border-white/10 bg-night/80 backdrop-blur-xl'
           : 'fixed top-0 z-50 w-full border-b border-hairline bg-white/85 backdrop-blur-xl'
       }
     >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
         <Link href="/">
-          <Logo dark={dark} />
+          <Logo dark={dark} compact />
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
@@ -124,7 +125,7 @@ export default function Navbar({ variant = 'light' }: { variant?: 'dark' | 'ligh
         <div
           className={
             dark
-              ? 'border-t border-white/10 bg-[#0a0a0a] px-5 py-4 md:hidden'
+              ? 'border-t border-white/10 bg-night px-5 py-4 md:hidden'
               : 'border-t border-hairline bg-white px-5 py-4 md:hidden'
           }
         >

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
@@ -38,8 +39,9 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 
 export default function FAQ() {
   const t = useTranslations('FAQ');
+  const isZh = useLocale() === 'zh';
 
-  const items = Array.from({ length: 6 }, (_, i) => ({
+  const items = Array.from({ length: 8 }, (_, i) => ({
     question: t(`items.${i}.question`),
     answer: t(`items.${i}.answer`),
   }));
@@ -60,6 +62,23 @@ export default function FAQ() {
           {items.map((item, index) => (
             <FAQItem key={index} question={item.question} answer={item.answer} />
           ))}
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-brand-200 bg-brand-50 p-6 text-center">
+          <p className="text-base font-bold text-gray-900">
+            {isZh ? '还想完整了解新用户进入后会发生什么？' : 'Want the complete new-user campaign walkthrough?'}
+          </p>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-500">
+            {isZh
+              ? '查看 30 天冷启动页面，了解你会获得哪些文档、渠道计划、每日任务、制作包和每周复盘。'
+              : 'See every document, channel plan, daily task, production package, and weekly review in the 30-day campaign tour.'}
+          </p>
+          <Link
+            href="/30-day-campaign"
+            className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-brand-700 px-5 text-sm font-semibold text-white transition hover:bg-brand-800"
+          >
+            {isZh ? '查看完整的 30 天体验 →' : 'See the 30-day campaign experience →'}
+          </Link>
         </div>
       </div>
     </section>

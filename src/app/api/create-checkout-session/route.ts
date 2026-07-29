@@ -76,8 +76,8 @@ export async function POST(request: Request) {
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${appUrl}/${safeLocale}/app/calendar?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/${safeLocale}/pricing?canceled=true`,
+      success_url: `${appUrl}/${safeLocale}/app?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/${safeLocale}/app/brief?canceled=true`,
       metadata: { clerk_user_id: userId, plan, billing_cycle: billingCycle },
       subscription_data: {
         metadata: { clerk_user_id: userId, plan, billing_cycle: billingCycle },

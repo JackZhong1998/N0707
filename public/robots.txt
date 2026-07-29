@@ -4,8 +4,11 @@ Allow: /
 Disallow: /api/
 Disallow: /sign-in
 Disallow: /sign-up
+Disallow: /app
 Disallow: /workspace
 Disallow: /dashboard
+Disallow: /en/app
+Disallow: /zh/app
 Disallow: /en/workspace
 Disallow: /zh/workspace
 Disallow: /en/dashboard

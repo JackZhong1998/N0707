@@ -1,0 +1,61 @@
+<meta charset="utf-8">
+<style>
+  body {
+    width: 280px;
+    margin: 0;
+    padding: 18px;
+    color: #18181b;
+    background: #fafafa;
+    font: 13px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  p {
+    margin: 0;
+    color: #71717a;
+  }
+  button {
+    width: 100%;
+    margin-top: 16px;
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: white;
+    background: #18181b;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #27272a;
+  }
+  .version {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #a1a1aa;
+  }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #22c55e;
+  }
+</style>
+<div class="status">
+  <span class="dot"></span>
+  <strong>发布助手已就绪</strong>
+</div>
+<h1>NowBuild</h1>
+<p>稳定支持 X 与小红书；执行测试台包含 7 个内容平台和 6 个产品目录 Beta 适配器。插件不会保存你的平台密码。</p>
+<p class="version" id="version"></p>
+<button type="button" id="open-console">打开执行测试台</button>
+<script src="popup.js"></script>

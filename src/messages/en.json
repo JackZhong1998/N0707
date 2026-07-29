@@ -1,16 +1,16 @@
 {
   "Metadata": {
     "home": {
-      "title": "NowBuild — Go to Market for the Lonely Vibe Builder",
-      "description": "Ideas are cheap in the AI era — action is scarce. NowBuild turns your product into a 30-day action calendar: daily tasks and ready-to-publish drafts, so you just apply your taste and find your first real users."
+      "title": "30-Day Agent Launch Team for Software Products | NowBuild",
+      "description": "Turn one software product URL into a coordinated 30-day launch. A context-sharing agent team handles research, strategy, content, communities, SEO, and product distribution."
     },
     "blog": {
       "title": "Blog — GTM Playbooks & First-User Growth",
       "description": "Practical articles on go-to-market strategy, channel selection, content rhythm, and getting your first 100 users — for builders doing their first launch."
     },
     "pricing": {
-      "title": "Pricing — Free Strategy, Pro from $19.90/month",
-      "description": "Define your go-to-market strategy for free. Unlock the full 30-day execution calendar with Pro at $19.90/month or $199/year. No hidden fees, cancel anytime."
+      "title": "NowBuild Pricing — A 30-Day Launch in About 30 Minutes a Day",
+      "description": "NowBuild prepares research, content, publishing assets, and directory submissions so you can run a 30-day software launch with about 30 minutes of review a day for $49/month."
     },
     "privacy": {
       "title": "Privacy Policy — How We Protect Your Data",
@@ -22,11 +22,12 @@
     },
     "about": {
       "title": "About — Helping Builders Find Their First Real Users | nowbuild.ai",
-      "description": "NowBuild's mission: every builder who can ship a product should be able to build their business loop. Go-to-Market is the most important step."
+      "description": "Build the product. Build the market. Build the business. NowBuild helps solo founders turn a finished software product into a complete business loop."
     }
   },
   "Nav": {
     "features": "Features",
+    "directories": "Launch directory",
     "pricing": "Pricing",
     "blog": "Blog",
     "about": "About",
@@ -188,38 +189,48 @@
   },
   "FAQ": {
     "title": "Frequently Asked Questions",
-    "subtitle": "Everything you need to know about NowBuild. Can't find an answer? Reach us at nowbuild.ai.",
+    "subtitle": "What the agents do, what still needs your confirmation, and what a 30-day launch actually includes.",
     "items": [
       {
         "question": "What is NowBuild?",
-        "answer": "NowBuild (nowbuild.ai) is a GTM execution workspace: define a 30-day market strategy through conversation, drive daily tasks with a calendar, pre-draft content with AI, review and publish yourself, and evolve your strategy with lightweight reviews. Start building your business loop — Go-to-Market is the most important step."
+        "answer": "NowBuild is a 30-day agent launch team for software products, built for solo founders and one-person companies. You provide one product URL; the team researches the market, builds one shared campaign, selects the right channels, prepares daily work, and adjusts the plan around execution and public feedback."
       },
       {
         "question": "How is this different from ChatGPT?",
-        "answer": "ChatGPT can discuss strategy but has no calendar, no tracking, and no memory across sessions. NowBuild turns strategy → calendar → execution → feedback into a GUI you open every day, with 28+ channel skills built in."
+        "answer": "ChatGPT usually produces one isolated draft after every prompt. NowBuild keeps your product profile, content pillars, weekly narratives, calendar, publishing status, and public performance signals together, so day 18 continues the same strategy instead of starting from a blank page again."
       },
       {
-        "question": "Do I need an existing product?",
-        "answer": "Yes. NowBuild is for builders who shipped something but don't know how to take it to market — not for the idea stage."
+        "question": "Which channels can the agents operate?",
+        "answer": "The Agent Launch Team covers capabilities across X, LinkedIn, Xiaohongshu, WeChat, Reddit, Hacker News, Indie Hackers, TikTok, YouTube, Instagram, Product Hunt, GitHub, SEO, websites, and product directories. The agents select the channel mix that fits your product and audience instead of forcing every campaign onto every platform."
       },
       {
-        "question": "Will AI post for me automatically?",
-        "answer": "No. You review and publish manually. We reduce the friction of 'what to write' and 'what to do today' — we don't run your accounts."
+        "question": "Does NowBuild publish automatically?",
+        "answer": "NowBuild prepares publish-ready work and assists with browser publishing where the platform allows it. Login, CAPTCHA, account authorization, media selection, community-rule checks, and final confirmation may still require you. NowBuild does not store your platform passwords or pretend those platform controls do not exist."
       },
       {
-        "question": "What are the 28+ skills?",
-        "answer": "Each channel has a dedicated execution skill — content structure, posting cadence, copy templates, and more. The system recommends the 2–3 best channels for your product type instead of turning everything on at once."
+        "question": "Will every platform receive the same rewritten post?",
+        "answer": "No. Community agents write around real decisions and useful discussion. TikTok produces spoken scripts, shots, and hook tests. YouTube aligns titles, thumbnail concepts, chapters, and demo footage. Instagram designs carousels, memes, Reels, and Stories. SEO builds connected articles from search intent. They share one product position but use different audience jobs, structures, proof, and CTAs."
       },
       {
-        "question": "Do you guarantee users?",
-        "answer": "No. We guarantee the system and the rhythm — helping you stay in conversation with the market. You'll have reviewable market feedback within the first week, and by day 30 you'll know which channels and content work for you."
+        "question": "What exactly do I get in one month?",
+        "answer": "You receive one shared product profile, a 30-day campaign blueprint, selected channel plans, a daily action calendar, ready-to-review copy or production packages, intelligent matching across 100+ directory opportunities, automated submission to 76 supported directories, publishing-status tracking, weekly reviews, and a final cross-channel report. The daily workflow is designed to turn hours of preparation into about 30 minutes of review, refinement, and approval."
+      },
+      {
+        "question": "Does intelligent matching across 100+ directories mean 100 guaranteed backlinks?",
+        "answer": "No. NowBuild intelligently matches your product against 100+ opportunities and automates submission to 76 supported directories after the required authorization. Each directory still controls eligibility, review, approval, links, timing, payment, and verification."
+      },
+      {
+        "question": "Can I pay for only one 30-day launch?",
+        "answer": "Yes. The Agent Launch Team is $49 monthly, and you may cancel after one launch month. One subscription includes one active product, one campaign at a time, and one new 30-day campaign per billing cycle."
       }
     ]
   },
   "Footer": {
-    "description": "nowbuild.ai — Help builders start their business loop. Go-to-Market is the most important step.",
+    "description": "A context-sharing Agent Launch Team that helps solo founders build the market around a finished software product.",
     "product": "Product",
     "features": "Features",
+    "directories": "Launch directory",
+    "campaign": "30-Day Campaign",
     "pricing": "Pricing",
     "changelog": "Changelog",
     "docs": "Documentation",
@@ -235,46 +246,45 @@
     "copyright": "© {year} NowBuild. All rights reserved."
   },
   "Pricing": {
-    "title": "Simple pricing, two plans",
-    "subtitle": "Define your market strategy for free. Upgrade when you're ready for the full 30-day plan.",
+    "title": "Build solo. Launch with a complete agent team.",
+    "subtitle": "Preview the direction free, then turn hours of daily launch prep into about 30 minutes of review for $49.",
     "monthly": "Monthly",
     "yearly": "Yearly",
-    "yearlyDiscount": "Save $39.80",
+    "yearlyDiscount": "Available after your first campaign",
     "perMonth": "/month",
     "perYear": "/year",
-    "yearlyEquivalent": "≈ $16.58/month",
-    "valueAnchor": "Less than a coffee a day for a 30-day market partner",
+    "yearlyEquivalent": "Annual billing is offered to eligible returning customers",
+    "valueAnchor": "Not another writing tool. A Launch Team that prepares the research, content, and publishing work before you review it.",
     "currentPlan": "Current Plan",
     "getStarted": "Start for Free",
-    "subscribe": "Subscribe",
+    "subscribe": "Build My Launch Team",
     "mostPopular": "Recommended",
     "plans": {
       "free": {
-        "name": "Free",
+        "name": "Free Preview",
         "priceMonthly": "$0",
         "priceYearly": "$0",
-        "description": "Define strategy and preview the rhythm.",
+        "description": "Let the agents learn your product and preview how each channel would operate.",
         "features": [
-          "GTM kickoff strategy conversation",
-          "7-day calendar preview",
-          "3 AI-generated content pieces",
-          "Channel recommendations (2–3 core channels)",
-          "Community support"
+          "Agents read your site and build a product profile",
+          "Audience, competitor, and positioning research",
+          "2–3 recommended core channels",
+          "Preview each platform's pillars and playbook",
+          "Connected first-week calendar preview"
         ]
       },
       "pro": {
-        "name": "Pro",
-        "priceMonthly": "$19.90",
-        "priceYearly": "$199",
-        "description": "Full 30-day market strategy execution, start to review.",
+        "name": "30-Day Agent Launch Team",
+        "priceMonthly": "$49",
+        "priceYearly": "$490",
+        "description": "Research, content, and publishing materials arrive prepared each day, leaving about 30 minutes for review across one complete launch.",
         "features": [
-          "Full 30-day action calendar",
-          "Unlimited AI content generation & editing",
-          "28+ channel skills on demand",
-          "30-second daily review cards",
-          "Week-1 report + day-30 monthly review",
-          "Strategy evolution suggestions",
-          "Priority email support"
+          "About 30 minutes a day to review, refine, and approve",
+          "A complete 30-day Launch Blueprint and action calendar",
+          "Daily drafts, production briefs, launch packages, and channel tasks",
+          "Social, community, video, SEO, website, and product-launch coverage",
+          "100+ matched opportunities and automated submission to 76 supported directories",
+          "Weekly reviews, a final report, and a recommended next move"
         ]
       }
     },
@@ -283,15 +293,15 @@
       "items": [
         {
           "question": "Is the free plan enough?",
-          "answer": "Enough to validate whether the market strategy works for you. For the full 30-day plan and review reports, you'll need Pro."
+          "answer": "Free lets the agents learn your product, recommend channels, preview the first 7 days, show 10 matched directories, and produce one complete draft. The full 30-day campaign requires a subscription."
         },
         {
-          "question": "Can I subscribe for just one month?",
-          "answer": "Yes, cancel anytime. We recommend running the full 30 days before judging results."
+          "question": "What exactly do I get after one month?",
+          "answer": "You receive a 30-day Launch Blueprint, a daily action calendar, ready-to-review content and production packages, complete channel tasks, automated submission to 76 supported directories, publishing-status tracking, weekly reviews, and a final report. The workflow turns hours of preparation into about 30 minutes of review, refinement, and approval a day."
         },
         {
-          "question": "Is yearly worth it?",
-          "answer": "Yearly at $199 (≈ $16.58/month) saves $39.80 vs monthly — great for builders planning multiple strategy cycles."
+          "question": "What are the subscription limits?",
+          "answer": "One subscription covers one active product, one campaign at a time, and one new 30-day campaign per billing cycle. You can subscribe for only one month and cancel anytime. AI generation and revisions are subject to reasonable-use limits."
         }
       ]
     }
@@ -335,14 +345,14 @@
   },
   "About": {
     "title": "About NowBuild",
-    "subtitle": "Helping every builder who can ship a product build their business loop.",
+    "subtitle": "NowBuild exists to help individuals turn a finished software product into a market—and a market into a complete business loop.",
     "story": {
       "title": "Our Story",
       "content": "AI made shipping a product easier than ever — you can launch an MVP over a weekend. But we kept seeing builders stuck at the next step: product done, a few posts shared, 12 visitors in 7 days, zero signups, and no idea what to do tomorrow. The problem isn't that they lack theory. It's that nobody connected strategy → daily action → market feedback → strategy evolution into a path you actually want to open every day. That's why we built NowBuild (nowbuild.ai): strategy through conversation, execution driven by a calendar, content pre-drafted by AI, and reviews that evolve the plan."
     },
     "mission": {
       "title": "Our Mission",
-      "content": "Enable everyone who can ship a product with AI to take the most important step — Go-to-Market — and stay in a steady, sustained conversation with the market until they find their first real users."
+      "content": "Enable individuals to complete the whole loop: build a useful product, build a market through sustained conversation and evidence, then build a business that can keep moving without a large team."
     },
     "values": {
       "title": "Our Values",
@@ -367,8 +377,8 @@
     },
     "cta": {
       "title": "Ready to build your business loop?",
-      "description": "The product is done — Go-to-Market is the most important step. Define your strategy in 15 minutes and start today.",
-      "button": "Start for Free"
+      "description": "Your product is ready. Start with a free Launch Brief, then put your Launch Team to work.",
+      "button": "Build My Launch Team"
     }
   },
   "Privacy": {
@@ -419,7 +429,7 @@
   },
   "Terms": {
     "title": "Terms of Service",
-    "lastUpdated": "Last updated: April 1, 2026",
+    "lastUpdated": "Last updated: July 27, 2026",
     "sections": [
       {
         "title": "1. Acceptance of Terms",
@@ -427,7 +437,7 @@
       },
       {
         "title": "2. Description of Service",
-        "content": "NowBuild is a software-as-a-service platform that provides tools and infrastructure for building, deploying, and managing web applications. The Service includes, but is not limited to, application hosting, authentication services, payment processing integration, database management, and related features.\n\nWe reserve the right to modify, suspend, or discontinue any part of the Service at any time, with or without notice."
+        "content": "NowBuild is an AI-assisted product-marketing service for solo founders and small teams. The Service may analyze product information, prepare market research and campaign plans, generate and revise content, recommend channels and directories, assist with browser form filling, track user-reported or publicly available activity, and produce campaign reviews.\n\nNowBuild is a software tool, not an employee, advertising agency, legal adviser, or managed marketing service. You remain responsible for business decisions and for reviewing and approving any output before use. We may modify, suspend, or discontinue features as the Service evolves."
       },
       {
         "title": "3. User Accounts",
@@ -435,38 +445,42 @@
       },
       {
         "title": "4. Payment Terms",
-        "content": "Certain features of the Service require payment of fees. By subscribing to a paid plan, you agree to:\n\n• Pay all fees associated with your selected plan\n• Provide valid payment information\n• Authorize us to charge your payment method on a recurring basis\n\n**Billing Cycles**: Subscriptions are billed either monthly or annually, depending on your selected plan.\n\n**Cancellation**: You may cancel your subscription at any time. Cancellation takes effect at the end of the current billing period. No refunds are provided for partial billing periods.\n\n**Price Changes**: We reserve the right to change our prices. Any price changes will be communicated at least 30 days in advance."
+        "content": "Certain features require payment. By subscribing, you agree to pay the displayed fees, provide valid payment information, and authorize recurring charges for the selected billing cycle.\n\nMonthly subscription: The Agent Launch Team is billed monthly unless a different offer is expressly presented to you. A subscription renews automatically until canceled.\n\nCancellation: You may cancel at any time. Cancellation takes effect at the end of the current billing period, and access remains available until then. Except where required by law, fees are non-refundable and no partial-period refunds are provided.\n\nPrice changes: We may change prices for future billing periods. We will provide advance notice of material changes as required by applicable law."
       },
       {
-        "title": "5. Acceptable Use",
+        "title": "5. Plan Scope and Usage Limits",
+        "content": "Unless your order or an in-product offer states otherwise, each paid subscription includes:\n\n• One active product\n• One active 30-day Campaign at a time\n• The channels currently supported by the Service and selected as relevant to that Campaign\n• One new 30-day Campaign per billing cycle\n• Access to the current curated directory database and automated submission to 76 supported directories\n\nAI content generation, revisions, research, tool calls, and retries are subject to reasonable-use limits designed to prevent abuse and keep the Service reliable. We may slow, limit, or temporarily pause unusually intensive, automated, shared, or abusive usage. We will not use a reasonable-use limit to reduce the ordinary operation of a single Campaign without notice.\n\nAn additional product or Campaign may require a separate purchase. Directory counts describe available opportunities and supported submission flows, not a promise that every directory is relevant, free, reachable, eligible, or approved."
+      },
+      {
+        "title": "6. Acceptable Use",
         "content": "You agree not to use the Service to:\n\n• Violate any applicable laws or regulations\n• Infringe on the intellectual property rights of others\n• Distribute malware, spam, or harmful content\n• Attempt to gain unauthorized access to the Service or other users' accounts\n• Interfere with or disrupt the Service or its infrastructure\n• Use the Service for any illegal or unauthorized purpose\n• Engage in any activity that could harm the Service or its users"
       },
       {
-        "title": "6. Intellectual Property",
+        "title": "7. Intellectual Property",
         "content": "The Service and its original content, features, and functionality are owned by NowBuild and are protected by international copyright, trademark, and other intellectual property laws.\n\nYour content remains yours. By uploading content to the Service, you grant us a non-exclusive, worldwide license to use, store, and display that content solely for the purpose of providing the Service.\n\nYou may not copy, modify, distribute, sell, or lease any part of our Service without explicit written permission."
       },
       {
-        "title": "7. Limitation of Liability",
+        "title": "8. Limitation of Liability",
         "content": "TO THE MAXIMUM EXTENT PERMITTED BY LAW, NOWBUILD SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES.\n\nOur total liability for any claims arising from or relating to the Service shall not exceed the amount you paid us in the twelve (12) months preceding the claim."
       },
       {
-        "title": "8. Disclaimer of Warranties",
-        "content": "THE SERVICE IS PROVIDED \"AS IS\" AND \"AS AVAILABLE\" WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.\n\nWe do not warrant that the Service will be uninterrupted, timely, secure, or error-free."
+        "title": "9. Outputs, External Actions, and No Guaranteed Results",
+        "content": "THE SERVICE AND ALL AI-GENERATED OUTPUTS ARE PROVIDED \"AS IS\" AND \"AS AVAILABLE\" WITHOUT WARRANTIES OF ANY KIND. AI output may be incomplete, inaccurate, outdated, or unsuitable for a particular platform. You must review output and ensure that your use complies with applicable laws, intellectual-property rights, advertising rules, and platform policies.\n\nNowBuild prepares research, plans, content, and submission information and may automate submission to supported directories after your authorization. Account access, CAPTCHAs, payments, and any platform-required confirmation remain your responsibility. We do not store third-party platform passwords and will not operate an external account without the authorization required by that platform.\n\nWe do not guarantee directory eligibility or approval, backlinks, publication timing, search rankings, traffic, engagement, leads, revenue, product-market fit, or any other growth outcome. Third-party platforms may change their rules, pricing, availability, or review decisions at any time."
       },
       {
-        "title": "9. Termination",
+        "title": "10. Termination",
         "content": "We may terminate or suspend your access to the Service immediately, without prior notice or liability, for any reason, including breach of these Terms.\n\nUpon termination, your right to use the Service will cease immediately. All provisions of these Terms which by their nature should survive termination shall survive, including ownership, warranty disclaimers, and limitations of liability."
       },
       {
-        "title": "10. Governing Law",
+        "title": "11. Governing Law",
         "content": "These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which NowBuild is incorporated, without regard to its conflict of law provisions.\n\nAny disputes arising from these Terms or the Service shall be resolved through binding arbitration in accordance with the rules of the applicable arbitration authority."
       },
       {
-        "title": "11. Changes to Terms",
+        "title": "12. Changes to Terms",
         "content": "We reserve the right to modify these Terms at any time. We will provide notice of significant changes by posting the updated Terms on this page and updating the \"Last updated\" date.\n\nYour continued use of the Service after changes become effective constitutes acceptance of the revised Terms."
       },
       {
-        "title": "12. Contact",
+        "title": "13. Contact",
         "content": "If you have questions about these Terms, please contact us at:\n\n• Email: legal@nowbuild.com\n• Address: [Your Company Address]"
       }
     ]

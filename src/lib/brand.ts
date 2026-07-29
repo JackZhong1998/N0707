@@ -1,0 +1,7 @@
+export const BRAND_MISSION =
+  'Build the product. Build the market. Build the business.';
+
+export const BRAND_MISSION_ZH =
+  '做出产品。做出市场。做成生意。';
+
+export const BRAND_FILM_END_CARD = BRAND_MISSION;

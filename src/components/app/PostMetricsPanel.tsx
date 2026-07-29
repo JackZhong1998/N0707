@@ -13,6 +13,7 @@ import {
   formatMetric,
   latestMetricSnapshot,
 } from '@/lib/gtm/post-metrics';
+import { getChannelCapability } from '@/lib/gtm/channel-capabilities';
 import type { PostMetricSnapshot, PostMetrics, Todo } from '@/lib/gtm/types';
 
 interface Props {
@@ -31,12 +32,6 @@ const FIELD_LABELS: Record<keyof PostMetrics, { zh: string; en: string }> = {
   followersGained: { zh: '新增粉丝', en: 'Followers' },
 };
 
-function metricFields(channelId: string): Array<keyof PostMetrics> {
-  return channelId === 'twitter_x'
-    ? ['impressions', 'likes', 'comments', 'shares', 'saves']
-    : ['views', 'likes', 'saves', 'comments', 'shares'];
-}
-
 export default function PostMetricsPanel({ todo, onSnapshot }: Props) {
   const locale = useLocale();
   const isZh = locale !== 'en';
@@ -52,7 +47,8 @@ export default function PostMetricsPanel({ todo, onSnapshot }: Props) {
   );
   const latest = latestMetricSnapshot(todo);
   const previous = snapshots[1];
-  const fields = metricFields(todo.channelId);
+  const capability = getChannelCapability(todo.channelId);
+  const fields = capability.metricFields;
 
   useEffect(() => {
     let cancelled = false;
@@ -68,8 +64,14 @@ export default function PostMetricsPanel({ todo, onSnapshot }: Props) {
     if (
       !todo.publishedUrl ||
       !publisher?.installed ||
-      !['twitter_x', 'xiaohongshu'].includes(todo.channelId)
+      !capability.automaticMetrics
     ) {
+      setMessage(
+        isZh
+          ? '该平台暂不支持自动采集，请使用手动录入。'
+          : 'Automatic collection is not supported for this platform. Enter metrics manually.'
+      );
+      setShowManual(true);
       return;
     }
     setCollecting(true);
@@ -142,7 +144,7 @@ export default function PostMetricsPanel({ todo, onSnapshot }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {publisher?.installed ? (
+          {capability.automaticMetrics && publisher?.installed ? (
             <button
               onClick={() => void collect()}
               disabled={collecting}
@@ -156,14 +158,14 @@ export default function PostMetricsPanel({ todo, onSnapshot }: Props) {
                   ? '立即更新'
                   : 'Update now'}
             </button>
-          ) : (
+          ) : capability.automaticMetrics ? (
             <Link
-              href="/app/publisher-extension"
+              href={`/app/publisher-extension?returnTo=${encodeURIComponent(`/app/calendar/task/${todo.id}`)}`}
               className="inline-flex h-9 items-center rounded-full bg-ink px-4 text-xs font-semibold text-white hover:bg-zinc-800"
             >
               {isZh ? '安装插件后更新' : 'Install to update'}
             </Link>
-          )}
+          ) : null}
           <button
             onClick={() => setShowManual((value) => !value)}
             className="h-9 rounded-full bg-paper-dim px-4 text-xs font-medium text-ink-soft hover:bg-zinc-200"
@@ -172,6 +174,14 @@ export default function PostMetricsPanel({ todo, onSnapshot }: Props) {
           </button>
         </div>
       </div>
+
+      {!capability.automaticMetrics && (
+        <p className="mt-3 text-[11px] text-zinc-400">
+          {isZh
+            ? '该平台暂不支持自动采集；下方字段已按平台能力配置。'
+            : 'Automatic collection is not supported for this platform; the fields below are platform-specific.'}
+        </p>
+      )}
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
         {fields.map((field) => {

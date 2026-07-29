@@ -1,0 +1,235 @@
+{
+  "batch": "O",
+  "checkedAt": "2026-07-28T07:57:13Z",
+  "policy": {
+    "finalSubmit": false,
+    "payment": false,
+    "captcha": false,
+    "imageSource": "NowBuild-provided bytes converted to an in-memory File; never a user-local path"
+  },
+  "sites": [
+    {
+      "domain": "tools.launchllama.co",
+      "status": "configured",
+      "submitUrl": "https://tools.launchllama.co/submit",
+      "entryStage": "google_oauth_then_four_step_wizard",
+      "login": {
+        "method": "google",
+        "automaticContinueVerified": true
+      },
+      "stages": [
+        {
+          "name": "details",
+          "fields": [
+            "productUrlForAiPrefill",
+            "productName",
+            "shortDescription",
+            "longDescription",
+            "websiteUrl",
+            "logo",
+            "logoUrl",
+            "thumbnail",
+            "creatorName",
+            "email",
+            "twitterUsername",
+            "categories",
+            "pricingTier",
+            "terms"
+          ]
+        },
+        {
+          "name": "launch_plan",
+          "fields": [
+            "successGoal",
+            "resultsTimeline",
+            "promotionPreference"
+          ]
+        },
+        {
+          "name": "customize",
+          "fields": [
+            "membership",
+            "optionalBoosts"
+          ]
+        },
+        {
+          "name": "submit",
+          "boundary": "Submit Free · 7–10 day review"
+        }
+      ],
+      "imageFields": [
+        {
+          "semantic": "logo",
+          "accept": "PNG, JPG, WebP up to 5MB",
+          "recommendation": "square 1:1",
+          "memoryFileCompatible": true
+        },
+        {
+          "semantic": "thumbnail",
+          "accept": "PNG, JPG, WebP up to 5MB",
+          "recommendation": "1200x630 landscape",
+          "memoryFileCompatible": true
+        }
+      ],
+      "notes": "Google OAuth continuation, required details, launch-plan questions, Starter selection, and the final free-submit boundary were verified. The final submission was not clicked."
+    },
+    {
+      "domain": "indie.deals",
+      "status": "recording_partial",
+      "submitUrl": "https://indie.deals/submit",
+      "entryStage": "login",
+      "login": {
+        "methods": [
+          "google",
+          "github",
+          "email_password"
+        ],
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated submission form not reached in this pass",
+      "notes": "Submit redirects to /auth/login?callbackUrl=%2Fsubmit."
+    },
+    {
+      "domain": "startupbase.io",
+      "status": "recording_partial",
+      "submitUrl": "https://startupbase.io/submit",
+      "entryStage": "login",
+      "login": {
+        "methods": [
+          "google",
+          "linkedin",
+          "x",
+          "email_code"
+        ],
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated submission form not reached in this pass",
+      "notes": "Google entry is /auth/google?origin=/launch; email mode requires a verification code."
+    },
+    {
+      "domain": "unitelist.com",
+      "status": "recording_partial",
+      "submitUrl": "https://unitelist.com/get-started",
+      "entryStage": "login",
+      "login": {
+        "method": "google",
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated form not reached in this pass",
+      "notes": "Google entry is /api/auth/google?redirect=/get-started."
+    },
+    {
+      "domain": "fridayhunt.com",
+      "status": "recording_partial",
+      "submitUrl": "https://fridayhunt.com/projects/submit",
+      "entryStage": "login",
+      "login": {
+        "methods": [
+          "google",
+          "email_magic_link"
+        ],
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated project form not reached in this pass",
+      "notes": "Submission redirects to /sign-in?redirect=/projects/submit."
+    },
+    {
+      "domain": "firsto.co",
+      "status": "blocked",
+      "submitUrl": "https://firsto.co/projects/submit",
+      "entryStage": "login",
+      "login": {
+        "methods": [
+          "google",
+          "github",
+          "email_password"
+        ],
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "Cloudflare Turnstile is present on the login surface; CAPTCHA is never bypassed",
+      "notes": "After a user completes any required challenge, the adapter may resume from the authenticated page."
+    },
+    {
+      "domain": "saashunt.best",
+      "status": "recording_partial",
+      "submitUrl": "https://saashunt.best/projects/submit",
+      "entryStage": "login",
+      "login": {
+        "methods": [
+          "google",
+          "github",
+          "email_password"
+        ],
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated project form not reached in this pass",
+      "notes": "Submission redirects to /sign-in?redirect=/projects/submit."
+    },
+    {
+      "domain": "appalist.com",
+      "status": "recording_partial",
+      "submitUrl": "https://appalist.com/get-started",
+      "entryStage": "login",
+      "login": {
+        "method": "google",
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated tool form not reached in this pass",
+      "notes": "Google entry is /api/auth/google?redirect=/get-started."
+    },
+    {
+      "domain": "weliketools.com",
+      "status": "recording_partial",
+      "submitUrl": "https://weliketools.com/get-started",
+      "entryStage": "login",
+      "login": {
+        "method": "google",
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated tool form not reached in this pass",
+      "notes": "Google entry is /api/auth/google?redirect=/get-started."
+    },
+    {
+      "domain": "startuptrusted.com",
+      "status": "recording_partial",
+      "submitUrl": "https://startuptrusted.com/submit",
+      "entryStage": "login",
+      "login": {
+        "methods": [
+          "google",
+          "email"
+        ],
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated submission form not reached in this pass",
+      "notes": "Submission redirects to /login?callbackUrl=%2Fsubmit."
+    },
+    {
+      "domain": "promoteproject.com",
+      "status": "recording_partial",
+      "submitUrl": "https://www.promoteproject.com/",
+      "entryStage": "login_modal",
+      "login": {
+        "methods": [
+          "google",
+          "email_password"
+        ],
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "authenticated submission form not reached in this pass",
+      "notes": "The homepage opens a login modal; Google redirect is /google/redirect."
+    },
+    {
+      "domain": "proofstories.io",
+      "status": "recording_partial",
+      "submitUrl": "https://proofstories.io/submit/",
+      "entryStage": "login",
+      "login": {
+        "method": "google",
+        "automaticGoogleCandidate": true
+      },
+      "blocker": "page inspection timed out in this pass",
+      "notes": "A prior pass confirmed Google login is required before the form."
+    }
+  ]
+}

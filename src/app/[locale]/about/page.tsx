@@ -3,7 +3,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/landing/Footer';
 import { Link } from '@/i18n/navigation';
-import { localePath, languageAlternates } from '@/lib/seo';
+import { buildAbsoluteUrl, localePath, languageAlternates } from '@/lib/seo';
+import { BRAND_MISSION } from '@/lib/brand';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -26,6 +27,53 @@ export default async function AboutPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'About' });
+  const isZh = locale === 'zh';
+
+  const homeUrl = buildAbsoluteUrl(localePath(locale));
+  const aboutUrl = buildAbsoluteUrl(localePath(locale, '/about'));
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'AboutPage',
+        '@id': `${aboutUrl}#webpage`,
+        url: aboutUrl,
+        name: t('title'),
+        description: t('subtitle'),
+        inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+        isPartOf: {
+          '@type': 'WebSite',
+          '@id': `${homeUrl}#website`,
+          url: homeUrl,
+          name: 'NowBuild',
+        },
+        about: {
+          '@type': 'Organization',
+          '@id': `${buildAbsoluteUrl('/')}#organization`,
+          name: 'NowBuild',
+          url: buildAbsoluteUrl('/'),
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${aboutUrl}#breadcrumb`,
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: locale === 'zh' ? '首页' : 'Home',
+            item: homeUrl,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: t('title'),
+            item: aboutUrl,
+          },
+        ],
+      },
+    ],
+  };
 
   const values = Array.from({ length: 4 }, (_, i) => ({
     title: t(`values.items.${i}.title`),
@@ -41,15 +89,22 @@ export default async function AboutPage({ params }: Props) {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <Navbar />
       <main className="bg-white">
         {/* Hero */}
-        <section className="bg-gradient-radial py-20 sm:py-28">
-          <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-            <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              {t('title')}
+        <section className="relative overflow-hidden bg-night py-24 text-white sm:py-32">
+          <div className="bg-grid-dark absolute inset-0 opacity-60" aria-hidden />
+          <div className="absolute left-1/2 top-0 h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-brand-500/10 blur-[150px]" aria-hidden />
+          <div className="relative mx-auto max-w-5xl px-5 text-center sm:px-8">
+            <p className="font-mono text-xs uppercase tracking-[.18em] text-brand-300">{t('title')}</p>
+            <h1 className="mx-auto mt-7 font-[family-name:var(--font-display)] text-5xl font-bold leading-[.96] tracking-[-.055em] text-white sm:text-7xl">
+              {BRAND_MISSION}
             </h1>
-            <p className="mt-4 text-lg text-gray-500">{t('subtitle')}</p>
+            <p className="mx-auto mt-7 max-w-3xl text-lg leading-8 text-zinc-300">{t('subtitle')}</p>
           </div>
         </section>
 
@@ -66,14 +121,41 @@ export default async function AboutPage({ params }: Props) {
         </section>
 
         {/* Mission */}
-        <section className="bg-surface py-16">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-            <h2 className="font-display text-2xl font-bold text-gray-900">
+        <section className="bg-surface py-20 sm:py-24">
+          <div className="mx-auto max-w-5xl px-5 sm:px-8">
+            <p className="index-label">{isZh ? '我们想做成的事' : 'Our brand mission'}</p>
+            <h2 className="mt-5 max-w-3xl font-display text-3xl font-bold text-gray-900 sm:text-4xl">
               {t('mission.title')}
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-gray-600">
+            <p className="mt-5 max-w-3xl text-base leading-8 text-gray-600">
               {t('mission.content')}
             </p>
+
+            <div className="mt-10 grid gap-3 md:grid-cols-3">
+              {[
+                {
+                  step: '01',
+                  title: isZh ? 'Build the product.' : 'Build the product.',
+                  detail: isZh ? '从真实问题出发，做出真正有人愿意使用的软件。' : 'Turn a real problem into software people can use.',
+                },
+                {
+                  step: '02',
+                  title: isZh ? 'Build the market.' : 'Build the market.',
+                  detail: isZh ? '持续走近用户、验证需求，捕捉最早的产品市场契合信号。' : 'Reach users, test demand, and find the earliest PMF signals.',
+                },
+                {
+                  step: '03',
+                  title: isZh ? 'Build the business.' : 'Build the business.',
+                  detail: isZh ? '让产品、用户反馈与商业结果彼此推动，形成可持续的循环。' : 'Turn product, market feedback, and revenue into a repeatable loop.',
+                },
+              ].map((item, index) => (
+                <article key={item.step} className={`rounded-[1.5rem] p-6 ${index === 1 ? 'bg-ink text-white' : 'border border-zinc-200 bg-white'}`}>
+                  <span className={`font-mono text-[10px] font-semibold ${index === 1 ? 'text-brand-300' : 'text-brand-700'}`}>{item.step}</span>
+                  <h3 className={`mt-7 text-xl font-semibold ${index === 1 ? 'text-white' : 'text-ink'}`}>{item.title}</h3>
+                  <p className={`mt-3 text-sm leading-6 ${index === 1 ? 'text-zinc-400' : 'text-ink-muted'}`}>{item.detail}</p>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 

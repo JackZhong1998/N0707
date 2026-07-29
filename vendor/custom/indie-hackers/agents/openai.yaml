@@ -1,0 +1,4 @@
+interface:
+  display_name: "Indie Hackers"
+  short_description: "Write credible founder stories and experiment updates"
+  default_prompt: "Use $indie-hackers to prepare an evidence-led founder story or experiment update for Indie Hackers."

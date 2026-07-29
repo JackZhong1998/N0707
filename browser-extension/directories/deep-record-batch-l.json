@@ -1,0 +1,110 @@
+[
+  {
+    "domain": "indiehub.best",
+    "status": "recording_partial",
+    "submitUrl": "https://indiehub.best/submit",
+    "entryStage": "google_login_then_three_steps",
+    "blocker": "已自动完成 Google 登录并记录第 1/3 步；第 2 步为 Payment，必须在付款边界前暂停。",
+    "notes": "Details 页包含 Link、AI Autofill、Name、Categories、Tags、Description、Markdown Introduction、1:1 Icon 和 16:9 Image。图片必须使用 Launch Kit 内存素材。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "dododirectory.com",
+    "status": "recording_partial",
+    "submitUrl": "https://dododirectory.com/submit",
+    "entryStage": "free_badge_then_details",
+    "blocker": "免费方案要求先在产品官网安装永久徽章并通过验证。",
+    "notes": "三步流程为 Submission Type、Details、Publish；插件不会替用户修改产品官网。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "1000.tools",
+    "status": "blocked",
+    "submitUrl": "https://1000.tools/signup",
+    "entryStage": "paid_signup_then_form",
+    "blocker": "首步要求选择月付或年付套餐，审核接受后收费。",
+    "notes": "首屏为 Tool URL、Email 和套餐；插件不会创建付费订阅。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "sumodir.com",
+    "status": "recording_partial",
+    "submitUrl": "https://sumodir.com/submit",
+    "entryStage": "free_badge_then_details",
+    "blocker": "免费方案要求产品官网反向链接；付费方案由 Polar 结算。",
+    "notes": "三步流程为 Submission Type、Details、Publish；停在站外徽章或付款边界。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "shipyardhq.dev",
+    "status": "recording_partial",
+    "submitUrl": "https://shipyardhq.dev/member/products/add",
+    "entryStage": "google_login_then_profile_completion",
+    "blocker": "Google 登录后首次账号要求填写 Last name 并同意服务条款。",
+    "notes": "已完成 Google 授权，但不会猜测用户姓氏或替用户接受新账号条款；完成资料后可继续。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "resource.fyi",
+    "status": "recording_partial",
+    "submitUrl": "https://resource.fyi/",
+    "entryStage": "button_driven_auth",
+    "blocker": "Submit Resource 为客户端按钮，本次点击后未稳定出现可识别的登录或提交表单。",
+    "notes": "需要继续适配该站点的客户端弹窗状态。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "stellarlaunch.org",
+    "status": "recording_partial",
+    "submitUrl": "https://www.stellarlaunch.org/projects/submit",
+    "entryStage": "google_login_then_four_step_wizard",
+    "blocker": "已完成 Google 登录并记录第 1 步，后续 Details、Launch Date、Review 仍需使用内存图片续录。",
+    "notes": "Project Info 包含 Name、URL、AI Autofill、Tagline、富文本详细介绍、1:1 Logo 和可选 16:9 Product Image。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "indiehackerstacks.com",
+    "status": "recording_partial",
+    "submitUrl": "https://indiehackerstacks.com/",
+    "entryStage": "button_driven_login",
+    "blocker": "Add your product stack 是客户端按钮，本次未稳定暴露提交弹窗或固定 URL。",
+    "notes": "该站还需要产品资料与技术栈集合，需继续记录按钮触发后的状态。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "hunt0.com",
+    "status": "configured",
+    "submitUrl": "https://hunt0.com/submit",
+    "entryStage": "public_full_form_then_login",
+    "blocker": null,
+    "notes": "公开单页长表单：URL、名称、tagline、pricing、Markdown 描述、Logo、1–9 张图库、分类、标签、发布日期、邮箱及社交链接；最终按钮为 Sign in to submit。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "saasgrow.app",
+    "status": "configured",
+    "submitUrl": "https://saasgrow.app/submit",
+    "entryStage": "google_login_then_full_form",
+    "blocker": null,
+    "notes": "已自动完成 Google 登录；单页表单包含 URL、Fetch、名称、分类、200 字描述和 Logo URL，停在 Submit SaaS 前。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "productlaunchpad.app",
+    "status": "recording_partial",
+    "submitUrl": "https://productlaunchpad.app/submit",
+    "entryStage": "email_magic_link_then_form",
+    "blocker": "只提供邮箱登录，没有 Google 登录入口。",
+    "notes": "需要用户完成邮箱验证后，插件从 next=/submit 自动续跑。",
+    "checkedAt": "2026-07-28"
+  },
+  {
+    "domain": "launchy.tools",
+    "status": "recording_partial",
+    "submitUrl": "https://launchy.tools/submit",
+    "entryStage": "google_login_then_multistep_form",
+    "blocker": "已自动完成 Google 登录并记录首屏；上传 1280×720 缩略图并点击 Next 后的步骤仍需使用 Launch Kit 内存素材续录。",
+    "notes": "首屏字段为 Thumbnail、Product name、Tagline、富文本 Description 和 Website URL。",
+    "checkedAt": "2026-07-28"
+  }
+]
