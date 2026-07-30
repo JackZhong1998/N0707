@@ -223,7 +223,7 @@ export function callDirectoryMaterialGeneration(input: {
     pricing: launch.brief?.product.pricing ?? '',
     sourceMarkdown: launch.brief?.sourceMarkdown ?? '',
     requestedFields: input.requestedFields,
-    locale: input.locale === 'en' ? 'en' : 'zh',
+    locale: (input.store.targetMarketLocale ?? input.locale) === 'zh' ? 'zh' : 'en',
   });
 }
 

@@ -1,9 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
+import { storePatchForNewLaunch } from '@/lib/gtm/launch';
+import {
+  resetFreeLaunchResearch,
+  runFreeLaunchResearch,
+} from '@/lib/gtm/free-launch-research';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
 import { FREE_BRIEF_EDIT_LIMIT } from '@/lib/gtm/types';
 
@@ -27,13 +32,26 @@ function List({ items }: { items: string[] }) {
 }
 
 export default function LaunchBriefPage() {
-  const { store } = useGtm();
-  const isZh = useLocale() !== 'en';
+  const gtm = useGtm();
+  const { store } = gtm;
+  const locale = useLocale();
+  const isZh = locale !== 'en';
+  const router = useRouter();
   const { setViewContext, clearViewContext } = useViewContext();
   const brief = store.launch?.brief;
   const used = store.launch?.briefEditUsed ?? 0;
   const remaining = Math.max(0, FREE_BRIEF_EDIT_LIMIT - used);
   const paid = store.paid;
+  const [retrying, setRetrying] = useState(false);
+
+  const unknown = isZh ? '官网未说明' : 'Not stated on the website';
+  const looksLikeFailedResearch =
+    !paid &&
+    store.launch?.researchConfidence === 'low' &&
+    Boolean(brief) &&
+    (brief!.product.summary === unknown ||
+      brief!.product.problem === unknown) &&
+    (brief!.competitors?.length ?? 0) === 0;
 
   useEffect(() => {
     if (!store.launch || !brief) return;
@@ -41,11 +59,11 @@ export default function LaunchBriefPage() {
       view: 'launch_brief',
       entityType: 'launch_brief',
       entityId: store.launch.project.id,
-      title: 'Launch Brief',
+      title: isZh ? '项目文档' : 'Project document',
       revision: brief.revision,
     });
     return clearViewContext;
-  }, [brief, clearViewContext, setViewContext, store.launch]);
+  }, [brief, clearViewContext, isZh, setViewContext, store.launch]);
 
   if (!store.launch || !brief) {
     return (
@@ -61,15 +79,60 @@ export default function LaunchBriefPage() {
     window.dispatchEvent(new Event('nowbuild:open-paywall'));
   };
 
+  const handleRetryResearch = async () => {
+    if (retrying || !store.launch) return;
+    setRetrying(true);
+    const next = resetFreeLaunchResearch(store.launch, isZh);
+    gtm.update(storePatchForNewLaunch(next));
+    router.replace('/app');
+    try {
+      await runFreeLaunchResearch({
+        launch: next,
+        locale,
+        isZh,
+        gtm,
+      });
+      router.replace('/app/brief');
+    } catch (error) {
+      console.error('Brief research retry failed:', error);
+      router.replace('/app');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-7 sm:px-8 sm:py-10">
+      {looksLikeFailedResearch && (
+        <div className="mb-6 rounded-2xl border border-red-400/25 bg-red-400/[0.08] px-5 py-4">
+          <p className="text-sm leading-6 text-red-100">
+            {isZh
+              ? '这次分析很可能因网络失败中断，当前项目文档几乎没有有效内容。请重新分析，成功前不要当成已就绪。'
+              : 'This analysis likely failed due to a network error — the project document has almost no real content. Retry before treating it as ready.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => void handleRetryResearch()}
+            disabled={retrying}
+            className="mt-3 rounded-full bg-white px-5 py-2 text-xs font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {retrying
+              ? isZh
+                ? '正在重试…'
+                : 'Retrying…'
+              : isZh
+                ? '重新分析'
+                : 'Retry analysis'}
+          </button>
+        </div>
+      )}
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.08] pb-7">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-300">
             Campaign Foundation · v{brief.revision}
           </p>
           <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-black tracking-tight text-white">
-            Launch Brief
+            {isZh ? '项目文档' : 'Project document'}
           </h1>
           <p className="mt-2 text-sm text-zinc-500">
             {isZh

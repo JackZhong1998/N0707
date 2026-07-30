@@ -2,6 +2,7 @@ import { callProductResearch } from '@/lib/gtm/api-client';
 import { deriveProductFitProfile } from '@/lib/directories/matching';
 import {
   buildLaunchBrief,
+  createBriefResearchSteps,
   createMatchedDirectoryPipeline,
   storePatchForNewLaunch,
 } from '@/lib/gtm/launch';
@@ -49,14 +50,55 @@ function setSteps(
   };
 }
 
+function isLikelyNetworkFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const cause =
+    error instanceof Error && error.cause instanceof Error
+      ? error.cause.message
+      : '';
+  return /fetch failed|timeout|timed out|network|econn|enotfound|und_err|abort|socket/i.test(
+    `${message} ${cause}`
+  );
+}
+
 export function isFreeLaunchResearchInFlight(launchId: string): boolean {
   return inflightByLaunchId.has(launchId);
+}
+
+export function isFreeLaunchResearchFailed(launch: LaunchState | undefined): boolean {
+  if (!launch || launch.brief) return false;
+  if (launch.project.phase !== 'researching') return false;
+  return (
+    launch.project.status === 'paused' ||
+    launch.researchProgress.some((step) => step.status === 'error')
+  );
 }
 
 export function needsFreeLaunchResearchResume(launch: LaunchState | undefined): boolean {
   if (!launch || launch.brief) return false;
   if (launch.project.phase !== 'researching') return false;
+  if (isFreeLaunchResearchFailed(launch)) return false;
   return true;
+}
+
+/** Reset progress and clear a failed attempt so research can run again. */
+export function resetFreeLaunchResearch(
+  launch: LaunchState,
+  isZh: boolean
+): LaunchState {
+  return {
+    ...launch,
+    brief: undefined,
+    researchProgress: createBriefResearchSteps(isZh),
+    researchConfidence: 'medium',
+    researchSources: [],
+    project: {
+      ...launch.project,
+      phase: 'researching',
+      status: 'building',
+      updatedAt: Date.now(),
+    },
+  };
 }
 
 export async function runFreeLaunchResearch(input: {
@@ -98,57 +140,82 @@ async function executeFreeLaunchResearch(input: {
   });
   updateLaunch(launch);
 
-  let research: ProductResearchResult | null = null;
+  let research: ProductResearchResult;
   try {
     research = await callProductResearch({ websiteUrl: productUrl, locale });
+  } catch (error) {
+    const network = isLikelyNetworkFailure(error);
+    const detail = network
+      ? isZh
+        ? '网络连接失败或超时，请检查网络后重试'
+        : 'Network connection failed or timed out. Check your network and retry.'
+      : isZh
+        ? '产品分析失败，请稍后重试'
+        : 'Product analysis failed. Please try again.';
     launch = {
       ...setSteps(launch, {
-        website: { status: 'done' },
-        product: { status: 'done' },
-        competitors: {
-          status: 'done',
-          detail: isZh
-            ? `已分析 ${research.competitors.length} 个主要竞品`
-            : `${research.competitors.length} primary competitors analyzed`,
-        },
-        audience: { status: 'running' },
-      }),
-      researchConfidence: research.competitors.length > 0 ? 'high' : 'medium',
-      researchSources: research.sources,
-    };
-    const researchProfile = `${research.productProfileMarkdown}\n\n${research.competitorAnalysisMarkdown}`;
-    gtm.setProfiles(gtm.store.userProfileDoc, researchProfile);
-  } catch {
-    launch = {
-      ...setSteps(launch, {
-        website: {
-          status: 'warning',
-          detail: isZh
-            ? '部分页面读取失败，已使用可用公开信息继续'
-            : 'Some pages could not be read; continuing with available public information',
-        },
-        product: { status: 'done' },
-        competitors: {
-          status: 'warning',
-          detail: isZh ? '竞品置信度较低，不阻塞主流程' : 'Low competitor confidence; launch continues',
-        },
-        audience: { status: 'running' },
+        website: { status: 'error', detail },
+        product: { status: 'error', detail },
+        competitors: { status: 'error', detail },
+        audience: { status: 'error', detail },
+        brief: { status: 'error', detail },
       }),
       researchConfidence: 'low',
+      project: {
+        ...launch.project,
+        phase: 'researching',
+        status: 'paused',
+        updatedAt: Date.now(),
+      },
     };
+    updateLaunch(launch);
+    gtm.addDirectorMessage({
+      role: 'assistant',
+      content: isZh
+        ? network
+          ? '产品分析失败：当前无法连上研究服务（网络超时或中断）。请点击「重试」再试一次，成功前不会生成项目文档。'
+          : '产品分析失败。请点击「重试」再试一次，成功前不会生成项目文档。'
+        : network
+          ? 'Product analysis failed: could not reach the research service (network timeout). Tap Retry — we won’t mark the project document ready until it succeeds.'
+          : 'Product analysis failed. Tap Retry — we won’t mark the project document ready until it succeeds.',
+    });
+    gtm.addAgentNotification({
+      title: isZh ? '产品分析失败' : 'Product analysis failed',
+      summary: detail,
+      priority: 'important',
+    });
+    throw error;
   }
+
+  launch = {
+    ...setSteps(launch, {
+      website: { status: 'done' },
+      product: { status: 'done' },
+      competitors: {
+        status: 'done',
+        detail: isZh
+          ? `已分析 ${research.competitors.length} 个主要竞品`
+          : `${research.competitors.length} primary competitors analyzed`,
+      },
+      audience: { status: 'running' },
+    }),
+    researchConfidence: research.competitors.length > 0 ? 'high' : 'medium',
+    researchSources: research.sources,
+  };
+  const researchProfile = `${research.productProfileMarkdown}\n\n${research.competitorAnalysisMarkdown}`;
+  gtm.setProfiles(gtm.store.userProfileDoc, researchProfile);
   updateLaunch(launch);
 
   const brief = buildLaunchBrief(launch, research, isZh);
   const productName =
-    research?.product?.name?.trim() && research.product.name !== 'Unknown product'
+    research.product?.name?.trim() && research.product.name !== 'Unknown product'
       ? research.product.name.trim().slice(0, 120)
       : launch.project.productName;
   const productFit = deriveProductFitProfile({
-    category: research?.product?.category,
-    targetUsers: research?.product?.targetUsers,
-    summary: research?.product?.summary ?? brief.product.summary,
-    capabilities: research?.product?.capabilities ?? brief.product.features,
+    category: research.product?.category,
+    targetUsers: research.product?.targetUsers,
+    summary: research.product?.summary ?? brief.product.summary,
+    capabilities: research.product?.capabilities ?? brief.product.features,
     stage: brief.product.stage,
   });
 
@@ -173,14 +240,14 @@ async function executeFreeLaunchResearch(input: {
   gtm.addDirectorMessage({
     role: 'assistant',
     content: isZh
-      ? '冷启动简报已经准备好。哪里不准确，直接在右侧告诉我（最多可免费修改 20 次）。确认无误后，点击「组建我的 30 天推广团队」，即可开启完整执行。'
-      : 'Your Launch Brief is ready. Tell me on the right what to correct (up to 20 free edits). When ready, tap “Assemble my 30-day Agent Team” to unlock full execution.',
+      ? '项目文档已经准备好，可在左侧「文档」列表中打开查看。哪里不准确，直接在右侧告诉我（最多可免费修改 20 次）。确认无误后，打开项目文档详情并点击「组建我的 30 天推广团队」。'
+      : 'Your project document is ready — open it from Documents on the left. Tell me on the right what to correct (up to 20 free edits). When ready, open the project document and tap “Assemble my 30-day Agent Team”.',
   });
   gtm.addAgentNotification({
-    title: isZh ? '冷启动简报已就绪' : 'Launch Brief is ready',
+    title: isZh ? '项目文档已就绪' : 'Project document is ready',
     summary: isZh
-      ? '产品分析已经完成。确认并修正简报后，即可开启完整的 30 天执行团队。'
-      : 'Product analysis is done. Correct the Brief, then unlock the full 30-day execution team.',
+      ? '产品分析已经完成。在文档列表中打开项目文档确认并修正后，即可开启完整的 30 天执行团队。'
+      : 'Product analysis is done. Open the project document from the list, correct it, then unlock the full 30-day execution team.',
     priority: 'important',
   });
 

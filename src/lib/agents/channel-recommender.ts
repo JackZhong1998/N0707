@@ -13,7 +13,9 @@ import { callOpenRouterJson, type OpenRouterMessage } from '@/lib/openrouter';
 import {
   CHANNEL_ROUTER_SKILL_IDS,
 } from './skills/channel-map';
-import { SUPPORTED_LAUNCH_CHANNELS } from '@/lib/gtm/launch';
+import {
+  RECOMMENDABLE_LAUNCH_CHANNELS,
+} from '@/lib/gtm/launch';
 import {
   formatChannelCatalog,
   formatSkillCatalog,
@@ -54,7 +56,9 @@ function text(value: unknown, maxLength: number, fallback = ''): string {
 }
 
 function allowedChannelIds(): Set<string> {
-  return new Set(SUPPORTED_LAUNCH_CHANNELS.map((channel) => channel.channelId));
+  return new Set(
+    RECOMMENDABLE_LAUNCH_CHANNELS.map((channel) => channel.channelId)
+  );
 }
 
 async function pickSpecialistSkills(
@@ -130,7 +134,9 @@ function fallbackRecommendations(
     profile.includes('mobile');
 
   const pick = (ids: string[]) =>
-    SUPPORTED_LAUNCH_CHANNELS.filter((channel) => ids.includes(channel.channelId));
+    RECOMMENDABLE_LAUNCH_CHANNELS.filter((channel) =>
+      ids.includes(channel.channelId)
+    );
 
   let primaryIds: string[];
   let secondaryIds: string[];
@@ -142,24 +148,24 @@ function fallbackRecommendations(
     secondaryIds = ['github_growth', 'indie_hackers', 'seo', 'linkedin'];
   } else if (consumer) {
     primaryIds = ['reddit', 'product_hunt', 'seo', 'twitter_x'];
-    secondaryIds = ['indie_hackers', 'directory', 'instagram'];
+    secondaryIds = ['indie_hackers', 'instagram', 'website_copy'];
   } else {
     primaryIds = ['linkedin', 'reddit', 'seo', 'product_hunt'];
-    secondaryIds = ['twitter_x', 'directory', 'indie_hackers'];
+    secondaryIds = ['twitter_x', 'indie_hackers', 'website_copy'];
   }
 
   const primary = pick(primaryIds);
   const secondary = pick(secondaryIds);
   const used = new Set([...primary, ...secondary].map((c) => c.channelId));
-  const explore = SUPPORTED_LAUNCH_CHANNELS.filter(
+  const explore = RECOMMENDABLE_LAUNCH_CHANNELS.filter(
     (c) => !used.has(c.channelId) && c.tier !== 'extended'
   ).slice(0, 2);
-  const skip = SUPPORTED_LAUNCH_CHANNELS.filter(
+  const skip = RECOMMENDABLE_LAUNCH_CHANNELS.filter(
     (c) => !used.has(c.channelId) && !explore.some((e) => e.channelId === c.channelId)
   ).slice(0, 4);
 
   const toItem = (
-    channel: (typeof SUPPORTED_LAUNCH_CHANNELS)[number],
+    channel: (typeof RECOMMENDABLE_LAUNCH_CHANNELS)[number],
     priority: 'primary' | 'secondary' | 'explore' | 'skip',
     fitScore: number
   ) => ({
@@ -246,7 +252,7 @@ function normalizeResponse(
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
   const seen = new Set(recommendations.map((r) => r.channelId));
-  for (const channel of SUPPORTED_LAUNCH_CHANNELS) {
+  for (const channel of RECOMMENDABLE_LAUNCH_CHANNELS) {
     if (!seen.has(channel.channelId)) {
       recommendations.push({
         channelId: channel.channelId,
@@ -296,7 +302,7 @@ export async function runChannelRecommender(
   const skillContent = loadSkillContents(skillIds);
   const channelCatalog = formatChannelCatalog(
     getChannelCatalog().filter((c) =>
-      SUPPORTED_LAUNCH_CHANNELS.some((s) => s.channelId === c.channelId)
+      RECOMMENDABLE_LAUNCH_CHANNELS.some((s) => s.channelId === c.channelId)
     )
   );
 
@@ -308,12 +314,12 @@ export async function runChannelRecommender(
 # 你精读过的方法论（只作判断依据，不覆盖产品事实）
 ${skillContent || '（无 skill 可用）'}
 
-# NowBuild 支持的渠道白名单（channelId 必须从这里选）
+# NowBuild 可推荐渠道白名单（channelId 必须从这里选；directory 是固定能力，禁止出现在推荐结果中）
 ${channelCatalog}
 
 # 任务
 1. 先诊断产品类型、阶段、目标市场、瓶颈。
-2. 从白名单输出全部渠道的 priority（primary / secondary / explore / skip）。
+2. 从白名单输出全部渠道的 priority（primary / secondary / explore / skip）。禁止推荐 directory。
 3. primary 数量尊重用户时间预算（用户档案中的 maxActiveChannels 或每天可用时间）。
 4. 用户偏好渠道、正在做的渠道应加权。
 5. summaryMarkdown 用 2–4 段说明整体推荐逻辑，面向创始人可读。

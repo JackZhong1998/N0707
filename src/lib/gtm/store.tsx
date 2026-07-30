@@ -173,8 +173,8 @@ function mergeHydratedStores(
       (message) => message.replyToMessageIds ?? []
     )
   );
-  const remoteHasBrief = Boolean(remoteStore.launch?.brief);
   const sameLaunchProject =
+    Boolean(localStore.launch?.project.id) &&
     localStore.launch?.project.id === remoteStore.launch?.project.id;
   const localIsNewerLaunch =
     Boolean(localStore.launch?.brief) &&
@@ -182,23 +182,39 @@ function mergeHydratedStores(
     !sameLaunchProject &&
     (localStore.launch?.project.createdAt ?? 0) >=
       (remoteStore.launch?.project.createdAt ?? 0);
-  const localHasInProgressResearch =
-    Boolean(localStore.launch) &&
-    !localStore.launch?.brief &&
-    localStore.launch?.project.phase === 'researching';
-  const localLaunch =
-    localStore.launch?.brief && (!remoteHasBrief || localIsNewerLaunch)
-      ? localStore.launch
-      : localHasInProgressResearch && !remoteHasBrief
-        ? preferFartherLaunch(
-            undefined,
-            remoteStore.launch,
-            localStore.launch
-          ) ?? localStore.launch
-        : undefined;
-  const merged: GtmStore = {
+
+  const launch = localIsNewerLaunch
+    ? localStore.launch
+    : preferFartherLaunch(
+        undefined,
+        remoteStore.launch,
+        localStore.launch
+      ) ??
+      remoteStore.launch ??
+      localStore.launch;
+
+  // Same-project sessions must keep local write-ahead work (todos / plans /
+  // planReady) that may not have landed in Supabase yet.
+  if (localIsNewerLaunch && localStore.launch) {
+    return {
+      ...remoteStore,
+      ...storePatchForNewLaunch(localStore.launch),
+      paid: Boolean(remoteStore.paid || localStore.paid),
+      directorChat,
+      pendingAgentRequests: mergeById(
+        remoteStore.pendingAgentRequests,
+        localStore.pendingAgentRequests.filter(
+          (request) => !repliedTo.has(request.messageId)
+        )
+      ).sort((a, b) => a.createdAt - b.createdAt),
+      launch: localStore.launch,
+      updatedAt: Math.max(remoteStore.updatedAt, localStore.updatedAt),
+    };
+  }
+
+  return {
     ...remoteStore,
-    paid: remoteStore.paid,
+    paid: Boolean(remoteStore.paid || localStore.paid),
     directorChat,
     pendingAgentRequests: mergeById(
       remoteStore.pendingAgentRequests,
@@ -206,22 +222,32 @@ function mergeHydratedStores(
         (request) => !repliedTo.has(request.messageId)
       )
     ).sort((a, b) => a.createdAt - b.createdAt),
-    updatedAt: remoteStore.updatedAt,
-  };
-  if (!localLaunch) return merged;
-  if (localIsNewerLaunch) {
-    return {
-      ...merged,
-      ...storePatchForNewLaunch(localLaunch),
-      launch: localLaunch,
-      updatedAt: Math.max(remoteStore.updatedAt, localStore.updatedAt),
-    };
-  }
-  return {
-    ...merged,
-    launch: localLaunch,
-    startDate: localStore.startDate,
-    planReady: localStore.planReady,
+    launch,
+    planReady: Boolean(localStore.planReady || remoteStore.planReady),
+    todos: mergeById(remoteStore.todos, localStore.todos).sort(
+      (a, b) =>
+        a.dayIndex - b.dayIndex || a.channelId.localeCompare(b.channelId)
+    ),
+    channelStrategies: {
+      ...remoteStore.channelStrategies,
+      ...localStore.channelStrategies,
+    },
+    channels: [
+      ...new Set([...remoteStore.channels, ...localStore.channels]),
+    ],
+    startDate: localStore.startDate ?? remoteStore.startDate,
+    userProfileDoc: localStore.userProfileDoc || remoteStore.userProfileDoc,
+    projectProfileDoc:
+      localStore.projectProfileDoc || remoteStore.projectProfileDoc,
+    conversationSummary:
+      localStore.conversationSummary || remoteStore.conversationSummary,
+    postPayProfileComplete: Boolean(
+      localStore.postPayProfileComplete || remoteStore.postPayProfileComplete
+    ),
+    targetMarketLocale:
+      localStore.targetMarketLocale ?? remoteStore.targetMarketLocale,
+    strategy: localStore.strategy ?? remoteStore.strategy,
+    updatedAt: Math.max(remoteStore.updatedAt, localStore.updatedAt),
   };
 }
 
@@ -1146,7 +1172,7 @@ function GtmProviderState({
   );
 
   const setSelectedChannelIds = useCallback((channelIds: string[]) => {
-    const unique = [...new Set(channelIds)];
+    const unique = [...new Set([...channelIds, 'directory'])];
     setStore((prev) => {
       if (!prev.launch) {
         return { ...prev, channels: unique, updatedAt: Date.now() };
@@ -1487,7 +1513,11 @@ function GtmProviderState({
         todos: [
           ...prev.todos.filter((t) => t.channelId !== channelId),
           ...todos,
-        ].sort((a, b) => a.dayIndex - b.dayIndex || a.channelId.localeCompare(b.channelId)),
+        ].sort(
+          (a, b) =>
+            a.dayIndex - b.dayIndex || a.channelId.localeCompare(b.channelId)
+        ),
+        planReady: prev.planReady || todos.length > 0,
         updatedAt: Date.now(),
       }));
     },

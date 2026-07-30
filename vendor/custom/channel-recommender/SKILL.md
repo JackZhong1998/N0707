@@ -36,8 +36,9 @@ description: |
 ## 硬规则
 
 1. `channelId` 必须来自输入的 channel 目录，不得编造
-2. 尊重用户 `maxActiveChannels`：primary 数量不得超过该值
-3. 用户 `preferredChannels` / `activeChannels` 应加权为 primary 或 secondary（有合理理由时可 skip）
+2. **禁止推荐 `directory`**：Directory 是每个用户的固定能力，不参与推荐打分，也不出现在 recommendations 列表
+3. 尊重用户 `maxActiveChannels`：primary 数量不得超过该值
+4. 用户 `preferredChannels` / `activeChannels` 应加权为 primary 或 secondary（有合理理由时可 skip）
 4. 目标市场为北美时，优先 `locales` 含 `en` 的渠道；中文市场优先 `zh`
 5. 每天时间 < 30 分钟：primary ≤ 3；< 60 分钟：primary ≤ 4
 6. `skip` 也必须给出简短 rationale

@@ -42,16 +42,11 @@ const isClerkConfigured =
   !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('xxxxx');
 
 type NavigationKey =
-  | 'command'
-  | 'calendar'
-  | 'blueprint'
-  | 'channels'
-  | 'channel-recommendations'
+  | 'todo'
+  | 'documents'
+  | 'directory'
   | 'posts'
-  | 'reviews'
-  | 'report'
-  | 'publisher'
-  ;
+  | 'publisher';
 
 type NavigationItem = {
   key: NavigationKey;
@@ -59,13 +54,10 @@ type NavigationItem = {
   label: string;
   description: string;
   icon:
-    | 'command'
     | 'calendar'
     | 'blueprint'
     | 'channels'
-    | 'posts'
-    | 'reviews'
-    | 'report'
+    | 'data'
     | 'plugin';
   iconTone: string;
   lowFrequency?: boolean;
@@ -98,16 +90,6 @@ function NavIcon({
       </svg>
     );
   }
-  if (name === 'command') {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55">
-        <circle cx="12" cy="12" r="8.25" />
-        <circle cx="12" cy="12" r="2.25" fill="currentColor" stroke="none" />
-        <path strokeLinecap="round" d="M12 1.75v3M12 19.25v3M1.75 12h3M19.25 12h3" />
-        <path strokeLinecap="round" d="m14.15 9.85 3.1-3.1-3.1 3.1Z" strokeWidth="2.2" />
-      </svg>
-    );
-  }
   if (name === 'calendar') {
     return (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -137,27 +119,12 @@ function NavIcon({
       </svg>
     );
   }
-  if (name === 'posts') {
+  if (name === 'data') {
     return (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v9A1.5 1.5 0 0 1 19 16.5h-8L6.5 20v-3.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5Z" />
-        <path strokeLinecap="round" d="M8 9h8M8 12.5h5" />
-      </svg>
-    );
-  }
-  if (name === 'reviews') {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.2A8.25 8.25 0 1 0 20 15M19.5 3.5v4.7h-4.7" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="m8.2 12.1 2.45 2.45 5.2-5.2" />
-      </svg>
-    );
-  }
-  if (name === 'report') {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6 3.5h9l3 3V20.5H6v-17Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 3.5v3h3M9 16v-3M12 16V9M15 16v-5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5h15" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16.5V11M12 16.5V7.5M17 16.5v-3" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.25 11h1.5M11.25 7.5h1.5M16.25 13.5h1.5" />
       </svg>
     );
   }
@@ -185,15 +152,21 @@ function AvatarFallback() {
 }
 
 function getActiveKey(pathname: string): NavigationKey {
-  if (/\/app\/?$/.test(pathname)) return 'command';
   if (pathname.includes('/app/posts')) return 'posts';
-  if (pathname.includes('/app/channel-recommendations')) return 'channel-recommendations';
-  if (pathname.includes('/app/blueprint') || pathname.includes('/app/brief')) return 'blueprint';
-  if (pathname.includes('/app/channels') || pathname.includes('/app/directories')) return 'channels';
-  if (pathname.includes('/app/reviews')) return 'reviews';
-  if (pathname.includes('/app/report')) return 'report';
+  if (pathname.includes('/app/directories') || pathname.includes('/app/launch-kit')) {
+    return 'directory';
+  }
+  if (
+    pathname.includes('/app/documents') ||
+    pathname.includes('/app/brief') ||
+    pathname.includes('/app/blueprint') ||
+    pathname.includes('/app/channel-recommendations') ||
+    pathname.includes('/app/channels')
+  ) {
+    return 'documents';
+  }
   if (pathname.includes('/app/publisher-extension')) return 'publisher';
-  return 'calendar';
+  return 'todo';
 }
 
 function getRouteViewContext(
@@ -209,13 +182,6 @@ function getRouteViewContext(
       title: isZh ? '任务详情' : 'To-do details',
     };
   }
-  if (/\/app\/?$/.test(pathname)) {
-    return {
-      view: 'launch_command_center',
-      entityType: 'launch_project',
-      title: isZh ? '冷启动工作台' : 'Launch Command Center',
-    };
-  }
   const channelMatch = pathname.match(/\/app\/channels\/([^/?]+)/);
   if (channelMatch) {
     return {
@@ -226,14 +192,36 @@ function getRouteViewContext(
       title: `${decodeURIComponent(channelMatch[1])} Agent`,
     };
   }
-  if (pathname.includes('/app/channels')) {
-    return { view: 'channel_agents', entityType: 'channel_plan_collection', title: isZh ? '渠道团队' : 'Channel Agents' };
-  }
-  if (pathname.includes('/app/directories')) {
-    return { view: 'directory_pipeline', entityType: 'directory_pipeline', channelId: 'directory', title: isZh ? '目录发布专员' : 'Directory Agent' };
+  if (pathname.includes('/app/directories') || pathname.includes('/app/launch-kit')) {
+    return {
+      view: 'directory_pipeline',
+      entityType: 'directory_pipeline',
+      channelId: 'directory',
+      title: isZh ? 'Directory' : 'Directory',
+    };
   }
   if (pathname.includes('/app/brief')) {
-    return { view: 'launch_brief', entityType: 'launch_brief', title: isZh ? '冷启动简报' : 'Launch Brief' };
+    return {
+      view: 'launch_brief',
+      entityType: 'launch_brief',
+      title: isZh ? '项目文档' : 'Project document',
+    };
+  }
+  if (pathname.includes('/app/documents/')) {
+    const docMatch = pathname.match(/\/app\/documents\/([^/?]+)/);
+    return {
+      view: 'document_detail',
+      entityType: 'document',
+      entityId: docMatch ? decodeURIComponent(docMatch[1]) : undefined,
+      title: isZh ? '文档详情' : 'Document',
+    };
+  }
+  if (pathname.includes('/app/documents')) {
+    return {
+      view: 'documents',
+      entityType: 'document_collection',
+      title: isZh ? '文档' : 'Documents',
+    };
   }
   if (pathname.includes('/app/channel-recommendations')) {
     return {
@@ -243,32 +231,30 @@ function getRouteViewContext(
     };
   }
   if (pathname.includes('/app/blueprint')) {
-    return { view: 'launch_blueprint', entityType: 'launch_blueprint', title: isZh ? '30 天推广蓝图' : '30-Day Campaign Blueprint' };
-  }
-  if (pathname.includes('/app/reviews')) {
-    return { view: 'weekly_review', entityType: 'weekly_review_collection', title: isZh ? '每周复盘' : 'Weekly Reviews' };
-  }
-  if (pathname.includes('/app/report')) {
-    return { view: 'launch_report', entityType: 'launch_report', title: isZh ? '30 天冷启动报告' : 'Day 30 Launch Report' };
+    return {
+      view: 'launch_blueprint',
+      entityType: 'launch_blueprint',
+      title: isZh ? '推广蓝图' : 'Campaign Blueprint',
+    };
   }
   if (pathname.includes('/app/posts')) {
     return {
       view: 'post_metrics',
       entityType: 'post_collection',
-      title: isZh ? '帖子与数据' : 'Posts & metrics',
+      title: isZh ? '数据' : 'Data',
     };
   }
   if (pathname.includes('/app/publisher-extension')) {
     return {
       view: 'publisher_extension',
       entityType: 'integration',
-      title: isZh ? '发布插件' : 'Publishing extension',
+      title: isZh ? '插件' : 'Plugins',
     };
   }
   return {
     view: 'launch_calendar',
     entityType: 'calendar',
-    title: isZh ? '推广日历' : 'Launch Calendar',
+    title: isZh ? 'Todo' : 'Todo',
   };
 }
 
@@ -281,13 +267,17 @@ function mapMessageArtifact(
     return { label: card.label, status: card.status };
   }
   if (card.kind === 'strategy') {
-    return { label: card.title, status: 'done', href: '/app/blueprint' };
+    return {
+      label: card.title,
+      status: 'done',
+      href: '/app/documents/recommendations',
+    };
   }
   if (card.kind === 'channel_plan') {
     const href =
       card.channelId === 'directory'
         ? '/app/directories'
-        : `/app/channels/${card.channelId}`;
+        : `/app/documents/channel-${card.channelId}`;
     return {
       label: `${card.channelName} · ${isZh ? '渠道计划' : 'Channel plan'}`,
       status: 'done',
@@ -298,7 +288,7 @@ function mapMessageArtifact(
     const href =
       card.channelId === 'directory'
         ? '/app/directories'
-        : `/app/channels/${card.channelId}`;
+        : `/app/calendar?channel=${encodeURIComponent(card.channelId)}`;
     return {
       label: `${card.channelName} · ${card.todoCount} ${isZh ? '个任务' : 'tasks'}`,
       status: 'done',
@@ -402,75 +392,46 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const items = useMemo<NavigationItem[]>(
     () => [
       {
-        key: 'command',
-        href: '/app',
-        label: isZh ? '冷启动工作台' : 'Launch Command Center',
-        description: isZh ? '今天的重点任务和团队进度' : 'Today’s priorities and team status',
-        icon: 'command',
-        iconTone: 'bg-brand-500/12 text-brand-300',
-      },
-      {
-        key: 'calendar',
+        key: 'todo',
         href: '/app/calendar',
-        label: isZh ? '推广日历' : 'Launch Calendar',
-        description: isZh ? '跨渠道的 30 天行动安排' : 'Cross-channel 30-day execution timeline',
+        label: 'Todo',
+        description: isZh ? '按渠道查看 30 天任务' : '30-day tasks by channel',
         icon: 'calendar',
         iconTone: 'bg-amber-400/12 text-amber-300',
       },
       {
-        key: 'blueprint',
-        href: '/app/blueprint',
-        label: isZh ? '推广蓝图' : 'Campaign Blueprint',
-        description: isZh ? '产品定位、内容主线与四周节奏' : 'Brief, positioning, pillars, and four-week story',
+        key: 'documents',
+        href: '/app/documents',
+        label: isZh ? '文档' : 'Documents',
+        description: isZh
+          ? '项目文档、用户档案、渠道推荐与策略'
+          : 'Project doc, profile, recommendations, strategies',
         icon: 'blueprint',
         iconTone: 'bg-brand-500/12 text-brand-300',
       },
       {
-        key: 'channels',
-        href: '/app/channels',
-        label: isZh ? '渠道团队' : 'Channel Agents',
-        description: isZh ? '各平台的打法、任务与复盘' : 'Channel playbooks, queues, and reviews',
+        key: 'directory',
+        href: '/app/directories',
+        label: 'Directory',
+        description: isZh
+          ? '提交资料与推荐目录（固定能力）'
+          : 'Submission kit and directory list (always on)',
         icon: 'channels',
-        iconTone: 'bg-cyan-500/12 text-cyan-300',
-      },
-      {
-        key: 'channel-recommendations',
-        href: '/app/channel-recommendations',
-        label: isZh ? '渠道推荐' : 'Channel Picks',
-        description: isZh ? '按产品与市场推荐优先渠道' : 'Product-fit channel priorities',
-        icon: 'channels',
-        iconTone: 'bg-violet-500/12 text-violet-300',
+        iconTone: 'bg-emerald-500/12 text-emerald-300',
       },
       {
         key: 'posts',
         href: '/app/posts',
-        label: isZh ? '帖子与数据' : 'Posts & data',
-        description: isZh ? '已发布内容及真实表现' : 'Published work and performance evidence',
-        icon: 'posts',
-        iconTone: 'bg-emerald-500/12 text-emerald-300',
-      },
-      {
-        key: 'reviews',
-        href: '/app/reviews',
-        label: isZh ? '每周复盘' : 'Weekly Reviews',
-        description: isZh ? '根据反馈调整下一周计划' : 'Execution signals and next-week adjustments',
-        icon: 'reviews',
-        iconTone: 'bg-blue-500/12 text-blue-300',
-      },
-      {
-        key: 'report',
-        href: '/app/report',
-        label: isZh ? '冷启动报告' : 'Launch Report',
-        description: isZh ? '30 天执行结果与后续建议' : 'Complete Day 30 execution result',
-        icon: 'report',
-        iconTone: 'bg-fuchsia-500/12 text-fuchsia-300',
-        lowFrequency: true,
+        label: isZh ? '数据' : 'Data',
+        description: isZh ? '已发布内容及真实表现' : 'Published work and metrics',
+        icon: 'data',
+        iconTone: 'bg-cyan-500/12 text-cyan-300',
       },
       {
         key: 'publisher',
         href: '/app/publisher-extension',
-        label: isZh ? '发布插件' : 'Publishing extension',
-        description: isZh ? '安装、检测与连接状态' : 'Install, inspect, and check connections',
+        label: isZh ? '插件' : 'Plugins',
+        description: isZh ? '安装、检测与连接状态' : 'Install and connection status',
         icon: 'plugin',
         iconTone: 'bg-orange-500/12 text-orange-300',
         lowFrequency: true,
@@ -593,16 +554,21 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       window.removeEventListener('nowbuild:write-todo', writeTodo);
   }, [enqueueActions]);
 
-  // Free tier may stay on onboarding, research progress, and Launch Brief.
+  // Free tier may stay on onboarding, research progress, project docs, and brief.
   // Paid-only destinations keep the paywall; do not force unpaid users to calendar.
   useEffect(() => {
     if (!hydrated || accessStatus !== 'unpaid' || !store.launch) return;
     const phase = store.launch.project.phase;
     const freePath =
       /\/app\/?$/.test(pathname) ||
-      pathname.includes('/app/brief');
-    if (phase === 'brief_ready' && !pathname.includes('/app/brief')) {
-      router.replace('/app/brief');
+      pathname.includes('/app/brief') ||
+      pathname.includes('/app/documents');
+    if (
+      phase === 'brief_ready' &&
+      !pathname.includes('/app/brief') &&
+      !pathname.includes('/app/documents')
+    ) {
+      router.replace('/app/documents');
       return;
     }
     if (
@@ -613,7 +579,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       return;
     }
     if (!freePath && phase === 'brief_ready') {
-      router.replace('/app/brief');
+      router.replace('/app/documents');
     }
   }, [accessStatus, hydrated, pathname, router, store.launch]);
 
@@ -700,7 +666,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     accessStatus === 'unpaid' &&
     (onboarding ||
       /\/app\/?$/.test(pathname) ||
-      pathname.includes('/app/brief'));
+      pathname.includes('/app/brief') ||
+      pathname.includes('/app/documents'));
   const locked = accessStatus === 'unpaid' && !freeUnpaidWorkspace;
   const restrictedUnpaidView = locked && !isCalendarIndex;
 

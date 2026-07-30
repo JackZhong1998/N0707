@@ -24,17 +24,43 @@ type ViewContextValue = {
 
 const ViewContextState = createContext<ViewContextValue | null>(null);
 
+function sameViewContext(left: ViewContext, right: ViewContext): boolean {
+  return (
+    left.view === right.view &&
+    left.entityType === right.entityType &&
+    left.entityId === right.entityId &&
+    left.title === right.title &&
+    left.channelId === right.channelId &&
+    left.section === right.section &&
+    left.selectedText === right.selectedText &&
+    left.revision === right.revision &&
+    left.path === right.path
+  );
+}
+
 export function ViewContextProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [scopedContext, setScopedContext] = useState<ScopedViewContext | null>(
     null
   );
 
-  const setViewContext = useCallback(
-    (value: ViewContext) => setScopedContext({ pathname, value }),
-    [pathname]
-  );
-  const clearViewContext = useCallback(() => setScopedContext(null), []);
+  const setViewContext = useCallback((value: ViewContext) => {
+    setScopedContext((prev) => {
+      if (
+        prev &&
+        prev.pathname === pathname &&
+        sameViewContext(prev.value, value)
+      ) {
+        return prev;
+      }
+      return { pathname, value };
+    });
+  }, [pathname]);
+
+  const clearViewContext = useCallback(() => {
+    setScopedContext((prev) => (prev === null ? prev : null));
+  }, []);
+
   const viewContext =
     scopedContext?.pathname === pathname ? scopedContext.value : null;
   const value = useMemo(

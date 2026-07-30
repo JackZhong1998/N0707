@@ -150,6 +150,7 @@ export default function CalendarBoard({
   interactive,
   initialView = 'week',
   initialDate,
+  initialChannelFilter = 'all',
   previewMode = false,
   onToggleStatus,
   onViewStateChange,
@@ -159,6 +160,8 @@ export default function CalendarBoard({
   initialView?: ViewMode;
   /** 打开日历时定位到该日期（YYYY-MM-DD） */
   initialDate?: string;
+  /** Deep-link channel tab from Partner todo cards */
+  initialChannelFilter?: string;
   /** 付费墙预览：锁定周视图，每天展示完整 To-Do */
   previewMode?: boolean;
   onToggleStatus?: (id: string) => void;
@@ -180,9 +183,16 @@ export default function CalendarBoard({
     previewMode ? previewAnchor : initialView === 'day' ? resolvedInitialDate : todayStr()
   );
   const [focusDate, setFocusDate] = useState<string | null>(null);
-  const [channelFilter, setChannelFilter] = useState<string>('all');
+  const [channelFilter, setChannelFilter] = useState<string>(
+    initialChannelFilter || 'all'
+  );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const todayRowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (previewMode || !initialChannelFilter) return;
+    setChannelFilter(initialChannelFilter);
+  }, [initialChannelFilter, previewMode]);
 
   useEffect(() => {
     if (!previewMode) return;
@@ -230,14 +240,19 @@ export default function CalendarBoard({
 
   const weekDates = useMemo(() => {
     const ws = startOfWeek(anchor);
-    return Array.from({ length: 7 }, (_, i) => addDays(ws, i));
-  }, [anchor]);
+    const all = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+    // 选中具体渠道时，只保留有 Todo 的日期
+    if (channelFilter === 'all') return all;
+    return all.filter((date) => (byDate.get(date)?.length ?? 0) > 0);
+  }, [anchor, byDate, channelFilter]);
 
   const monthDates = useMemo(() => {
     const first = startOfMonth(anchor);
     const total = daysInMonth(anchor);
-    return Array.from({ length: total }, (_, i) => addDays(first, i));
-  }, [anchor]);
+    const all = Array.from({ length: total }, (_, i) => addDays(first, i));
+    if (channelFilter === 'all') return all;
+    return all.filter((date) => (byDate.get(date)?.length ?? 0) > 0);
+  }, [anchor, byDate, channelFilter]);
 
   const weekdayLabel = (date: string) => {
     const idx = (parseDateStr(date).getDay() + 6) % 7;
@@ -283,11 +298,12 @@ export default function CalendarBoard({
       return;
     }
     if (view === 'week') {
+      const ws = startOfWeek(anchor);
       onViewStateChange({
         mode: view,
         date: weekFocus,
-        rangeStart: weekDates[0],
-        rangeEnd: weekDates[6],
+        rangeStart: ws,
+        rangeEnd: addDays(ws, 6),
       });
       return;
     }
@@ -298,7 +314,8 @@ export default function CalendarBoard({
       rangeStart: first,
       rangeEnd: addDays(first, daysInMonth(anchor) - 1),
     });
-  }, [anchor, monthDates, monthFocus, onViewStateChange, view, weekDates, weekFocus]);
+    // weekDates/monthDates are derived; depend on primitives to avoid array-identity loops
+  }, [anchor, monthFocus, onViewStateChange, view, weekFocus]);
 
   const shift = (dir: 1 | -1) => {
     if (view === 'day') setAnchor(addDays(anchor, dir));
@@ -404,32 +421,38 @@ export default function CalendarBoard({
       >
         {(previewMode || view === 'week') && (
           <div className="mx-auto flex max-w-4xl flex-col gap-3">
-            {weekDates.map((date) => {
-              const dayTodos = byDate.get(date) ?? [];
-              const isToday = date === today;
-              const isFocus = date === weekFocus;
-              const shouldScrollHere = date === scrollTargetDate;
-              return (
-                <DayRow
-                  key={date}
-                  ref={shouldScrollHere ? todayRowRef : undefined}
-                  date={date}
-                  weekday={weekdayLabel(date)}
-                  dayLabel={formatDayLabel(date)}
-                  isToday={isToday}
-                  isFocus={isFocus}
-                  todos={dayTodos}
-                  interactive={interactive}
-                  compact={!previewMode && !isFocus}
-                  previewMode={previewMode}
-                  isZh={isZh}
-                  onFocus={() => !previewMode && setFocusDate(date)}
-                  onOpen={openTask}
-                  onPrefetch={prefetchTask}
-                  onToggleStatus={onToggleStatus}
-                />
-              );
-            })}
+            {weekDates.length === 0 ? (
+              <p className="py-16 text-center text-sm text-zinc-400">
+                {isZh ? '本周该渠道没有安排任务。' : 'No tasks for this channel this week.'}
+              </p>
+            ) : (
+              weekDates.map((date) => {
+                const dayTodos = byDate.get(date) ?? [];
+                const isToday = date === today;
+                const isFocus = date === weekFocus;
+                const shouldScrollHere = date === scrollTargetDate;
+                return (
+                  <DayRow
+                    key={date}
+                    ref={shouldScrollHere ? todayRowRef : undefined}
+                    date={date}
+                    weekday={weekdayLabel(date)}
+                    dayLabel={formatDayLabel(date)}
+                    isToday={isToday}
+                    isFocus={isFocus}
+                    todos={dayTodos}
+                    interactive={interactive}
+                    compact={!previewMode && !isFocus}
+                    previewMode={previewMode}
+                    isZh={isZh}
+                    onFocus={() => !previewMode && setFocusDate(date)}
+                    onOpen={openTask}
+                    onPrefetch={prefetchTask}
+                    onToggleStatus={onToggleStatus}
+                  />
+                );
+              })
+            )}
           </div>
         )}
 
@@ -507,33 +530,39 @@ export default function CalendarBoard({
 
         {!previewMode && view === 'month' && (
           <div className="mx-auto flex max-w-4xl flex-col gap-3">
-            {monthDates.map((date) => {
-              const dayTodos = byDate.get(date) ?? [];
-              const isToday = date === today;
-              const isFocus = date === monthFocus;
-              const shouldScrollHere = date === scrollTargetDate;
-              return (
-                <DayRow
-                  key={date}
-                  ref={shouldScrollHere ? todayRowRef : undefined}
-                  date={date}
-                  weekday={weekdayLabel(date)}
-                  dayLabel={formatDayLabel(date)}
-                  isToday={isToday}
-                  isFocus={isFocus}
-                  todos={dayTodos}
-                  interactive={interactive}
-                  compact={!isFocus}
-                  previewMode={false}
-                  isZh={isZh}
-                  onFocus={() => setFocusDate(date)}
-                  onOpenDay={() => openDayView(date)}
-                  onOpen={openTask}
-                  onPrefetch={prefetchTask}
-                  onToggleStatus={onToggleStatus}
-                />
-              );
-            })}
+            {monthDates.length === 0 ? (
+              <p className="py-16 text-center text-sm text-zinc-400">
+                {isZh ? '本月该渠道没有安排任务。' : 'No tasks for this channel this month.'}
+              </p>
+            ) : (
+              monthDates.map((date) => {
+                const dayTodos = byDate.get(date) ?? [];
+                const isToday = date === today;
+                const isFocus = date === monthFocus;
+                const shouldScrollHere = date === scrollTargetDate;
+                return (
+                  <DayRow
+                    key={date}
+                    ref={shouldScrollHere ? todayRowRef : undefined}
+                    date={date}
+                    weekday={weekdayLabel(date)}
+                    dayLabel={formatDayLabel(date)}
+                    isToday={isToday}
+                    isFocus={isFocus}
+                    todos={dayTodos}
+                    interactive={interactive}
+                    compact={!isFocus}
+                    previewMode={false}
+                    isZh={isZh}
+                    onFocus={() => setFocusDate(date)}
+                    onOpenDay={() => openDayView(date)}
+                    onOpen={openTask}
+                    onPrefetch={prefetchTask}
+                    onToggleStatus={onToggleStatus}
+                  />
+                );
+              })
+            )}
           </div>
         )}
       </div>

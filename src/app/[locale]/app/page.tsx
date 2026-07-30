@@ -16,6 +16,11 @@ export default function AppIndexPage() {
   useEffect(() => {
     if (!hydrated || !store.launch || store.paid) return;
     const rawPhase = store.launch.project.phase;
+    const failedResearch =
+      rawPhase === 'researching' &&
+      (store.launch.project.status === 'paused' ||
+        store.launch.researchProgress.some((step) => step.status === 'error'));
+    if (failedResearch) return;
     const shouldOpenBrief =
       Boolean(store.launch.brief) &&
       (rawPhase === 'brief_ready' ||
@@ -23,7 +28,7 @@ export default function AppIndexPage() {
           rawPhase
         ));
     if (shouldOpenBrief) {
-      router.replace('/app/brief');
+      router.replace('/app/documents');
     }
   }, [hydrated, router, store.launch, store.paid]);
 
@@ -40,7 +45,7 @@ export default function AppIndexPage() {
     return (
       <div className="flex h-full items-center justify-center px-6">
         <p className="text-sm text-zinc-500">
-          {isZh ? '正在打开 Launch Brief…' : 'Opening Launch Brief…'}
+          {isZh ? '正在打开文档…' : 'Opening documents…'}
         </p>
       </div>
     );

@@ -30,6 +30,14 @@ import { buildAgentContextEnvelope } from './agent-context';
 import { applyStrategyToChannelPlans } from './launch';
 import { formatKickoffAnswers } from './kickoff';
 import {
+  buildChannelSelectOptionCard,
+  buildPostPayProfileCard,
+  formatPostPayAnswersMessage,
+  formatPostPayProfileSeed,
+  resolveTargetMarketLocale,
+  withFixedDirectory,
+} from './post-pay-profile';
+import {
   CONTEXT_SYNC_INTERVAL,
   FREE_BRIEF_EDIT_LIMIT,
   type ChatMessage,
@@ -293,6 +301,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
   storeRef.current = gtm.store;
   // React 状态落盘前的同步缓存：策略生成后立即派发 To-Do 时使用
   const freshStrategiesRef = useRef<Record<string, { markdown: string; name: string }>>({});
+  const postPayCardPostedRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -343,6 +352,48 @@ export function useDirector(defaultViewContext?: ViewContext) {
     },
     [gtm]
   );
+
+  // 付费后强制弹出固定用户档案问卷（市场 / 渠道偏好 / 每天时间）
+  useEffect(() => {
+    if (!gtm.hydrated || !gtm.store.paid || !gtm.store.launch?.brief) return;
+    if (gtm.store.postPayProfileComplete || postPayCardPostedRef.current) return;
+    const alreadyShown = gtm.store.directorChat.some(
+      (message) =>
+        message.card?.kind === 'kickoff' &&
+        (message.card.card.title.includes('用户档案') ||
+          message.card.card.title.includes('Quick profile'))
+    );
+    if (alreadyShown) {
+      postPayCardPostedRef.current = true;
+      return;
+    }
+    postPayCardPostedRef.current = true;
+    const isZh = locale !== 'en';
+    void publishDirectorMessage({
+      role: 'assistant',
+      content: isZh
+        ? '付费已解锁。先用这张卡片补齐用户档案，我再据此推荐渠道。对话里提到的其他偏好和想法，也会持续写进这份档案。'
+        : 'You’re unlocked. Fill this profile card first so I can recommend channels. Preferences and ideas you mention in chat will keep expanding the same profile.',
+      card: {
+        kind: 'kickoff',
+        card: buildPostPayProfileCard(isZh),
+      },
+    });
+    gtm.setSelectedChannelIds(
+      withFixedDirectory(
+        gtm.store.launch.selectedChannelIds ?? gtm.store.channels
+      )
+    );
+  }, [
+    gtm,
+    gtm.hydrated,
+    gtm.store.paid,
+    gtm.store.launch?.brief,
+    gtm.store.postPayProfileComplete,
+    gtm.store.directorChat,
+    locale,
+    publishDirectorMessage,
+  ]);
 
   const syncContext = useCallback(async () => {
     const store = storeRef.current;
@@ -494,12 +545,6 @@ export function useDirector(defaultViewContext?: ViewContext) {
           feedback,
         });
         gtm.setChannelRecommendations(res);
-        const primaryIds = res.recommendations
-          .filter((item) => item.priority === 'primary')
-          .map((item) => item.channelId);
-        if (primaryIds.length > 0) {
-          gtm.setSelectedChannelIds(primaryIds);
-        }
         gtm.patchDirectorMessage(cardMsg.id, {
           card: {
             kind: 'agent-task',
@@ -510,8 +555,16 @@ export function useDirector(defaultViewContext?: ViewContext) {
         await publishDirectorMessage({
           role: 'assistant',
           content: isZh
-            ? '渠道推荐已经放到左侧「渠道推荐」页。你可以勾选或调整，确认后我再帮你逐个写渠道计划。'
-            : 'Channel recommendations are on the left. Review and confirm your picks, then I can write channel plans one by one.',
+            ? '渠道推荐已经写进左侧「文档」。Directory（产品目录提交）是固定能力，不用勾选——稍后我会引导你去提交。请先在卡片里选择本轮要做的渠道。'
+            : 'Recommendations are in Documents. Directory publishing is always on—I’ll guide you to submit later. Pick channels for this round in the card below.',
+        });
+        await publishDirectorMessage({
+          role: 'assistant',
+          content: isZh ? '选择渠道' : 'Select channels',
+          card: {
+            kind: 'options',
+            card: buildChannelSelectOptionCard(res.recommendations, isZh),
+          },
         });
       } catch (err) {
         gtm.patchDirectorMessage(cardMsg.id, {
@@ -664,8 +717,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
       await publishDirectorMessage({
         role: 'assistant',
         content: isZh
-          ? '渠道计划已全部返回。你可以在左侧点开各渠道查看详情。需要我为这些渠道生成 30 天 Todo 吗？'
-          : 'All channel plans are back. Open each channel on the left for details. Should I generate 30-day todos for them?',
+          ? '渠道计划已全部返回。可在左侧「文档」查看详情。Directory 是固定能力，记得稍后去提交。需要我为这些渠道生成 Todo 吗？'
+          : 'All channel plans are back—open Documents for details. Directory is always on; I’ll remind you to submit. Generate todos for these channels?',
       });
       await publishDirectorMessage({
         role: 'assistant',
@@ -699,6 +752,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
     ) => {
       if (channelIds.length === 0) return;
       const isZh = locale !== 'en';
+      const contentLocale =
+        storeRef.current.targetMarketLocale ?? locale;
       const taskId = `todos-${Date.now()}`;
       setBackgroundTasks((t) => [...t, taskId]);
       const startDate =
@@ -731,7 +786,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
             const res = await callChannelTodos({
               channelId,
               store: executionStore,
-              locale,
+              locale: contentLocale,
               strategyMarkdownOverride:
                 freshStrategiesRef.current[channelId]?.markdown,
             });
@@ -813,7 +868,23 @@ export function useDirector(defaultViewContext?: ViewContext) {
       );
 
       if (succeeded > 0) {
-        gtm.update({ planReady: true });
+        const launch = storeRef.current.launch;
+        gtm.update({
+          planReady: true,
+          ...(launch
+            ? {
+                launch: {
+                  ...launch,
+                  project: {
+                    ...launch.project,
+                    phase: 'active',
+                    status: 'active',
+                    updatedAt: Date.now(),
+                  },
+                },
+              }
+            : {}),
+        });
       }
 
       if (succeeded === channelIds.length) {
@@ -2380,15 +2451,76 @@ export function useDirector(defaultViewContext?: ViewContext) {
       gtm.patchDirectorMessage(messageId, {
         card: { kind: 'options', card: { ...card, answered: labels } },
       });
+
+      if (selected.includes('generate_todos_yes')) {
+        const channelIds = withFixedDirectory(
+          storeRef.current.launch?.selectedChannelIds ??
+            storeRef.current.channels
+        );
+        void scheduleActions(
+          [{ type: 'generate_todos', channelIds }],
+          [messageId],
+          `generate-todos-${messageId}`
+        );
+        return;
+      }
+      if (selected.includes('generate_todos_later')) {
+        void publishDirectorMessage({
+          role: 'assistant',
+          content:
+            locale !== 'en'
+              ? '好的，稍后你说一声再生成 Todo。也可以随时让我为某一个渠道单独写计划或 Todo。记得去 Directory 提交产品信息。'
+              : 'Sure—say the word when you want todos. You can also ask me to write a plan or todos for one channel. Don’t forget Directory submission.',
+        });
+        return;
+      }
+
+      const looksLikeChannelPick = selected.every((id) =>
+        card.options.some((o) => o.id === id)
+      );
+      const channelIdsFromCard = selected.filter((id) =>
+        card.options.some((o) => o.id === id && !id.startsWith('generate_'))
+      );
+      if (
+        looksLikeChannelPick &&
+        channelIdsFromCard.length > 0 &&
+        card.question.toLowerCase().includes('渠道')
+      ) {
+        void scheduleActions(
+          [
+            { type: 'select_channels', channelIds: channelIdsFromCard },
+            { type: 'generate_channel_plans', channelIds: channelIdsFromCard },
+          ],
+          [messageId],
+          `select-and-plan-${messageId}`
+        );
+        return;
+      }
+      if (
+        looksLikeChannelPick &&
+        channelIdsFromCard.length > 0 &&
+        card.question.toLowerCase().includes('channel')
+      ) {
+        void scheduleActions(
+          [
+            { type: 'select_channels', channelIds: channelIdsFromCard },
+            { type: 'generate_channel_plans', channelIds: channelIdsFromCard },
+          ],
+          [messageId],
+          `select-and-plan-${messageId}`
+        );
+        return;
+      }
+
       void send(`我的选择：${labels.join('、')}`, {
         fromOptionCard: true,
         selectedIds: selected,
       });
     },
-    [gtm, send]
+    [gtm, locale, publishDirectorMessage, scheduleActions, send]
   );
 
-  /** 提交冷启动问卷（多题固定卡片）；已上线产品附带链接时先研究再对话 */
+  /** 提交冷启动问卷（多题固定卡片）；付费后档案卡与进对话 Kickoff 共用 */
   const submitKickoff = useCallback(
     async (
       messageId: string,
@@ -2400,15 +2532,44 @@ export function useDirector(defaultViewContext?: ViewContext) {
       gtm.patchDirectorMessage(messageId, {
         card: {
           kind: 'kickoff',
-          card: { ...card, answered: answers, ...(trimmedUrl ? { productUrl: trimmedUrl } : {}) },
+          card: {
+            ...card,
+            answered: answers,
+            ...(trimmedUrl ? { productUrl: trimmedUrl } : {}),
+          },
         },
       });
+
+      const isPostPayProfile =
+        card.title.includes('用户档案') || card.title.includes('Quick profile');
+      if (isPostPayProfile) {
+        const isZh = locale !== 'en';
+        const seed = formatPostPayProfileSeed(answers, isZh);
+        const existing = storeRef.current.userProfileDoc?.trim();
+        const merged =
+          existing && !existing.includes('固定档案') && !existing.includes('Fixed profile')
+            ? `${seed}\n\n${existing}`
+            : seed;
+        gtm.setProfiles(merged, storeRef.current.projectProfileDoc);
+        gtm.update({
+          postPayProfileComplete: true,
+          targetMarketLocale: resolveTargetMarketLocale(answers.market ?? []),
+        });
+        void send(formatPostPayAnswersMessage(card, answers, isZh));
+        void scheduleActions(
+          [{ type: 'recommend_channels' }],
+          [messageId],
+          `recommend-after-profile-${messageId}`
+        );
+        return;
+      }
+
       if (trimmedUrl) {
         await runProductResearch(trimmedUrl);
       }
       void send(formatKickoffAnswers(card, answers, locale !== 'en', trimmedUrl));
     },
-    [gtm, locale, send, runProductResearch]
+    [gtm, locale, send, runProductResearch, scheduleActions]
   );
 
   return {

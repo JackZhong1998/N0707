@@ -30,15 +30,28 @@ export const SUPPORTED_LAUNCH_CHANNELS = CHANNEL_DEFINITIONS.filter(
   (channel) => !INTERNAL_CHANNELS.has(channel.channelId)
 );
 
-/** Channels confirmed for this Launch; falls back to store.channels, then empty. */
+/** Directory is a fixed capability for every user — never ranked by the recommender. */
+export const FIXED_LAUNCH_CHANNEL_IDS = ['directory'] as const;
+
+/** Channels eligible for recommend_channels / user channel picks. */
+export const RECOMMENDABLE_LAUNCH_CHANNELS = SUPPORTED_LAUNCH_CHANNELS.filter(
+  (channel) =>
+    !(FIXED_LAUNCH_CHANNEL_IDS as readonly string[]).includes(channel.channelId)
+);
+
+/** Channels confirmed for this Launch; always includes fixed Directory. */
 export function resolveLaunchChannelIds(store: {
   channels: string[];
   launch?: { selectedChannelIds?: string[] };
 }): string[] {
   const selected = store.launch?.selectedChannelIds;
-  if (selected && selected.length > 0) return selected;
-  if (store.channels.length > 0) return store.channels;
-  return [];
+  const base =
+    selected && selected.length > 0
+      ? selected
+      : store.channels.length > 0
+        ? store.channels
+        : [];
+  return [...new Set([...base, ...FIXED_LAUNCH_CHANNEL_IDS])];
 }
 
 const DIRECTORY_SEEDS: Array<Pick<DirectorySubmission, 'name' | 'url'>> = [
@@ -87,7 +100,7 @@ export function createBriefResearchSteps(isZh: boolean): ResearchProgressStep[] 
     { id: 'product', label: isZh ? '理解产品与商业模式' : 'Understanding the product', status: 'pending' },
     { id: 'competitors', label: isZh ? '寻找竞品与替代方案' : 'Finding competitors', status: 'pending' },
     { id: 'audience', label: isZh ? '识别目标用户' : 'Mapping target audiences', status: 'pending' },
-    { id: 'brief', label: isZh ? '准备 Launch Brief' : 'Preparing your Launch Brief', status: 'pending' },
+    { id: 'brief', label: isZh ? '准备项目文档' : 'Preparing your project document', status: 'pending' },
   ];
 }
 
@@ -140,6 +153,8 @@ export function storePatchForNewLaunch(launch: LaunchState): Partial<GtmStore> {
     launch,
     startDate: launch.project.startDate,
     planReady: false,
+    postPayProfileComplete: false,
+    targetMarketLocale: undefined,
     channels: [],
     todos: [],
     topics: [],

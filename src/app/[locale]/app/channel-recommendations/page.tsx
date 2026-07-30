@@ -116,14 +116,14 @@ export default function ChannelRecommendationsPage() {
         </h1>
         <p className="mt-3 text-sm leading-6 text-zinc-500">
           {isZh
-            ? '在右侧告诉合伙人你的目标市场、每天能花多少时间、有没有偏好渠道。信息够了之后，他会调用渠道推荐 Agent，结果会显示在这里。'
-            : 'Tell the Launch Partner your target market, daily time budget, and channel preferences. When ready, recommendations will appear here.'}
+            ? '在右侧完成用户档案卡片后，合伙人会调用渠道推荐 Agent。结果也会出现在「文档」区。Directory 是固定能力，不会出现在推荐列表。'
+            : 'After the profile card, Partner will run the Channel Recommender. Results also appear under Documents. Directory is always on and never listed here.'}
         </p>
         <Link
-          href="/app/brief"
+          href="/app/documents?doc=recommendations"
           className="mt-6 inline-block text-xs font-semibold text-zinc-400 hover:text-white"
         >
-          ← {isZh ? '冷启动简报' : 'Launch Brief'}
+          ← {isZh ? '文档' : 'Documents'}
         </Link>
       </div>
     );

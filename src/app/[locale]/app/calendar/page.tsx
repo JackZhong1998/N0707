@@ -38,14 +38,21 @@ function CalendarPageInner() {
   const dateParam = searchParams.get('date');
   const initialDate =
     dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : undefined;
+  const channelParam = searchParams.get('channel');
+  const initialChannelFilter =
+    channelParam && channelParam.trim() ? channelParam.trim() : 'all';
 
   const demoTodos = useMemo(() => buildDemoTodos(locale), [locale]);
 
-  // 未付费预览必须永远用 demo（与 locale 对应），不能被本地残留的空 plan 盖掉
-  const usingDemo = isPreview || !store.planReady || store.todos.length === 0;
+  // 未付费预览必须永远用 demo；已有真实 Todo 时优先展示，避免 planReady 同步延迟挡住日历
+  const usingDemo = isPreview || store.todos.length === 0;
   const todos = usingDemo ? demoTodos : store.todos;
 
-  useEffect(() => clearViewContext, [clearViewContext]);
+  useEffect(() => {
+    return () => {
+      clearViewContext();
+    };
+  }, [clearViewContext]);
 
   const handleViewStateChange = useCallback(
     (state: {
@@ -103,9 +110,10 @@ function CalendarPageInner() {
       <div className={store.paid && usingDemo ? 'h-[calc(100%-64px)]' : 'h-full'}>
         <CalendarBoard
           todos={todos}
-          interactive={store.planReady && !usingDemo}
+          interactive={!usingDemo && (store.planReady || store.todos.length > 0)}
           initialView={initialView}
           initialDate={initialDate}
+          initialChannelFilter={initialChannelFilter}
           previewMode={isPreview}
           onViewStateChange={handleViewStateChange}
           onToggleStatus={(id) => {

@@ -412,7 +412,7 @@ export interface LaunchProject {
 export interface ResearchProgressStep {
   id: string;
   label: string;
-  status: 'pending' | 'running' | 'done' | 'warning';
+  status: 'pending' | 'running' | 'done' | 'warning' | 'error';
   detail?: string;
 }
 
@@ -726,10 +726,17 @@ export interface GtmStore {
   paid: boolean;
   /** 策略与 To-Do 已生成，真实日历解锁 */
   planReady: boolean;
-  /** 用户个人档案（上下文 Agent 维护，markdown） */
+  /** 用户个人档案（固定问卷 + Context Agent 持续拓展，markdown） */
   userProfileDoc: string;
-  /** 项目档案（上下文 Agent 维护，markdown） */
+  /** 项目档案（上下文 Agent 维护，markdown；展示名「项目文档」） */
   projectProfileDoc: string;
+  /** 付费后固定用户档案问卷是否已完成 */
+  postPayProfileComplete?: boolean;
+  /**
+   * 目标市场内容语言：Todo / Directory 提交材料用此语言；
+   * 对话与文档区仍跟 UI locale。
+   */
+  targetMarketLocale?: 'zh' | 'en';
   /** 近期话题与未完成承诺的滚动摘要，用于压缩无限对话。 */
   conversationSummary: string;
   /** 可检索、可修订的长期事实与偏好。 */
@@ -776,6 +783,8 @@ export function createInitialStore(): GtmStore {
     planReady: false,
     userProfileDoc: '',
     projectProfileDoc: '',
+    postPayProfileComplete: false,
+    targetMarketLocale: undefined,
     conversationSummary: '',
     memoryFacts: [],
     directorChat: [],

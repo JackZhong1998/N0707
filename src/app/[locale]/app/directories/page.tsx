@@ -719,22 +719,22 @@ export default function DirectoryWorkspacePage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-7 sm:px-8 sm:py-10">
-      <Link href="/app/channels" className="text-xs text-zinc-600 hover:text-white">
-        ← {isZh ? '渠道团队' : 'Channel Agents'}
+      <Link href="/app/documents" className="text-xs text-zinc-600 hover:text-white">
+        ← {isZh ? '文档' : 'Documents'}
       </Link>
 
       <header className="mt-5 flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
-            Directory Agent · Active
+            Directory · {isZh ? '固定能力' : 'Always on'}
           </p>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
-            {isZh ? '目录发布' : 'Directory publishing'}
+            Directory
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
             {isZh
-              ? '选择目录后，系统自动检查要求、采集官网素材、调用 AI 补齐文案，并逐个平台在后台准备。遇到登录、验证码或付款时再通知你。'
-              : 'Select directories to check requirements, collect public assets, generate missing copy, and prepare each submission in the background. You are notified only for login, verification, payment, or other blockers.'}
+              ? '每个用户都有 Directory：先完善项目提交信息，再从推荐目录和其他目录里选择并提交。合伙人会在对话里提醒你来提交。'
+              : 'Every user has Directory: prepare project submission materials, then pick recommended and other directories. Partner will nudge you here in chat.'}
           </p>
         </div>
         <Link

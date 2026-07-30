@@ -282,7 +282,7 @@ export async function mockChannelRecommendations(
     ? ['github_growth', 'indie_hackers', 'seo']
     : china
       ? ['seo', 'user_outreach']
-      : ['twitter_x', 'directory', 'indie_hackers'];
+      : ['twitter_x', 'indie_hackers'];
 
   const used = new Set([...primaryIds, ...secondaryIds]);
   const isZh = input.locale !== 'en';
@@ -307,6 +307,10 @@ export async function mockChannelRecommendations(
     };
   };
 
+  const recommendable = SUPPORTED_LAUNCH_CHANNELS.filter(
+    (c) => c.channelId !== 'directory'
+  );
+
   return {
     summaryMarkdown: isZh
       ? '## 渠道推荐（演示模式）\n\n基于产品档案的 Mock 推荐。正式环境会调用 Growth Finder + GTM Playbook 专家 Skill。'
@@ -320,12 +324,14 @@ export async function mockChannelRecommendations(
     recommendations: [
       ...primaryIds.map((id) => toItem(id, 'primary', 90)),
       ...secondaryIds.map((id) => toItem(id, 'secondary', 75)),
-      ...SUPPORTED_LAUNCH_CHANNELS.filter((c) => !used.has(c.channelId))
+      ...recommendable
+        .filter((c) => !used.has(c.channelId))
         .slice(0, 3)
         .map((c) => toItem(c.channelId, 'explore', 50)),
-      ...SUPPORTED_LAUNCH_CHANNELS.filter(
-        (c) => !used.has(c.channelId) && !primaryIds.includes(c.channelId)
-      )
+      ...recommendable
+        .filter(
+          (c) => !used.has(c.channelId) && !primaryIds.includes(c.channelId)
+        )
         .slice(-3)
         .map((c) => toItem(c.channelId, 'skip', 25)),
     ],
