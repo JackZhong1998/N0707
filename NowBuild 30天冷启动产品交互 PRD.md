@@ -1,31 +1,32 @@
 # NowBuild 30 天冷启动产品交互 PRD
 
-**版本：** v2.0  
-**日期：** 2026-07-22  
-**产品定位：** 面向 Solo Founder / OPC 的 30 天新产品冷启动执行系统  
-**文档状态：** 已确认产品方向，作为后续交互与开发实施依据  
-**关联旧文档：** [NowBuild GTM 产品 PRD](./NowBuild%20GTM%20产品%20PRD.md)
+**版本：** v2.1  
+**日期：** 2026-07-30  
+**产品定位：** 面向独立开发者 / Solo Founder / 一人公司的 **30 天 Agent 冷启动团队**  
+**文档状态：** 与当前官网定位及 `/app` 实现同步，作为交互与开发实施依据  
+**关联文档：** [NowBuild 商业计划书](./NowBuild%20商业计划书.md) · [NowBuild GTM 产品 PRD](./NowBuild%20GTM%20产品%20PRD.md)（历史规格，交互以本文为准）
 
 ---
 
 ## 0. 文档目的
 
-本文档重新定义 NowBuild 支付后的完整产品体验。
+本文档定义 NowBuild **从免费冷启动简报到付费完整 Campaign** 的端到端产品体验。
 
-本次改版不再把 NowBuild 表达为一套抽象的 GTM 策略工具，而是把它定义为一支持续工作 30 天的 AI 冷启动团队：系统先理解用户的产品和竞争环境，再建立统一的 30-Day Campaign Launch Blueprint，并自动为每一个已支持渠道创建专属 Channel Agent、渠道策略、30 天执行计划和每日交付。
+NowBuild 对外不是抽象的「GTM 策略工具 / 获客行动台」，而是一支持续工作 30 天的 **Agent Launch Team**：先免费读懂产品并生成可纠正的 Launch Brief；用户确认方向并订阅后，再建立统一的 30-Day Campaign Blueprint，并为每一个已支持渠道创建专属 Channel Agent、渠道策略、30 天执行计划和每日交付。
 
 本文档用于约束：
 
-- 支付后的端到端用户流程；
+- 免费 Brief → 付费解锁团队 → 每日执行的端到端流程；
 - 页面信息架构；
 - 右侧常驻 Agent 的交互规则；
 - Strategy Agent、Channel Agent 与用户可见 Agent 的关系；
 - Launch Brief、Launch Blueprint、Launch Calendar、Weekly Review 等核心对象；
+- Campaign 后台队列与「回页恢复」语义；
 - Directory Submission Agent 的特殊交互；
 - 现有功能的保留、改造和新增范围；
 - 分阶段开发计划与验收标准。
 
-本文档不定义官网销售页文案、像素级视觉稿、第三方渠道的完整技术实现细节。
+官网销售页文案以落地页组件为准（Hero / FlowSteps / Pricing）；本文不逐字复制营销文案，但产品定位须与之一致。
 
 ---
 
@@ -117,37 +118,47 @@ Agent 理解当前页面上下文，修改左侧对应对象，并反馈修改�
 
 ### 2.1 一句话定义
 
-> NowBuild 用一支 AI Channel Agent 团队，为一个新产品规划并执行 30 天的全渠道冷启动。
+> NowBuild 是为独立开发者打造的 30 天 Agent 冷启动团队：输入产品网址，协同完成研究、策略、内容、社区、SEO 与分发。
 
-### 2.2 用户购买后的明确结果
+### 2.2 免费阶段 vs 付费阶段的结果
 
-用户购买的不是一份静态策略，也不是若干互不相关的 AI 文案，而是：
+**免费（无需信用卡）：**
 
-1. 一份基于产品、用户和竞品调研生成的 Launch Brief；
-2. 一套统一的 30-Day Campaign Launch Blueprint；
-3. 所有已支持渠道各自定制的 30 天运营计划；
-4. 一张跨渠道 Launch Calendar；
-5. 每天由 Agent 准备好的发布、建设和提交任务；
-6. 每周由各 Channel Agent 完成的复盘和下一周调整；
+1. 网站读取与竞品调研进度；
+2. 一份可纠正的 Launch Brief（产品 / 用户 / 竞品 / 定位）；
+3. 右侧 Agent 最多 **20 次**免费 Brief 修改。
+
+**订阅后（$49/月，一轮完整冷启动）：**
+
+1. 一套统一的 30-Day Campaign Launch Blueprint；
+2. 所有已支持渠道各自定制的策略与 30 天运营计划；
+3. 一张跨渠道 Launch Calendar；
+4. 每天由 Agent 准备好的发布、建设和提交任务；
+5. 目录匹配与 Submission Pipeline；
+6. 每周复盘与下一周调整；
 7. 第 30 天的完整执行报告。
 
 ### 2.3 核心用户体验
 
-第一次进入：
+第一次进入（免费）：
 
-> 输入一个产品链接，等待 NowBuild 建立完整冷启动 Campaign。
+> 粘贴产品链接 → 免费分析 → 在 Brief 页纠正事实 → 确认后再付费组建团队。
+
+付费后组建团队：
+
+> Campaign 进入后台队列；离开标签页时任务可能暂停；回来后自动同步并继续未完成步骤。
 
 每天进入：
 
-> 查看今天各 Channel Agent 已经准备好的工作，审核、发布或完成必要验证。
+> 打开冷启动工作台，查看今日队列与各 Channel Agent 已准备好的工作，审核、发布或完成必要验证。
 
 每周进入：
 
-> 查看 Agent 的复盘和下一周调整结果，通过右侧对话提出修改。
+> 查看复盘与下一周调整，通过右侧对话提出修改。
 
 第 30 天：
 
-> 查看产品在哪些渠道完成了哪些推广动作，以及后续最值得继续运行的渠道计划。
+> 查看渠道动作、市场信号与下一轮建议。
 
 ---
 
@@ -155,7 +166,14 @@ Agent 理解当前页面上下文，修改左侧对应对象，并反馈修改�
 
 ## 3.1 用户可见层：一个常驻 Launch Agent
 
-右侧常驻 Agent 暂定名称为 **Launch Partner**，中文可显示为“冷启动合伙人”或“市场合伙人”。正式命名可在视觉与品牌阶段确定。
+右侧常驻 Agent 对外统一为同一角色：
+
+| 语境 | 中文 | 英文 |
+|------|------|------|
+| 官网 / 团队叙事 | **市场合伙人** | **Market Partner** |
+| App 右侧面板 | **冷启动合伙人** | **Launch Partner** |
+
+二者指同一入口，不得拆成多个聊天窗口。下文统称 **Launch Partner**。
 
 Launch Partner 的职责：
 
@@ -221,44 +239,52 @@ Channel Agent 不能彼此完全独立生成计划。
 ## 4. 端到端用户主链路
 
 ```text
-官网支付
+注册 / 登录 → /app
   ↓
-输入产品 URL
+输入产品 URL（免费，不查订阅）
   ↓
-网站读取与竞品调研
+网站读取与竞品调研（researching）
   ↓
-Launch Brief
+Launch Brief（brief_ready，未付费强制可停留在 /app/brief）
   ↓
-30-Day Campaign Launch Blueprint
+用户纠正 Brief（≤20 次免费）→ 点击「组建我的 30 天推广团队」
   ↓
-全部已支持 Channel Agent 自动生成计划
+Paywall → Stripe 订阅（$49/月）
   ↓
-Launch Command Center + Launch Calendar
+CampaignBootstrap 入队（building_team）
   ↓
-每日执行
+Blueprint → 各渠道策略 → 各渠道日历（后台分步 Worker）
   ↓
-每周复盘与计划调整
+Launch Command Center + Launch Calendar（planReady / phase=active）
   ↓
-Day 30 Launch Report
+每日执行 · 每周复盘 · Day 30 Launch Report
 ```
+
+**付费时机（硬约束）：** 先证明理解（免费 Brief），再为完整执行付费。禁止「官网先付费再输入 URL」作为主路径。
 
 ---
 
-## 5. 阶段一：支付后初始化
+## 5. 阶段一：免费初始化（URL → Research）
 
 ### 5.1 页面目标
 
-让用户以最低输入成本启动冷启动项目。
+以最低输入成本启动 **免费** 冷启动简报，建立「先看懂产品，再解锁团队」的预期。
 
 ### 5.2 页面内容
 
-页面标题：
+页面标题（中）：
+
+> 把你的产品介绍给我们。
+
+页面标题（英）：
 
 > What did you build?
 
-辅助文案：
+辅助文案须明确：
 
-> Paste your product URL. NowBuild will study your product, competitors and market before building your 30-day launch.
+- 免费分析产品、目标用户与竞品；
+- 生成可随时修正的冷启动简报；
+- **无需信用卡**。
 
 唯一主输入：
 
@@ -266,13 +292,18 @@ Day 30 Launch Report
 
 唯一主按钮：
 
-- Build My Launch。
+- 「免费分析产品 →」/ `Analyze Free →`。
 
-右侧 Launch Partner 从此页面开始常驻，可以回答“为什么需要链接”“支持什么类型的网站”等问题。
-当然，用户可以选择一个副按钮“还没发布产品”，然后可以跟右侧的 Launch Partner 进行一些对话，来确定它的产品定位
-如果没有产品，或者还没做出产品，可以引导用户点击 GitHub 的 SaaS 框架独立页面。
-https://github.com/JackZhong1998/nowbuild-saas-kit
-这个独立页面记录了一个开源的 SaaS 框架，包含登录、支付、数据库、SEO 等功能。引导用户跳转到这个页面之后，让用户自己去 build 产品。
+页脚说明：
+
+- 免费阶段只生成 Launch Brief；
+- Blueprint、Channel Agents、30 天任务在订阅后生成。
+
+副入口：
+
+- 「还没发布产品？先去 Build →」→ 站内开源 SaaS Starter 页（`/open-source-saas-starter`），引导用户先做出可展示产品再回来。
+
+右侧 Launch Partner 从此页常驻，可回答「为什么需要链接」「支持什么类型的网站」等。
 
 ### 5.3 URL 提交后的系统动作
 
@@ -376,7 +407,11 @@ Launch Brief 是所有后台 Agent 的事实底座，但不要求用户通过按
 - Regenerate；
 - Approve Brief。
 
-用户直接在右侧输入：
+未付费时，Brief 页展示免费修改计数（`briefEditUsed` / `FREE_BRIEF_EDIT_LIMIT`，默认 20），并提供 CTA：
+
+> 「组建我的 30 天推广团队 →」→ 打开 Paywall。
+
+用户直接在右侧输入纠正，例如：
 
 > “我们的主要用户不是营销团队，是没有营销人员的 solo founder。”
 
@@ -387,18 +422,28 @@ Launch Brief 是所有后台 Agent 的事实底座，但不要求用户通过按
 3. Strategy Agent 只重写受影响的 Brief 区块；
 4. 左侧内容实时更新；
 5. 页面显示轻量提示“Launch Brief updated”；
-6. 创建新版本，允许撤销。
+6. 创建新版本，允许撤销；
+7. 未付费时计入免费修改次数；用尽后 Brief 仍可读，但免费对话改稿停止。
 
-### 6.4 进入下一阶段
+### 6.4 进入下一阶段（付费门闩）
 
-Launch Brief 首次生成后，系统自动开始生成 Launch Blueprint，无需用户点击确认。
+Launch Brief **不会**在首次生成后自动进入 Blueprint。
 
-如果用户在 Blueprint 生成过程中修改了 Brief：
+进入付费 Campaign 的条件：
+
+1. 已有 Launch Brief（`phase = brief_ready`）；
+2. 用户主动点击「组建我的 30 天推广团队」并完成订阅（`paid = true`）；
+3. `CampaignBootstrap` 以幂等 `buildKey = campaign:{projectId}:{createdAt}` 入队；
+4. `phase → building_team`，生成 Blueprint → 渠道策略 → 渠道日历。
+
+若用户在已付费、Campaign 仍在组建时修改 Brief：
 
 - 尚未生成的部分使用新版本；
 - 已生成但受影响的部分被标记为需要刷新；
 - Strategy Agent 自动重新计算受影响内容；
 - 不重新执行无关的竞品研究。
+
+未付费用户不得进入 Blueprint / Calendar / Command Center 等执行面；AppShell 将其锁在 onboarding、研究进度与 Brief。
 
 ---
 
@@ -494,31 +539,40 @@ Blueprint 建立后，系统自动读取当前 `supportedChannels`，为每一�
 
 ### 8.2 Channel Agent 生成顺序
 
-为控制等待时间与成本，后台采用分批生成，但用户感知为统一的 Launch Team 正在组建。
+为控制等待时间与成本，后台采用 **数据库队列 + 分步 Worker**，用户感知为统一的 Launch Team 正在组建。
 
-1. Strategy Agent 写出所有渠道的 role brief；
-2. 高优先级渠道先生成策略和 Week 1；
-3. 其他渠道并行生成策略；
-4. 先生成 Day 1–7 可执行任务；
-5. Day 8–30 可先生成计划骨架，随后补齐内容；
-6. Directory Agent 单独建立 Submission Pipeline。
+1. Strategy Agent 写出共享 Blueprint / 各渠道 role brief；
+2. 并行生成各渠道策略（可失败重试）；
+3. 再并行生成各渠道日历；
+4. Directory Agent 单独建立 Submission Pipeline；
+5. 完成 → `planReady`，phase → `active`。
 
-### 8.3 生成进度页
+进度页文案示例：
 
 ```text
-Building your 30-day launch
+Building your 30-day launch / 正在组建 30 天 Agent Team
 
 ✓ Campaign Blueprint
 ✓ X strategy
 ● Reddit community plan
-● SEO content cluster
 ○ LinkedIn founder campaign
 ○ Directory submission pipeline
-
-Week 1 will be ready first. The rest of the campaign continues building in the background.
 ```
 
-右侧 Agent 可回答当前进度。用户不需要等待所有 30 天内容全部写完才能进入产品。
+### 8.3 离开与回页恢复（Resume-on-return）
+
+**主恢复路径（当前实现 / Hobby 可用）：**
+
+- 用户离开标签页时，Campaign Worker **可能暂停**；
+- 离开 ≥ 5 秒后回到页面，或从 bfcache `pageshow` 恢复时，`ResumeOnReturn`：
+  1. 拉取 `/api/gtm/state` 同步最新 store；
+  2. 若已付费，再调用 `/api/gtm/campaign-jobs` 续跑未完成步骤；
+  3. 顶部 banner 提示「同步中 / 已同步 / 失败可刷新」。
+- `CampaignBootstrap` 在组建开始时须明确告知用户：「离开可能暂停；回来会同步并继续」。
+
+**兜底：** 日级 Cron（Hobby）调用内部 Worker；若需离线每分钟推进，需升级托管方案。详见 `docs/CAMPAIGN_WORKER.md`。
+
+右侧 Agent 可回答当前进度。用户不需要等待所有 30 天全文写完才能进入工作台；内容可在打开当日任务时再生成。
 
 ### 8.4 每个 Channel Plan 的标准结构
 
@@ -1173,7 +1227,9 @@ Launch Report
 
 | 现有能力 | 改造目标 |
 |---|---|
-| GTM Kickoff 问卷 | 收敛为 Product URL 单输入 |
+| GTM Kickoff 问卷 | 收敛为 Product URL 单输入（免费分析） |
+| 支付后才给 Brief | 改为免费 Brief → 确认后付费组建团队 |
+| Brief 后自动 Blueprint | 改为付费门闩 + CampaignBootstrap |
 | Market Strategy | 拆分为 Launch Brief + Launch Blueprint |
 | 推荐 2–3 个渠道 | 改为所有 supported channels 自动生成 |
 | Channel Specialist | 产品化为 Channel Agent |
@@ -1181,6 +1237,7 @@ Launch Report
 | Todo | 升级为 Launch Task，增加 purpose/pillar/phase |
 | 内容改稿入口 | 移除独立按钮，统一由右侧 Agent 修改 |
 | Chat 页面 | 取消主入口地位，右侧 Agent 承载对话 |
+| 「离开后台继续」假设 | 改为回页 ResumeOnReturn 为主恢复路径 |
 | 周复盘 | 按所有 Channel Agent 输出并直接调整未来计划 |
 
 ### 18.3 新增
@@ -1201,19 +1258,20 @@ Launch Report
 
 ### 19.1 MVP 必须完成
 
-1. 支付后输入 URL；
+1. **免费**输入 URL（不查订阅）；
 2. 网站与竞品研究进度；
-3. Launch Brief；
+3. Launch Brief + 免费修改限额 + 「组建团队」Paywall CTA；
 4. 通过右侧 Agent 修改 Launch Brief；
-5. Launch Blueprint；
-6. 自动为全部当前支持渠道生成 Channel Plan；
-7. Launch Command Center；
-8. Launch Calendar；
-9. Channel Workspace；
-10. Task Detail 与右侧对话改稿；
-11. Week 1 Review；
-12. 版本保存与 Undo；
-13. Directory Agent 的基础 Pipeline 状态。
+5. 付费后 `CampaignBootstrap` 入队与 Resume-on-return；
+6. Launch Blueprint；
+7. 自动为全部当前支持渠道生成 Channel Plan；
+8. Launch Command Center；
+9. Launch Calendar；
+10. Channel Workspace；
+11. Task Detail 与右侧对话改稿；
+12. Week 1 Review；
+13. 版本保存与 Undo；
+14. Directory Agent 的基础 Pipeline 状态。
 
 ### 19.2 MVP 可以简化
 
@@ -1247,13 +1305,15 @@ Launch Report
 - 支持 Agent 对当前 Artifact 进行结构化更新；
 - 增加 revision 与 Undo。
 
-### Phase 2：Launch Brief 与 Blueprint
+### Phase 2：Launch Brief 与付费门闩
 
-- URL-only Kickoff；
+- URL-only 免费 Kickoff；
 - Research progress；
 - Launch Brief 数据结构与页面；
-- Strategy Agent 生成 Launch Blueprint；
-- Brief / Blueprint 对话修改与影响范围计算。
+- 免费修改限额与「组建团队」Paywall；
+- 付费后 Strategy Agent 生成 Launch Blueprint；
+- Brief / Blueprint 对话修改与影响范围计算；
+- CampaignBootstrap + ResumeOnReturn。
 
 ### Phase 3：全部 Channel Agent 与 Launch Calendar
 
@@ -1286,10 +1346,11 @@ Launch Report
 
 ### 21.1 初始化
 
-- 用户只输入一个有效 URL 即可启动；
+- 用户只输入一个有效 URL 即可 **免费** 启动（无需信用卡）；
 - 不出现 Founder 社交账号、已有渠道、Logo、截图必填项；
 - 用户能看见研究的真实阶段；
-- 部分研究失败不导致项目整体失败。
+- 部分研究失败不导致项目整体失败；
+- 无产品用户可被引导至开源 SaaS Starter，而非强行进入付费。
 
 ### 21.2 Launch Brief
 
@@ -1297,7 +1358,9 @@ Launch Report
 - 页面没有 Edit with AI / Correct Something；
 - 用户在右侧纠正目标用户后，左侧对应区块更新；
 - 用户纠正写入长期 Context；
-- 可以撤销最近修改。
+- 可以撤销最近修改；
+- 未付费展示免费修改次数与「组建团队」CTA；
+- **Brief 生成后不自动进入 Blueprint**，须付费后由 CampaignBootstrap 启动。
 
 ### 21.3 Blueprint 与渠道生成
 
@@ -1305,7 +1368,7 @@ Launch Report
 - Blueprint 包含统一目标、Pillars、四周叙事和渠道角色；
 - 所有 supported channels 自动获得 Channel Plan；
 - 各渠道计划遵循同一 Campaign Spine；
-- Week 1 可先于完整 30 天内容进入执行。
+- 组建过程支持幂等入队与回页续跑；离开时允许暂停，回来后同步继续。
 
 ### 21.4 右侧 Agent
 
@@ -1337,10 +1400,12 @@ Launch Report
 
 ### 激活
 
-- 支付后成功提交 URL 的比例；
+- 注册后成功提交 URL 的比例；
 - 成功生成 Launch Brief 的比例；
+- **Brief → 付费组建团队** 转化率；
 - 成功生成 Week 1 全渠道计划的比例；
-- 从支付到第一个 Ready Task 的时间。
+- 从付费到第一个 Ready Task 的时间；
+- 离开后回页成功续跑 Campaign 的比例。
 
 ### 执行
 
@@ -1370,12 +1435,13 @@ Launch Report
 
 NowBuild 的产品交互最终应让用户形成以下理解：
 
-> 我不需要选择渠道，也不需要自己把策略拆成任务。NowBuild 先理解我的产品，再制定一个统一的 30 天冷启动 Campaign，然后让每个渠道 Agent 按自己的平台方法执行。我每天只需要打开首页，处理 Agent 已经准备好的工作；如果任何地方不对，我直接告诉右侧的 Agent，左侧的计划、内容或日历会随之更新。
+> 我不需要先付费才敢试试。NowBuild 先免费读懂我的产品，给我一份可以纠正的冷启动简报；方向对了，我再订阅组建 30 天推广团队。我不需要自己选渠道或拆任务——统一 Campaign 下，每个渠道 Agent 按平台方法执行。我每天打开冷启动工作台处理已准备好的工作；不对的地方直接告诉右侧的市场合伙人，左侧成果随之更新。离开页面时组建可能暂停，回来会自动同步继续。
 
-对应的产品体验可以压缩成四句话：
+对应的产品体验可以压缩成五句话：
 
-1. **输入一个链接，NowBuild 建立 Launch Brief。**
-2. **Strategy Agent 生成统一的 30-Day Campaign Blueprint。**
-3. **所有 Channel Agent 自动生成并执行各自的 30 天计划。**
-4. **用户始终通过右侧一个 Agent 查看、解释和修改左侧全部成果。**
+1. **输入一个链接，免费建立 Launch Brief。**
+2. **确认简报后付费，组建 30 天 Agent Team。**
+3. **Strategy Agent 生成统一的 30-Day Campaign Blueprint。**
+4. **所有 Channel Agent 自动生成并推进各自的计划。**
+5. **用户始终通过右侧一个 Agent 查看、解释和修改左侧全部成果。**
 

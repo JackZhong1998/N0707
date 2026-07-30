@@ -23,7 +23,7 @@ export default async function Hero() {
               : 'YOUR 30-DAY AGENT LAUNCH TEAM'}
           </p>
 
-          <h1 className="animate-fade-in-up delay-100 mx-auto mt-5 max-w-6xl font-[family-name:var(--font-display)] text-[2.8rem] font-bold leading-[0.93] tracking-[-0.06em] text-white sm:mt-7 sm:text-7xl lg:text-[6.25rem] motion-reduce:animate-none">
+          <h1 className="animate-fade-in-up delay-100 mx-auto mt-5 max-w-6xl font-[family-name:var(--font-display)] text-[2.8rem] font-bold leading-[1.08] tracking-[-0.06em] text-white sm:mt-7 sm:text-7xl sm:leading-[0.93] lg:text-[6.25rem] motion-reduce:animate-none">
             <span className="block">
               {isZh ? '产品已经上线。' : 'You built the product.'}
             </span>

@@ -35,7 +35,7 @@ export default async function CalendarGlimpse() {
         <div className="grid items-end gap-8 lg:grid-cols-[1.2fr_.8fr]">
           <div className="max-w-3xl">
             <p className="index-label">{isZh ? '每天打开，都有事可做' : 'Your team’s daily output'}</p>
-            <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
+            <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.15] tracking-[-0.045em] text-ink sm:text-5xl sm:leading-[1.05]">
               {isZh ? (
                 <>打开 NowBuild，<br />今天该做什么，一目了然。</>
               ) : (

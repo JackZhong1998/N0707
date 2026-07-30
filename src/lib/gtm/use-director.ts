@@ -668,7 +668,10 @@ export function useDirector(defaultViewContext?: ViewContext) {
         content: '',
         card: {
           kind: 'agent-task',
-          label: 'Research 正在读取产品官网并搜索竞品…',
+          label:
+            locale !== 'en'
+              ? 'Research 正在读取官网、分析竞品并合成 Launch Brief…'
+              : 'Research is reading the site, analyzing competitors, and synthesizing the Launch Brief…',
           status: 'running',
         },
       });
@@ -692,13 +695,45 @@ export function useDirector(defaultViewContext?: ViewContext) {
             researchProfile
           )
         );
+        if (result.brief) {
+          const currentLaunch = storeRef.current.launch;
+          if (currentLaunch) {
+            const productName =
+              result.product?.name?.trim() &&
+              result.product.name !== 'Unknown product'
+                ? result.product.name.trim().slice(0, 120)
+                : currentLaunch.project.productName;
+            gtm.update({
+              launch: {
+                ...currentLaunch,
+                brief: {
+                  ...result.brief,
+                  revision: (currentLaunch.brief?.revision ?? 0) + 1,
+                  updatedAt: Date.now(),
+                },
+                researchSources: result.sources,
+                researchConfidence:
+                  result.competitors.length > 0 ? 'high' : 'medium',
+                project: {
+                  ...currentLaunch.project,
+                  productName,
+                  phase:
+                    currentLaunch.project.phase === 'researching'
+                      ? 'brief_ready'
+                      : currentLaunch.project.phase,
+                  updatedAt: Date.now(),
+                },
+              },
+            });
+          }
+        }
         const artifact = gtm.createArtifact({
           kind: 'research_report',
           title: locale !== 'en' ? '产品定位与竞品研究' : 'Product & competitor research',
           summary:
             locale !== 'en'
-              ? `已读取官网并分析 ${result.competitors.length} 个主要竞品。`
-              : `Website reviewed and ${result.competitors.length} primary competitors analyzed.`,
+              ? `已读取官网、合成 Launch Brief，并分析 ${result.competitors.length} 个主要竞品。`
+              : `Website reviewed, Launch Brief synthesized, and ${result.competitors.length} primary competitors analyzed.`,
           markdown: `# ${locale !== 'en' ? '产品定位' : 'Product positioning'}\n\n${
             result.productProfileMarkdown
           }\n\n# ${locale !== 'en' ? '竞品分析' : 'Competitive landscape'}\n\n${
@@ -710,6 +745,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
             competitors: result.competitors,
             sources: result.sources,
             researchedAt: result.researchedAt,
+            briefRevision: result.brief?.revision,
             agentJobId,
           },
         });
@@ -720,14 +756,21 @@ export function useDirector(defaultViewContext?: ViewContext) {
           priority: 'normal',
         });
         gtm.patchDirectorMessage(cardMessage.id, {
-          card: { kind: 'agent-task', label: '产品与竞品研究已完成', status: 'done' },
+          card: {
+            kind: 'agent-task',
+            label:
+              locale !== 'en'
+                ? '产品研究与 Launch Brief 已完成'
+                : 'Product research and Launch Brief complete',
+            status: 'done',
+          },
         });
         await publishDirectorMessage({
           role: 'assistant',
           content:
             locale !== 'en'
-              ? '研究已经完成。我把完整来源、产品定位和竞品差异放到了左侧，右侧只保留结论和后续讨论。'
-              : 'Research is complete. Sources, positioning, and competitive differences are in the workspace; we can keep the discussion here.',
+              ? '研究已经完成，并基于官网证据合成了 Launch Brief。不准确的地方直接告诉我纠正即可。'
+              : 'Research is complete and the Launch Brief was synthesized from website evidence. Tell me what to correct.',
           card: {
             kind: 'artifact',
             artifactId: artifact.id,

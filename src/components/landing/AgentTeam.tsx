@@ -17,7 +17,7 @@ export default async function AgentTeam() {
             <p className="font-mono text-xs uppercase tracking-[.18em] text-brand-300">
               {isZh ? '一支真正协同的推广团队' : 'Meet your launch team'}
             </p>
-            <h2 className="mt-5 max-w-xl font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-white sm:text-5xl">
+            <h2 className="mt-5 max-w-xl font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.15] tracking-[-0.045em] text-white sm:text-5xl sm:leading-[1.05]">
               {isZh
                 ? <>你只需说一次，<br />整支团队都能听懂。</>
                 : <>One conversation.<br />A whole team behind it.</>}
@@ -38,7 +38,7 @@ export default async function AgentTeam() {
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-[.16em] text-black/55">
                   {isZh ? '市场合伙人' : 'Market Partner'}
                 </p>
-                <h3 className="mt-2 text-xl font-bold sm:text-2xl">
+                <h3 className="mt-2 text-xl font-bold leading-snug sm:text-2xl">
                   {isZh ? '理解你的想法，也把每件事推进到底。' : 'Takes your brief and coordinates the work.'}
                 </h3>
               </div>

@@ -86,7 +86,7 @@ export default async function Channels() {
             <p className="index-label">
               {isZh ? '同一个目标，不同的表达' : 'One campaign. Native to every channel.'}
             </p>
-            <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
+            <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.15] tracking-[-0.045em] text-ink sm:text-5xl sm:leading-[1.05]">
               {isZh
                 ? <>不把同一篇文案，<br />硬塞进所有平台。</>
                 : <>One strategy.<br />Adapted across the market.</>}

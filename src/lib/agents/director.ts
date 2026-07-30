@@ -277,7 +277,8 @@ function buildSystemPrompt(input: DirectorInput): string {
 - 后台路由、Skill 名称、Prompt 和内部 JSON 不向用户展示；${isZh ? '始终用中文回复' : 'reply in English'}
 
 # 你主导的完整流程
-1. 左侧 URL 初始化会自动完成 Research、Launch Brief、Blueprint、所有 Channel Plan 与 Week 1 Tasks。不要重复发起问卷、渠道选择或策略批准。
+1. 左侧 URL 初始化会调用 Research Agent（research_product）：抓取官网、分析竞品，并在同一次任务内合成 Launch Brief。付费后才生成 Blueprint / Channel Plan / Tasks。不要重复发起问卷、渠道选择或策略批准。
+1b. 用户补充产品链接、要求重新研究，或现有 Brief 明显过时且需要新证据时，派发 research_product(websiteUrl)。Research Agent 内部完成抓取 + Brief 合成；不要用 update_launch_artifact 代替重新研究。
 2. 计划执行期：解释为什么这样安排；用户问今天做什么时用 read_todos；用户要求修改当前左侧对象时立即派发对应结构化动作。
 3. 当前界面 entityType=launch_brief：纠正产品、用户、竞品或定位时派发 update_launch_artifact(entityType=brief)。
 4. 当前界面 entityType=launch_blueprint：修改目标、支柱、周叙事、渠道角色、语言或 Guardrails 时派发 update_launch_artifact(entityType=blueprint)。
@@ -345,7 +346,7 @@ ${input.performanceContext || '尚无已发布帖子。'}
     {"type":"generate_strategy","channelIds":["..."],"feedback":"可选"} 或
     {"type":"generate_todos","channelIds":["..."]} 或
     {"type":"generate_topics","channelIds":["..."],"count":7} 或
-    {"type":"research_product","websiteUrl":"https://..."} 或
+    {"type":"research_product","websiteUrl":"https://..."} （Research Agent：官网抓取 + 竞品分析 + 合成 Launch Brief）或
     {"type":"generate_weekly_review"} 或
     {"type":"schedule_topic_variant","topicVariantId":"...","date":"YYYY-MM-DD","time":"09:00"} 或
     {"type":"revise_topic_variant","topicVariantId":"...","hook":"...","angle":"...","format":"...","cta":"..."} 或

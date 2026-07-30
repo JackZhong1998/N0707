@@ -1,11 +1,18 @@
 /**
- * 产品定位与竞品研究工作流
+ * 产品定位与竞品研究工作流（Research Agent）
  *
  * Firecrawl 负责把官网页面转换成 Markdown，Tavily 负责发现竞品，
- * LLM 只负责结构化提取与综合判断。所有结论都保留来源 URL。
+ * LLM 负责结构化提取、竞品判断，以及合成证据驱动的 Launch Brief。
+ * 对 Launch Partner 暴露为单一工具 research_product；Brief 合成是内部子步骤。
+ * 所有结论都保留来源与置信度，禁止编造通用 SaaS 话术。
  */
 
 import { callOpenRouterJson } from '@/lib/openrouter';
+import type {
+  EvidenceConfidence,
+  LaunchBrief,
+  LaunchEvidence,
+} from '@/lib/gtm/types';
 import { launchOperatingContract } from './prompts';
 
 const FIRECRAWL_BASE_URL = 'https://api.firecrawl.dev/v2';
@@ -37,6 +44,8 @@ export interface ProductResearchResult {
   productProfileMarkdown: string;
   competitorAnalysisMarkdown: string;
   competitors: CompetitorResearchItem[];
+  /** Evidence-backed Launch Brief synthesized inside the Research Agent. */
+  brief: LaunchBrief;
   sources: ResearchSource[];
   researchedAt: number;
 }
@@ -551,6 +560,323 @@ async function analyzeCompetitors(input: {
   );
 }
 
+function evidenceConfidence(value: unknown): EvidenceConfidence {
+  return value === 'website' || value === 'confirmed' || value === 'inferred'
+    ? value
+    : 'inferred';
+}
+
+function normalizeEvidenceList(
+  value: unknown,
+  productUrl: string,
+  isZh: boolean
+): LaunchEvidence[] {
+  const items = (
+    Array.isArray(value) ? value : []
+  ).flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const row = item as Record<string, unknown>;
+    const label = stringValue(row.label, '', 500);
+    if (!label) return [];
+    const confidence = evidenceConfidence(row.confidence);
+    // First synthesis never upgrades to user-confirmed.
+    const safeConfidence: EvidenceConfidence =
+      confidence === 'confirmed' ? 'inferred' : confidence;
+    const sourceUrl =
+      safeHttpUrl(row.sourceUrl) ??
+      (safeConfidence === 'website' ? productUrl : undefined);
+    return [{ label, confidence: safeConfidence, sourceUrl }];
+  });
+
+  if (items.length > 0) return items.slice(0, 16);
+
+  return [
+    {
+      label: isZh ? '产品描述与公开功能' : 'Product description and public capabilities',
+      confidence: 'website',
+      sourceUrl: productUrl,
+    },
+    {
+      label: isZh ? '目标用户与场景' : 'Audience and scenarios',
+      confidence: 'inferred',
+    },
+    {
+      label: isZh ? '竞品与替代方案' : 'Competitors and alternatives',
+      confidence: 'inferred',
+    },
+  ];
+}
+
+function unknownField(isZh: boolean): string {
+  return isZh ? '官网未说明' : 'Not stated on the website';
+}
+
+/**
+ * Research Agent internal tool: synthesize a Launch Brief from sourced evidence only.
+ * Never invent generic SaaS positioning copy when the site is thin.
+ */
+export async function synthesizeLaunchBrief(input: {
+  websiteUrl: string;
+  product: ProductExtraction;
+  competitorAnalysis: CompetitorAnalysis;
+  productDocuments: FirecrawlDocument[];
+  locale: string;
+}): Promise<LaunchBrief> {
+  const isZh = input.locale !== 'en';
+  const unknown = unknownField(isZh);
+  const sourceUrls = input.productDocuments
+    .map((doc) => doc.metadata?.sourceURL ?? doc.metadata?.url)
+    .filter((url): url is string => Boolean(safeHttpUrl(url)))
+    .slice(0, 8);
+
+  const raw = await callOpenRouterJson<Partial<LaunchBrief>>(
+    [
+      {
+        role: 'system',
+        content: `${launchOperatingContract({
+          role: 'Research Agent — synthesize Launch Brief from sourced website and competitor evidence',
+          locale: input.locale,
+        })}
+
+你是 Research Agent 的 Brief 合成子步骤。只根据给定证据输出完整 Launch Brief JSON。
+
+硬性规则：
+1. 禁止编造通用 SaaS 话术（例如“自动化核心工作流”“更快开始”“适合小团队”“为早期用户提供更直接路径”等放之四海皆准的句子），除非官网原文几乎逐字支持。
+2. 证据不足的字段必须写「${unknown}」或保留空数组；宁可稀疏，也不要填充模板。
+3. 产品名、一句话摘要、功能、定价优先用官网原话或紧密改写；不要把品牌名翻译成无关含义。
+4. audience / positioning 只能来自官网明示或竞品对比中的明确空位；否则标 inferred，并在文案里体现不确定性，不要假装已验证。
+5. evidence 数组为每个重要结论标注 confidence："website"（有具体 sourceUrl）或 "inferred"。首次合成禁止使用 "confirmed"。
+6. competitors 只使用下方已确认列表；若列表为空，competitors 返回 []，不要编造竞品名。
+7. ${isZh ? '全部使用中文。' : 'Return all prose in English.'}
+
+输出严格 JSON（不要 markdown 包裹）：
+{
+  "product": {
+    "summary": "...",
+    "problem": "...",
+    "features": ["..."],
+    "stage": "...",
+    "pricing": "..."
+  },
+  "audience": {
+    "primary": "...",
+    "currentAlternative": "...",
+    "scenarios": ["..."],
+    "motivations": ["..."]
+  },
+  "competitors": [
+    {"name":"...","url":"...","positioning":"...","difference":"..."}
+  ],
+  "positioning": {
+    "statement": "...",
+    "sellingPoints": ["..."],
+    "painPoints": ["..."],
+    "voice": "...",
+    "nonGoals": ["..."]
+  },
+  "evidence": [
+    {"label":"...","confidence":"website|inferred","sourceUrl":"https://..."}
+  ]
+}`,
+      },
+      {
+        role: 'user',
+        content: `# 产品官网
+${input.websiteUrl}
+
+# 结构化抽取
+${JSON.stringify(
+  {
+    productName: input.product.productName,
+    summary: input.product.summary,
+    category: input.product.category,
+    targetUsers: input.product.targetUsers,
+    problems: input.product.problems,
+    capabilities: input.product.capabilities,
+    pricing: input.product.pricing,
+    differentiators: input.product.differentiators,
+  },
+  null,
+  2
+)}
+
+# 产品定位 Markdown
+${input.product.productProfileMarkdown.slice(0, 40_000)}
+
+# 已确认竞品
+${JSON.stringify(input.competitorAnalysis.competitors, null, 2)}
+
+# 竞品分析 Markdown
+${input.competitorAnalysis.competitorAnalysisMarkdown.slice(0, 30_000)}
+
+# 抓取页面 URL
+${sourceUrls.join('\n') || input.websiteUrl}`,
+      },
+    ],
+    { temperature: 0.15, maxTokens: 6_000 }
+  );
+
+  return normalizeSynthesizedBrief({
+    raw,
+    product: input.product,
+    competitors: input.competitorAnalysis.competitors,
+    websiteUrl: input.websiteUrl,
+    productProfileMarkdown: input.product.productProfileMarkdown,
+    locale: input.locale,
+  });
+}
+
+function normalizeSynthesizedBrief(input: {
+  raw: Partial<LaunchBrief> | null | undefined;
+  product: ProductExtraction;
+  competitors: CompetitorResearchItem[];
+  websiteUrl: string;
+  productProfileMarkdown: string;
+  locale: string;
+}): LaunchBrief {
+  const isZh = input.locale !== 'en';
+  const unknown = unknownField(isZh);
+  const raw = input.raw && typeof input.raw === 'object' ? input.raw : {};
+  const productRaw =
+    raw.product && typeof raw.product === 'object'
+      ? (raw.product as Record<string, unknown>)
+      : {};
+  const audienceRaw =
+    raw.audience && typeof raw.audience === 'object'
+      ? (raw.audience as Record<string, unknown>)
+      : {};
+  const positioningRaw =
+    raw.positioning && typeof raw.positioning === 'object'
+      ? (raw.positioning as Record<string, unknown>)
+      : {};
+
+  const competitorByOrigin = new Map(
+    input.competitors.flatMap((item) => {
+      const url = safeHttpUrl(item.url);
+      return url ? [[new URL(url).origin, { ...item, url }] as const] : [];
+    })
+  );
+
+  const competitors = (
+    Array.isArray(raw.competitors) ? raw.competitors : []
+  ).flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const row = item as Record<string, unknown>;
+    const url = safeHttpUrl(row.url);
+    const matched = url
+      ? competitorByOrigin.get(new URL(url).origin)
+      : undefined;
+    const name = stringValue(row.name, matched?.name ?? '', 300);
+    if (!name) return [];
+    if (input.competitors.length > 0 && !matched) return [];
+    return [
+      {
+        name,
+        url: matched?.url ?? url ?? undefined,
+        positioning: stringValue(
+          row.positioning,
+          matched?.reason || unknown,
+          1_000
+        ),
+        difference: stringValue(row.difference, unknown, 1_000),
+      },
+    ];
+  });
+
+  const fallbackCompetitors = input.competitors.slice(0, 5).map((item) => ({
+    name: item.name,
+    url: item.url,
+    positioning: item.reason || unknown,
+    difference: unknown,
+  }));
+
+  return {
+    product: {
+      summary: stringValue(
+        productRaw.summary,
+        input.product.summary || unknown,
+        1_000
+      ),
+      problem: stringValue(
+        productRaw.problem,
+        input.product.problems[0] || unknown,
+        1_000
+      ),
+      features: (() => {
+        const features = stringArray(productRaw.features, 8);
+        return features.length > 0
+          ? features
+          : input.product.capabilities.slice(0, 8);
+      })(),
+      stage: stringValue(productRaw.stage, unknown, 500),
+      pricing: stringValue(
+        productRaw.pricing,
+        input.product.pricing || unknown,
+        2_000
+      ),
+    },
+    audience: {
+      primary: stringValue(
+        audienceRaw.primary,
+        input.product.targetUsers[0] || unknown,
+        1_000
+      ),
+      currentAlternative: stringValue(
+        audienceRaw.currentAlternative,
+        unknown,
+        1_000
+      ),
+      scenarios: stringArray(audienceRaw.scenarios, 6),
+      motivations: stringArray(audienceRaw.motivations, 6),
+    },
+    competitors:
+      competitors.length > 0 ? competitors.slice(0, 5) : fallbackCompetitors,
+    positioning: {
+      statement: stringValue(
+        positioningRaw.statement,
+        input.product.differentiators[0]
+          ? `${input.product.productName}：${input.product.differentiators[0]}`
+          : unknown,
+        1_000
+      ),
+      sellingPoints: (() => {
+        const points = stringArray(positioningRaw.sellingPoints, 6);
+        return points.length > 0
+          ? points
+          : input.product.differentiators.slice(0, 6);
+      })(),
+      painPoints: (() => {
+        const points = stringArray(positioningRaw.painPoints, 6);
+        return points.length > 0
+          ? points
+          : input.product.problems.slice(0, 6);
+      })(),
+      voice: stringValue(positioningRaw.voice, unknown, 1_000),
+      nonGoals: stringArray(positioningRaw.nonGoals, 6),
+    },
+    evidence: normalizeEvidenceList(raw.evidence, input.websiteUrl, isZh),
+    sourceMarkdown: input.productProfileMarkdown,
+    revision: 1,
+    updatedAt: Date.now(),
+  };
+}
+
+function buildFallbackBrief(input: {
+  websiteUrl: string;
+  product: ProductExtraction;
+  competitors: CompetitorResearchItem[];
+  locale: string;
+}): LaunchBrief {
+  return normalizeSynthesizedBrief({
+    raw: null,
+    product: input.product,
+    competitors: input.competitors,
+    websiteUrl: input.websiteUrl,
+    productProfileMarkdown: input.product.productProfileMarkdown,
+    locale: input.locale,
+  });
+}
+
 function sourceFromDocument(
   document: FirecrawlDocument,
   kind: ResearchSource['kind'],
@@ -628,6 +954,28 @@ export async function runProductResearch(input: {
         )
       : normalizeCompetitorAnalysis({}, candidates, input.locale);
 
+  let brief: LaunchBrief;
+  try {
+    brief = await synthesizeLaunchBrief({
+      websiteUrl: website.toString(),
+      product,
+      competitorAnalysis: analysis,
+      productDocuments,
+      locale: input.locale,
+    });
+  } catch (error) {
+    console.warn(
+      'Launch Brief synthesis failed; falling back to structured extraction:',
+      error
+    );
+    brief = buildFallbackBrief({
+      websiteUrl: website.toString(),
+      product,
+      competitors: analysis.competitors,
+      locale: input.locale,
+    });
+  }
+
   const sources: ResearchSource[] = [
     ...productDocuments
       .map((document) => sourceFromDocument(document, 'product'))
@@ -674,6 +1022,7 @@ export async function runProductResearch(input: {
     productProfileMarkdown: product.productProfileMarkdown,
     competitorAnalysisMarkdown: analysis.competitorAnalysisMarkdown,
     competitors: analysis.competitors,
+    brief,
     sources: [...new Map(sources.map((source) => [source.url, source])).values()],
     researchedAt: Date.now(),
   };

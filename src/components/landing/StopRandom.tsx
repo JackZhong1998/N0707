@@ -52,11 +52,11 @@ export default async function StopRandom() {
       <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-4xl text-center">
           <p className="index-label">{isZh ? '这 30 天会发生什么' : 'What 30 days builds'}</p>
-          <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
+          <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.15] tracking-[-0.045em] text-ink sm:text-5xl sm:leading-[1.05]">
             {isZh ? (
               <>从产品上线，<br className="hidden sm:block" />到市场真正开始回应。</>
             ) : (
-              <>From a finished product<br className="hidden sm:block" />to a launch that moves every day.</>
+              <>From a finished product <br className="hidden sm:block" />to a launch that moves every day.</>
             )}
           </h2>
           <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-ink-muted sm:text-lg">

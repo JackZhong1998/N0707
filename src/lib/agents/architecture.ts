@@ -37,12 +37,17 @@ export const LAUNCH_AGENT_ARCHITECTURE: LaunchAgentDefinition[] = [
   },
   {
     id: 'research',
-    role: 'Evidence collector',
+    role: 'Evidence collector and Launch Brief synthesizer',
     userVisible: false,
-    owns: 'website and competitor evidence with provenance',
+    owns: 'website/competitor evidence with provenance, and the first evidence-backed Launch Brief',
     reads: ['product URL', 'retrieved public sources'],
-    writes: ['research sources', 'evidence-backed Product Profile inputs'],
-    confirmationBoundary: 'read-only; never submits or logs in',
+    writes: [
+      'research sources',
+      'Product Profile markdown',
+      'competitor analysis',
+      'Launch Brief (website/inferred labeled; never invents generic SaaS copy)',
+    ],
+    confirmationBoundary: 'read-only externally; synthesizes Brief from retrieved evidence only',
   },
   {
     id: 'context',

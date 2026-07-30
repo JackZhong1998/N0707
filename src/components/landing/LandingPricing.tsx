@@ -75,11 +75,11 @@ export default async function LandingPricing() {
       <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
         <div className="mx-auto max-w-4xl text-center">
           <p className="index-label">{isZh ? '一支团队的能力，一个人的成本' : 'Team-sized launch. Indie-sized cost.'}</p>
-          <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold tracking-[-0.045em] text-ink sm:text-5xl">
+          <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.15] tracking-[-0.045em] text-ink sm:text-5xl sm:leading-[1.05]">
             {isZh ? (
               <>每天少做几小时准备，<br className="hidden sm:block" />把 30 分钟留给真正的判断。</>
             ) : (
-              <>Turn hours of daily launch prep<br className="hidden sm:block" />into a 30-minute review.</>
+              <>Turn hours of daily launch prep <br className="hidden sm:block" />into a 30-minute review.</>
             )}
           </h2>
           <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-ink-muted">

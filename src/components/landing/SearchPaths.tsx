@@ -74,7 +74,7 @@ export default async function SearchPaths() {
         <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16">
           <div>
             <p className="index-label">{isZh ? '先解决你现在的问题' : 'Start with the job to be done'}</p>
-            <h2 id="launch-answers-title" className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.04] tracking-[-0.045em] text-ink sm:text-5xl">
+            <h2 id="launch-answers-title" className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.15] tracking-[-0.045em] text-ink sm:text-5xl sm:leading-[1.05]">
               {isZh ? '每一个推广难题，先给你一个可执行的答案。' : 'A practical answer for the launch problem you have now.'}
             </h2>
             <p className="mt-6 text-base leading-8 text-ink-muted">

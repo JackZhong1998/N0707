@@ -136,48 +136,67 @@ export function buildLaunchBrief(
   research: ProductResearchResult | null,
   isZh: boolean
 ): LaunchBrief {
-  const name = launch.project.productName;
-  const source = research?.productProfileMarkdown ?? '';
-  const summary = firstMeaningfulLine(
-    source,
-    isZh
-      ? `${name} 是一款正在进入市场的新产品，NowBuild 将继续从公开网站信息中完善它的定位。`
-      : `${name} is a new product entering the market. NowBuild will keep refining its positioning from public evidence.`
-  );
+  if (research?.brief) {
+    return {
+      ...research.brief,
+      sourceMarkdown:
+        research.brief.sourceMarkdown || research.productProfileMarkdown,
+      revision: 1,
+      updatedAt: Date.now(),
+    };
+  }
+
+  const unknown = isZh ? '官网未说明' : 'Not stated on the website';
+  const summary =
+    research?.product.summary ||
+    firstMeaningfulLine(
+      research?.productProfileMarkdown ?? '',
+      unknown
+    );
   const competitors = (research?.competitors ?? []).slice(0, 5).map((item) => ({
     name: item.name,
     url: item.url,
-    positioning: item.reason,
-    difference: isZh ? `需要在 30 天执行中验证与 ${name} 的真实差异。` : `Validate the meaningful difference from ${name} during execution.`,
+    positioning: item.reason || unknown,
+    difference: unknown,
   }));
   return {
     product: {
       summary,
-      problem: isZh ? '帮助目标用户更快完成当前低效、分散或依赖人工的工作。' : 'Helps the target user replace a slow, fragmented, or manual workflow.',
-      features: isZh ? ['核心工作流自动化', '清晰的执行结果', '降低上手成本'] : ['Automated core workflow', 'Clear execution output', 'Low setup cost'],
-      stage: isZh ? '已上线，进入冷启动验证期' : 'Live, entering cold-start validation',
-      pricing: isZh ? '以官网公开信息为准；未确认的价格不会用于推广文案。' : 'Use public website pricing only; unconfirmed pricing will not enter campaign copy.',
+      problem: unknown,
+      features: research?.product.capabilities?.slice(0, 8) ?? [],
+      stage: unknown,
+      pricing: research?.product.pricing || unknown,
     },
     audience: {
-      primary: isZh ? `正在主动寻找更高效解决方案的 ${name} 早期用户` : `Early adopters actively looking for a more efficient solution from ${name}`,
-      currentAlternative: isZh ? '手工拼接多个工具、使用通用方案，或暂时不处理。' : 'Stitching together generic tools, handling it manually, or doing nothing.',
-      scenarios: isZh ? ['第一次尝试解决该问题', '现有流程成本过高', '需要更快验证结果'] : ['Trying to solve the problem for the first time', 'Existing workflow is too costly', 'Needs a faster way to validate results'],
-      motivations: isZh ? ['节省时间', '降低试错成本', '更快获得可用结果'] : ['Save time', 'Reduce trial-and-error', 'Reach a usable outcome faster'],
+      primary: research?.product.targetUsers?.[0] || unknown,
+      currentAlternative: unknown,
+      scenarios: [],
+      motivations: [],
     },
     competitors,
     positioning: {
-      statement: isZh ? `${name}：为早期用户提供一条更直接、更可执行的解决路径。` : `${name}: a more direct, actionable path for early adopters.`,
-      sellingPoints: isZh ? ['更快开始', '围绕完整结果设计', '适合小团队独立执行'] : ['Faster time to start', 'Designed around the full outcome', 'Works for small teams'],
-      painPoints: isZh ? ['选择太多但无法行动', '手工流程耗时', '结果缺少一致性'] : ['Too many choices, too little action', 'Manual work takes too long', 'Inconsistent results'],
-      voice: isZh ? '具体、诚实、克制；用真实场景解释价值，不夸大结果。' : 'Specific, honest, and restrained; show value through real scenarios without inflated claims.',
-      nonGoals: isZh ? ['不把未经验证的数据当卖点', '不面向所有人泛化表达', '不承诺不可控业务结果'] : ['No unverified metrics', 'No positioning for everyone', 'No promises of uncontrollable outcomes'],
+      statement: unknown,
+      sellingPoints: [],
+      painPoints: [],
+      voice: unknown,
+      nonGoals: [],
     },
     evidence: [
-      { label: isZh ? '产品描述与公开功能' : 'Product description and public capabilities', confidence: research ? 'website' : 'inferred', sourceUrl: launch.project.productUrl },
-      { label: isZh ? '早期目标用户假设' : 'Early target audience hypothesis', confidence: 'inferred' },
-      { label: isZh ? '竞品与替代方案' : 'Competitors and alternatives', confidence: research?.competitors.length ? 'website' : 'inferred' },
+      {
+        label: isZh ? '产品描述与公开功能' : 'Product description and public capabilities',
+        confidence: research ? 'website' : 'inferred',
+        sourceUrl: launch.project.productUrl,
+      },
+      {
+        label: isZh ? '目标用户与场景' : 'Audience and scenarios',
+        confidence: 'inferred',
+      },
+      {
+        label: isZh ? '竞品与替代方案' : 'Competitors and alternatives',
+        confidence: research?.competitors.length ? 'website' : 'inferred',
+      },
     ],
-    sourceMarkdown: source,
+    sourceMarkdown: research?.productProfileMarkdown,
     revision: 1,
     updatedAt: Date.now(),
   };

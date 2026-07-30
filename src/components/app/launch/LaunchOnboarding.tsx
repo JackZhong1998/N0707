@@ -137,11 +137,16 @@ export default function LaunchOnboarding() {
     updateLaunch(launch);
 
     const brief = buildLaunchBrief(launch, research, isZh);
+    const productName =
+      research?.product?.name?.trim() &&
+      research.product.name !== 'Unknown product'
+        ? research.product.name.trim().slice(0, 120)
+        : launch.project.productName;
     const productFit = deriveProductFitProfile({
       category: research?.product?.category,
       targetUsers: research?.product?.targetUsers,
-      summary: research?.product?.summary,
-      capabilities: research?.product?.capabilities,
+      summary: research?.product?.summary ?? brief.product.summary,
+      capabilities: research?.product?.capabilities ?? brief.product.features,
       stage: brief.product.stage,
     });
     launch = {
@@ -152,7 +157,13 @@ export default function LaunchOnboarding() {
       brief,
       directories: createMatchedDirectoryPipeline(productFit, isZh),
       briefEditUsed: 0,
-      project: { ...launch.project, phase: 'brief_ready', status: 'building', updatedAt: Date.now() },
+      project: {
+        ...launch.project,
+        productName,
+        phase: 'brief_ready',
+        status: 'building',
+        updatedAt: Date.now(),
+      },
     };
     updateLaunch(launch);
     gtm.addDirectorMessage({
