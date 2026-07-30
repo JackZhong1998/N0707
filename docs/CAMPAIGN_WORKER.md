@@ -24,13 +24,14 @@
 CRON_SECRET=<至少 32 位随机字符串>
 ```
 
-`vercel.json` 已配置每分钟调用一次：
+`vercel.json` 已配置每天调用一次（Hobby 套餐限制：cron 不能超过每天 1 次）：
 
 ```text
 /api/internal/campaign-worker
+schedule: 0 2 * * *   # 每天约 02:00 UTC（Hobby 实际触发可能在该小时内）
 ```
 
-浏览器在线时也会触发 Worker；Cron 用于用户关闭页面、网络中断或函数异常后的自动接管。
+浏览器在线时也会触发 Worker；Cron 用于用户关闭页面后的兜底接管。若需要每分钟跑 Worker，请升级 Vercel Pro。
 
 ## 3. 验证数据库
 
