@@ -1,6 +1,6 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { processNextCampaignJob } from '@/lib/gtm/campaign-worker';
+import { drainCampaignJobs } from '@/lib/gtm/campaign-worker';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -24,7 +24,7 @@ async function run(request: Request) {
   }
   try {
     const workerId = `nowbuild-${randomUUID()}`;
-    const result = await processNextCampaignJob(workerId);
+    const result = await drainCampaignJobs(workerId);
     return NextResponse.json(result);
   } catch (error) {
     console.error('Campaign worker failed:', error);

@@ -35,6 +35,10 @@ function CalendarPageInner() {
         ? 'month'
         : 'week';
 
+  const dateParam = searchParams.get('date');
+  const initialDate =
+    dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : undefined;
+
   const demoTodos = useMemo(() => buildDemoTodos(locale), [locale]);
 
   // 未付费预览必须永远用 demo（与 locale 对应），不能被本地残留的空 plan 盖掉
@@ -101,6 +105,7 @@ function CalendarPageInner() {
           todos={todos}
           interactive={store.planReady && !usingDemo}
           initialView={initialView}
+          initialDate={initialDate}
           previewMode={isPreview}
           onViewStateChange={handleViewStateChange}
           onToggleStatus={(id) => {

@@ -8,6 +8,8 @@ import type {
   CampaignJobRecord,
   CampaignJobStepRecord,
 } from '@/lib/gtm/campaign-jobs';
+import { resolveLaunchChannelIds } from '@/lib/gtm/launch';
+import type { GtmStore } from '@/lib/gtm/types';
 
 type JobResponse = {
   job: CampaignJobRecord;
@@ -16,8 +18,8 @@ type JobResponse = {
 
 /**
  * Enqueue the paid Campaign once, then mirror durable server progress into the
- * local UI. While the tab is away, work may pause; ResumeOnReturn + polling
- * reconnect and continue the same idempotent build key.
+ * local UI. Server `after()` drains multiple steps per poll, so briefly leaving
+ * the tab does not need to pause the in-flight worker.
  */
 export default function CampaignBootstrap() {
   const locale = useLocale();
@@ -40,9 +42,13 @@ export default function CampaignBootstrap() {
   const buildKey = launch
     ? `campaign:${launch.project.id}:${launch.project.createdAt}`
     : null;
+  const selectedChannelIds = launch?.selectedChannelIds ?? [];
+  const channelIds = launch ? resolveLaunchChannelIds(gtm.store) : [];
   const shouldBuild =
     Boolean(hydrated && remoteReady && paid && launch && hasBrief && !planReady) &&
-    (phase === 'brief_ready' || phase === 'building_team');
+    channelIds.length > 0 &&
+    (phase === 'building_team' ||
+      (phase === 'brief_ready' && selectedChannelIds.length > 0));
 
   useEffect(() => {
     if (!shouldBuild || !launch || !buildKey) return;
@@ -55,20 +61,16 @@ export default function CampaignBootstrap() {
       router.replace('/app');
     }
 
-    gtmRef.current.addDirectorMessage({
-      role: 'assistant',
-      content: isZh
-        ? '支付已确认。Campaign 已进入队列。离开页面时任务可能暂停；你回来后会自动同步最新进度并继续未完成步骤。'
-        : 'Payment confirmed. Your Campaign is queued. It may pause while you are away; when you return we sync the latest progress and continue unfinished steps.',
-    });
-
     const syncRemoteStore = async () => {
       const response = await fetch('/api/gtm/state', { cache: 'no-store' });
       if (!response.ok) return;
       const payload = (await response.json()) as {
-        store?: typeof gtmRef.current.store;
+        store?: GtmStore;
+        revision?: string;
       };
-      if (payload.store && !cancelled) gtmRef.current.update(payload.store);
+      if (payload.store && !cancelled) {
+        gtmRef.current.adoptRemoteStore(payload.store, payload.revision);
+      }
     };
 
     const poll = async (jobId: string) => {
@@ -121,37 +123,63 @@ export default function CampaignBootstrap() {
     };
 
     void (async () => {
-      try {
-        const response = await fetch('/api/gtm/campaign-jobs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            store: {
-              ...gtmRef.current.store,
-              launch: { ...launch, campaignBuildId: buildKey },
-            },
-            locale,
-          }),
-        });
-        if (!response.ok) {
-          const error = (await response.json().catch(() => ({}))) as {
-            error?: string;
-          };
-          throw new Error(error.error ?? `Campaign enqueue failed (${response.status})`);
-        }
-        const payload = (await response.json()) as JobResponse;
-        if (!cancelled) void poll(payload.job.id);
-      } catch (error) {
-        activeBuildRef.current = null;
-        if (!cancelled && terminalBuildRef.current !== buildKey) {
-          terminalBuildRef.current = buildKey;
+      const maxAttempts = 4;
+      let lastError: unknown;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        if (cancelled) return;
+        try {
+          const response = await fetch('/api/gtm/campaign-jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              store: {
+                ...gtmRef.current.store,
+                launch: { ...launch, campaignBuildId: buildKey },
+              },
+              locale,
+            }),
+          });
+          if (response.status === 409 || response.status >= 500) {
+            throw new Error(
+              `Campaign enqueue failed (${response.status})`
+            );
+          }
+          if (!response.ok) {
+            const error = (await response.json().catch(() => ({}))) as {
+              error?: string;
+            };
+            throw new Error(
+              error.error ?? `Campaign enqueue failed (${response.status})`
+            );
+          }
+          const payload = (await response.json()) as JobResponse;
+          if (cancelled) return;
           gtmRef.current.addDirectorMessage({
             role: 'assistant',
             content: isZh
-              ? `无法启动后台 Campaign：${error instanceof Error ? error.message : '未知错误'}。`
-              : `Could not start the background Campaign: ${error instanceof Error ? error.message : 'unknown error'}.`,
+              ? '支付已确认。Campaign 已在后台组装中，你可以继续聊天或切换到其他应用；进度会自动保存。'
+              : 'Payment confirmed. Your Campaign is assembling in the background — you can keep chatting or switch apps; progress is saved automatically.',
           });
+          void poll(payload.job.id);
+          return;
+        } catch (error) {
+          lastError = error;
+          if (attempt < maxAttempts - 1) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, 500 * 2 ** attempt)
+            );
+          }
         }
+      }
+      activeBuildRef.current = null;
+      if (!cancelled && terminalBuildRef.current !== buildKey) {
+        terminalBuildRef.current = buildKey;
+        gtmRef.current.addDirectorMessage({
+          role: 'assistant',
+          content: isZh
+            ? `无法启动后台 Campaign：${lastError instanceof Error ? lastError.message : '未知错误'}。`
+            : `Could not start the background Campaign: ${lastError instanceof Error ? lastError.message : 'unknown error'}.`,
+        });
       }
     })();
 

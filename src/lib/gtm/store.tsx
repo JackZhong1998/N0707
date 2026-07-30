@@ -16,6 +16,7 @@ import {
   type AgentArtifact,
   type AgentNotification,
   type ChatMessage,
+  type ChannelRecommendationResponse,
   type ChannelStrategyDoc,
   type GtmStore,
   type MarketStrategy,
@@ -25,6 +26,7 @@ import {
   type Topic,
   type TopicVariant,
 } from './types';
+import { markBriefResearchStepsDone, storePatchForNewLaunch } from './launch';
 
 // New product framework, new cache namespace. This prevents a cleared test
 // account from restoring the retired GTM snapshot back into an empty Supabase
@@ -104,11 +106,42 @@ function migrate(raw: unknown): GtmStore {
 function loadStore(key: string): GtmStore {
   try {
     const raw = localStorage.getItem(key);
-    if (raw) return migrate(JSON.parse(raw));
+    if (raw) return sanitizeUnpaidStore(migrate(JSON.parse(raw)));
   } catch {
     // corrupt storage — start fresh
   }
   return createInitialStore();
+}
+
+const STALE_PAID_PHASES = new Set([
+  'building_team',
+  'blueprint_ready',
+  'active',
+  'completed',
+]);
+
+/** Free accounts must never resume a paid Campaign snapshot from local cache. */
+function sanitizeUnpaidStore(store: GtmStore): GtmStore {
+  if (store.paid) return store;
+  const launch = store.launch;
+  if (!launch || !STALE_PAID_PHASES.has(launch.project.phase)) {
+    return { ...store, paid: false, planReady: false };
+  }
+  if (!launch.brief) {
+    return { ...store, paid: false, planReady: false, launch: undefined };
+  }
+  const normalizedLaunch = markBriefResearchStepsDone(launch, false);
+  return {
+    ...store,
+    ...storePatchForNewLaunch(normalizedLaunch),
+    paid: false,
+    planReady: false,
+    launch: {
+      ...normalizedLaunch,
+      campaignBuildId: undefined,
+      selectedChannelIds: undefined,
+    },
+  };
 }
 
 function mergeById<T extends { id: string }>(
@@ -141,13 +174,29 @@ function mergeHydratedStores(
     )
   );
   const remoteHasBrief = Boolean(remoteStore.launch?.brief);
+  const sameLaunchProject =
+    localStore.launch?.project.id === remoteStore.launch?.project.id;
+  const localIsNewerLaunch =
+    Boolean(localStore.launch?.brief) &&
+    Boolean(remoteStore.launch) &&
+    !sameLaunchProject &&
+    (localStore.launch?.project.createdAt ?? 0) >=
+      (remoteStore.launch?.project.createdAt ?? 0);
+  const localHasInProgressResearch =
+    Boolean(localStore.launch) &&
+    !localStore.launch?.brief &&
+    localStore.launch?.project.phase === 'researching';
   const localLaunch =
-    localStore.launch?.brief && !remoteHasBrief ? localStore.launch : undefined;
-  return {
-    // A different cached revision means another session changed the project
-    // while this tab was offline. Without the common base, server state wins
-    // for mutable documents/entities; append-only messages and truly-unhandled
-    // local inbox entries are the only safe additions.
+    localStore.launch?.brief && (!remoteHasBrief || localIsNewerLaunch)
+      ? localStore.launch
+      : localHasInProgressResearch && !remoteHasBrief
+        ? preferFartherLaunch(
+            undefined,
+            remoteStore.launch,
+            localStore.launch
+          ) ?? localStore.launch
+        : undefined;
+  const merged: GtmStore = {
     ...remoteStore,
     paid: remoteStore.paid,
     directorChat,
@@ -157,16 +206,22 @@ function mergeHydratedStores(
         (request) => !repliedTo.has(request.messageId)
       )
     ).sort((a, b) => a.createdAt - b.createdAt),
-    // A user's pre-checkout Launch Brief only exists in the local write-ahead
-    // cache. Never let an older/empty first remote snapshot erase it.
-    ...(localLaunch
-      ? {
-          launch: localLaunch,
-          startDate: localStore.startDate,
-          planReady: localStore.planReady,
-        }
-      : {}),
     updatedAt: remoteStore.updatedAt,
+  };
+  if (!localLaunch) return merged;
+  if (localIsNewerLaunch) {
+    return {
+      ...merged,
+      ...storePatchForNewLaunch(localLaunch),
+      launch: localLaunch,
+      updatedAt: Math.max(remoteStore.updatedAt, localStore.updatedAt),
+    };
+  }
+  return {
+    ...merged,
+    launch: localLaunch,
+    startDate: localStore.startDate,
+    planReady: localStore.planReady,
   };
 }
 
@@ -186,6 +241,43 @@ function mergeThreeWayValue<T>(
   // the user's currently-attempted write; entity collections are reconciled
   // separately below.
   return local;
+}
+
+function launchProgressScore(
+  launch: GtmStore['launch'] | undefined
+): number {
+  if (!launch) return -1;
+  if (launch.project.phase === 'active' || launch.project.status === 'active') {
+    return 10_000;
+  }
+  return launch.researchProgress.reduce((score, step) => {
+    if (step.status === 'done') return score + 3;
+    if (step.status === 'running') return score + 1;
+    return score;
+  }, 0);
+}
+
+/** Prefer the Campaign build that has advanced farther when both sides diverge. */
+function preferFartherLaunch(
+  base: GtmStore['launch'] | undefined,
+  remote: GtmStore['launch'] | undefined,
+  local: GtmStore['launch'] | undefined
+): GtmStore['launch'] | undefined {
+  const remoteId = remote?.project.id;
+  const localId = local?.project.id;
+  if (remoteId && localId && remoteId !== localId) {
+    const remoteCreated = remote.project.createdAt ?? 0;
+    const localCreated = local.project.createdAt ?? 0;
+    if (localCreated > remoteCreated) return local;
+    if (remoteCreated > localCreated) return remote;
+    return local;
+  }
+  const remoteScore = launchProgressScore(remote);
+  const localScore = launchProgressScore(local);
+  const baseScore = launchProgressScore(base);
+  if (remoteScore > localScore && remoteScore >= baseScore) return remote;
+  if (localScore > remoteScore && localScore >= baseScore) return local;
+  return mergeThreeWayValue(base, remote, local);
 }
 
 function mergeThreeWayByKey<T>(
@@ -311,18 +403,26 @@ function mergeConflictingStores(
     channelDocs.map((doc) => [doc.channelId, doc])
   );
 
+  // Campaign worker owns launch.researchProgress / planReady. Prefer the
+  // farther-along side so a chat-only local write cannot wipe build progress.
+  const launch = preferFartherLaunch(
+    baseStore.launch,
+    remoteStore.launch,
+    localStore.launch
+  );
+  const planReady = Boolean(
+    launch?.project.phase === 'active' ||
+      mergeThreeWayValue(
+        baseStore.planReady,
+        remoteStore.planReady,
+        localStore.planReady
+      )
+  );
+
   return {
     ...remoteStore,
-    launch: mergeThreeWayValue(
-      baseStore.launch,
-      remoteStore.launch,
-      localStore.launch
-    ),
-    planReady: mergeThreeWayValue(
-      baseStore.planReady,
-      remoteStore.planReady,
-      localStore.planReady
-    ),
+    launch,
+    planReady,
     userProfileDoc: mergeThreeWayValue(
       baseStore.userProfileDoc,
       remoteStore.userProfileDoc,
@@ -450,6 +550,12 @@ interface GtmContextValue {
   remoteReady: boolean;
   accessStatus: SubscriptionAccessStatus;
   update: (patch: Partial<GtmStore>) => void;
+  /**
+   * Apply a server snapshot as the new base. Updates the CAS revision and
+   * skips echoing the same snapshot back via PUT (avoids 409 storms while
+   * the Campaign worker is writing).
+   */
+  adoptRemoteStore: (store: GtmStore, revision?: string) => void;
   addDirectorMessage: (message: Omit<ChatMessage, 'id' | 'createdAt'>) => ChatMessage;
   patchDirectorMessage: (id: string, patch: Partial<ChatMessage>) => void;
   setProfiles: (userDoc: string, projectDoc: string) => void;
@@ -461,6 +567,10 @@ interface GtmContextValue {
   setStrategy: (strategy: MarketStrategy) => void;
   upsertChannelStrategy: (doc: ChannelStrategyDoc) => void;
   setChannels: (channels: string[]) => void;
+  setChannelRecommendations: (
+    recommendations: ChannelRecommendationResponse
+  ) => void;
+  setSelectedChannelIds: (channelIds: string[]) => void;
   createTopic: (topic: Omit<Topic, 'id' | 'createdAt' | 'updatedAt'>) => Topic;
   updateTopic: (topicId: string, patch: Partial<Topic>) => void;
   deleteTopic: (topicId: string) => void;
@@ -540,6 +650,8 @@ function GtmProviderState({
   const remoteRetryTimerRef = useRef<number | null>(null);
   const remoteRevisionRef = useRef<string | null>(null);
   const remoteBaseStoreRef = useRef<GtmStore | null>(null);
+  /** When set, the next debounced save is skipped if store still matches. */
+  const adoptedRemoteStoreRef = useRef<GtmStore | null>(null);
   const flushRemoteSavesRef = useRef<() => Promise<void>>(
     async () => undefined
   );
@@ -679,7 +791,7 @@ function GtmProviderState({
             anonStore.topics.length > 0 ||
             anonStore.launch
           ) {
-            localStore = anonStore;
+            localStore = sanitizeUnpaidStore(anonStore);
           }
         } catch {
           // ignore
@@ -787,7 +899,7 @@ function GtmProviderState({
         // Free tier keeps the local Launch Brief workspace so users can finish
         // analysis and up to 20 Brief corrections before checkout. Remote
         // persistence remains paid-only below.
-        setStore((current) => ({ ...current, paid: false }));
+        setStore((current) => sanitizeUnpaidStore(current));
         setRemoteReady(true);
         return;
       }
@@ -896,6 +1008,14 @@ function GtmProviderState({
       return;
     }
     const timer = window.setTimeout(() => {
+      if (
+        adoptedRemoteStoreRef.current &&
+        sameState(store, adoptedRemoteStoreRef.current)
+      ) {
+        adoptedRemoteStoreRef.current = null;
+        return;
+      }
+      adoptedRemoteStoreRef.current = null;
       queuedRemoteStoreRef.current = store;
       void flushRemoteSaves();
     }, 900);
@@ -911,6 +1031,20 @@ function GtmProviderState({
 
   const update = useCallback((patch: Partial<GtmStore>) => {
     setStore((prev) => ({ ...prev, ...patch, updatedAt: Date.now() }));
+  }, []);
+
+  const adoptRemoteStore = useCallback((remote: GtmStore, revision?: string) => {
+    if (typeof revision === 'string' && revision.length > 0) {
+      remoteRevisionRef.current = revision;
+      cacheRemoteRevision(keyRef.current, revision);
+    }
+    remoteBaseStoreRef.current = remote;
+    adoptedRemoteStoreRef.current = remote;
+    setStore((current) => {
+      const paid = Boolean(current.paid || remote.paid);
+      const merged = mergeHydratedStores(current, { ...remote, paid });
+      return paid ? merged : sanitizeUnpaidStore(merged);
+    });
   }, []);
 
   const addDirectorMessage = useCallback(
@@ -991,6 +1125,43 @@ function GtmProviderState({
 
   const setChannels = useCallback((channels: string[]) => {
     setStore((prev) => ({ ...prev, channels, updatedAt: Date.now() }));
+  }, []);
+
+  const setChannelRecommendations = useCallback(
+    (recommendations: ChannelRecommendationResponse) => {
+      setStore((prev) => {
+        if (!prev.launch) return prev;
+        return {
+          ...prev,
+          launch: {
+            ...prev.launch,
+            channelRecommendations: recommendations,
+            project: { ...prev.launch.project, updatedAt: Date.now() },
+          },
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    []
+  );
+
+  const setSelectedChannelIds = useCallback((channelIds: string[]) => {
+    const unique = [...new Set(channelIds)];
+    setStore((prev) => {
+      if (!prev.launch) {
+        return { ...prev, channels: unique, updatedAt: Date.now() };
+      }
+      return {
+        ...prev,
+        channels: unique,
+        launch: {
+          ...prev.launch,
+          selectedChannelIds: unique,
+          project: { ...prev.launch.project, updatedAt: Date.now() },
+        },
+        updatedAt: Date.now(),
+      };
+    });
   }, []);
 
   const createTopic = useCallback(
@@ -1361,6 +1532,7 @@ function GtmProviderState({
         remoteReady,
         accessStatus,
         update,
+        adoptRemoteStore,
         addDirectorMessage,
         patchDirectorMessage,
         setProfiles,
@@ -1368,6 +1540,8 @@ function GtmProviderState({
         setStrategy,
         upsertChannelStrategy,
         setChannels,
+        setChannelRecommendations,
+        setSelectedChannelIds,
         createTopic,
         updateTopic,
         deleteTopic,

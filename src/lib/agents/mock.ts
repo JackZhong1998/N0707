@@ -14,6 +14,9 @@ import type {
 } from '@/lib/gtm/types';
 import { channelName, getChannelCatalog } from './catalog';
 import { getChannelDefinition } from './skills/channel-map';
+import { SUPPORTED_LAUNCH_CHANNELS } from '@/lib/gtm/launch';
+import type { ChannelRecommenderInput } from './channel-recommender';
+import type { ChannelRecommendationResponse } from '@/lib/gtm/types';
 
 export function isMockMode(): boolean {
   return !process.env.OPENROUTER_API_KEY;
@@ -30,22 +33,32 @@ export async function mockDirector(input: {
   message: string;
   hasStrategy: boolean;
   hasTodos: boolean;
+  hasChannelRecommendations?: boolean;
   channels: string[];
 }): Promise<DirectorResponse> {
   await delay(700);
   const msg = input.message;
-  const channelIds =
-    input.channels.length > 0
-      ? input.channels
-      : getChannelCatalog().map((channel) => channel.channelId);
+  const channelIds = input.channels;
   const websiteUrl = msg.match(/https?:\/\/[^\s<>()]+/i)?.[0];
 
-  // PRD 模式：不让用户选择渠道或审批策略，后台自动覆盖全部支持渠道。
+  if (/(推荐|渠道选择|做什么渠道)/.test(msg) || (!input.hasChannelRecommendations && /计划|渠道/.test(msg) && channelIds.length === 0)) {
+    return {
+      reply: '我先根据你的产品档案和用户背景做渠道推荐，结果会出现在左侧「渠道推荐」页。',
+      actions: [{ type: 'recommend_channels' }],
+    };
+  }
+
+  if (input.hasChannelRecommendations && channelIds.length > 0 && !input.hasStrategy) {
+    return {
+      reply: `已看到你选了 ${channelIds.length} 个渠道。我现在逐个写渠道计划，完成一个就会推一张卡片。`,
+      actions: [{ type: 'generate_channel_plans', channelIds }],
+    };
+  }
+
   if (input.hasStrategy && !input.hasTodos) {
     return {
-      reply:
-        'Campaign Blueprint 已经就绪。我会直接让全部渠道专员生成未来 30 天的执行骨架；你不需要逐项选择或审批渠道。',
-      actions: [{ type: 'generate_todos', channelIds }],
+      reply: '渠道计划已经就绪。要我现在为这些渠道生成 30 天 Todo 吗？',
+      actions: [{ type: 'generate_todos', channelIds: channelIds.length > 0 ? channelIds : getChannelCatalog().slice(0, 4).map((c) => c.channelId) }],
     };
   }
 
@@ -71,13 +84,8 @@ export async function mockDirector(input: {
 
   return {
     reply:
-      '链接已收到。我会在后台完成产品研究、统一 Campaign Blueprint、全部支持渠道的原生计划和首批执行任务；你只需要在需要登录、提交或发布时确认。',
-    actions: [
-      { type: 'research_product', websiteUrl },
-      { type: 'generate_strategy', channelIds },
-      { type: 'generate_topics', channelIds, count: 7 },
-      { type: 'generate_todos', channelIds },
-    ],
+      '链接已收到。我会先完成产品研究并生成 Launch Brief；付费后我们再聊你的目标市场和渠道偏好。',
+    actions: [{ type: 'research_product', websiteUrl }],
   };
 }
 
@@ -250,6 +258,79 @@ export async function mockContext(input: {
         ? `## 当前讨论\n${userLines.join('\n')}`
         : input.conversationSummary ?? '',
     memoryFacts: input.memoryFacts ?? [],
+  };
+}
+
+export async function mockChannelRecommendations(
+  input: ChannelRecommenderInput
+): Promise<ChannelRecommendationResponse> {
+  await delay(900);
+  const profile = `${input.projectProfileDoc}\n${input.userProfileDoc}`.toLowerCase();
+  const dev =
+    profile.includes('coding') ||
+    profile.includes('developer') ||
+    profile.includes('github');
+  const china = profile.includes('中文') || profile.includes('小红书');
+
+  const primaryIds = dev
+    ? ['hacker_news', 'twitter_x', 'reddit', 'product_hunt']
+    : china
+      ? ['xiaohongshu', 'wechat_official', 'website_copy']
+      : ['linkedin', 'reddit', 'seo', 'product_hunt'];
+
+  const secondaryIds = dev
+    ? ['github_growth', 'indie_hackers', 'seo']
+    : china
+      ? ['seo', 'user_outreach']
+      : ['twitter_x', 'directory', 'indie_hackers'];
+
+  const used = new Set([...primaryIds, ...secondaryIds]);
+  const isZh = input.locale !== 'en';
+
+  const toItem = (
+    channelId: string,
+    priority: ChannelRecommendationResponse['recommendations'][number]['priority'],
+    fitScore: number
+  ) => {
+    const def = getChannelDefinition(channelId);
+    return {
+      channelId,
+      channelName: def ? (isZh ? def.name : def.nameEn) : channelId,
+      priority,
+      fitScore,
+      rationale: def?.description ?? channelId,
+      marketFit: isZh ? '演示推荐' : 'Demo recommendation',
+      effortLevel: 'medium' as const,
+      suggestedCadence: isZh
+        ? `每周约 ${def?.postsPerWeek ?? 2} 个交付`
+        : `About ${def?.postsPerWeek ?? 2} deliverables per week`,
+    };
+  };
+
+  return {
+    summaryMarkdown: isZh
+      ? '## 渠道推荐（演示模式）\n\n基于产品档案的 Mock 推荐。正式环境会调用 Growth Finder + GTM Playbook 专家 Skill。'
+      : '## Channel recommendations (demo)\n\nMock output based on product profile.',
+    diagnosis: {
+      productType: dev ? 'dev_tool' : 'b2b_saas',
+      growthStage: 'cold-start',
+      primaryMarket: china ? '中文区' : '北美',
+      bottleneck: isZh ? '分发渠道缺口' : 'distribution gap',
+    },
+    recommendations: [
+      ...primaryIds.map((id) => toItem(id, 'primary', 90)),
+      ...secondaryIds.map((id) => toItem(id, 'secondary', 75)),
+      ...SUPPORTED_LAUNCH_CHANNELS.filter((c) => !used.has(c.channelId))
+        .slice(0, 3)
+        .map((c) => toItem(c.channelId, 'explore', 50)),
+      ...SUPPORTED_LAUNCH_CHANNELS.filter(
+        (c) => !used.has(c.channelId) && !primaryIds.includes(c.channelId)
+      )
+        .slice(-3)
+        .map((c) => toItem(c.channelId, 'skip', 25)),
+    ],
+    specialistSkillsUsed: ['gingiris-growth-finder', 'go-to-market-playbook'],
+    updatedAt: Date.now(),
   };
 }
 

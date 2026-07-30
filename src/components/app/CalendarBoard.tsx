@@ -4,10 +4,10 @@
  * 行动日历 — 支持日 / 周 / 月视图切换的 To-Do 日历
  * - 渠道用品牌 Logo 标识
  * - 每条 To-Do 带可点击的完成圆球
- * - 周视图：焦点日（默认当天）拉宽显示更多内容，点击表头切换焦点；非焦点日隐藏副标题
+ * - 日 / 周 / 月视图：纵向列表，左侧日期、右侧 To-Do；周 / 月视图焦点日（默认当天）展示完整内容
  */
 
-import { memo, useEffect, useMemo, useState } from 'react';
+import { forwardRef, memo, useEffect, useMemo, useRef, useState, type Ref } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import type { Todo } from '@/lib/gtm/types';
@@ -149,6 +149,7 @@ export default function CalendarBoard({
   todos,
   interactive,
   initialView = 'week',
+  initialDate,
   previewMode = false,
   onToggleStatus,
   onViewStateChange,
@@ -156,6 +157,8 @@ export default function CalendarBoard({
   todos: Todo[];
   interactive: boolean;
   initialView?: ViewMode;
+  /** 打开日历时定位到该日期（YYYY-MM-DD） */
+  initialDate?: string;
   /** 付费墙预览：锁定周视图，每天展示完整 To-Do */
   previewMode?: boolean;
   onToggleStatus?: (id: string) => void;
@@ -170,16 +173,29 @@ export default function CalendarBoard({
   const isZh = locale !== 'en';
   const router = useRouter();
   const previewAnchor = todos[0]?.date ? startOfWeek(todos[0].date) : todayStr();
+  const resolvedInitialDate =
+    initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) ? initialDate : todayStr();
   const [view, setView] = useState<ViewMode>(previewMode ? 'week' : initialView);
-  const [anchor, setAnchor] = useState<string>(previewMode ? previewAnchor : todayStr());
+  const [anchor, setAnchor] = useState<string>(
+    previewMode ? previewAnchor : initialView === 'day' ? resolvedInitialDate : todayStr()
+  );
   const [focusDate, setFocusDate] = useState<string | null>(null);
   const [channelFilter, setChannelFilter] = useState<string>('all');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const todayRowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!previewMode) return;
     setView('week');
     setAnchor(previewAnchor);
   }, [previewMode, previewAnchor]);
+
+  useEffect(() => {
+    if (previewMode || initialView !== 'day' || !initialDate) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(initialDate)) return;
+    setAnchor(initialDate);
+    setView('day');
+  }, [initialDate, initialView, previewMode]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, Todo[]>();
@@ -206,10 +222,27 @@ export default function CalendarBoard({
   const weekdays = isZh ? WEEKDAY_LABELS_ZH : WEEKDAY_LABELS_EN;
   const today = todayStr();
 
+  const formatDayLabel = (date: string) =>
+    parseDateStr(date).toLocaleDateString(isZh ? 'zh-CN' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+
   const weekDates = useMemo(() => {
     const ws = startOfWeek(anchor);
     return Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   }, [anchor]);
+
+  const monthDates = useMemo(() => {
+    const first = startOfMonth(anchor);
+    const total = daysInMonth(anchor);
+    return Array.from({ length: total }, (_, i) => addDays(first, i));
+  }, [anchor]);
+
+  const weekdayLabel = (date: string) => {
+    const idx = (parseDateStr(date).getDay() + 6) % 7;
+    return weekdays[idx];
+  };
 
   // 周视图焦点日：默认当天（当天在本周时），点表头可切换
   const weekFocus =
@@ -218,6 +251,30 @@ export default function CalendarBoard({
       : weekDates.includes(today)
         ? today
         : weekDates[0];
+
+  const monthFocus =
+    focusDate && monthDates.includes(focusDate)
+      ? focusDate
+      : monthDates.includes(today)
+        ? today
+        : monthDates[0];
+
+  const scrollTargetDate = view === 'month' ? monthFocus : weekFocus;
+
+  // 周 / 月视图打开后自动滚动到今天（或焦点日）
+  useEffect(() => {
+    if (view === 'day') return;
+    const timer = window.setTimeout(() => {
+      todayRowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [view, anchor, scrollTargetDate]);
+
+  const openDayView = (date: string) => {
+    setAnchor(date);
+    setView('day');
+    setFocusDate(date);
+  };
 
   useEffect(() => {
     if (!onViewStateChange) return;
@@ -237,10 +294,11 @@ export default function CalendarBoard({
     const first = startOfMonth(anchor);
     onViewStateChange({
       mode: view,
+      date: monthFocus,
       rangeStart: first,
       rangeEnd: addDays(first, daysInMonth(anchor) - 1),
     });
-  }, [anchor, onViewStateChange, view, weekDates, weekFocus]);
+  }, [anchor, monthDates, monthFocus, onViewStateChange, view, weekDates, weekFocus]);
 
   const shift = (dir: 1 | -1) => {
     if (view === 'day') setAnchor(addDays(anchor, dir));
@@ -319,7 +377,7 @@ export default function CalendarBoard({
 
       {!previewMode && <p className="px-4 pt-1 text-xs text-zinc-400 sm:hidden">{periodLabel}</p>}
 
-      {!previewMode && channels.length > 1 && (
+      {channels.length > 0 && (
         <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 pb-2 sm:px-6">
           <button
             onClick={() => setChannelFilter('all')}
@@ -340,70 +398,56 @@ export default function CalendarBoard({
       )}
 
       {/* 视图主体 */}
-      <div className="min-h-0 flex-1 overflow-auto p-4 pt-2 sm:p-6 sm:pt-2">
+      <div
+        ref={scrollContainerRef}
+        className="min-h-0 flex-1 overflow-auto p-4 pt-2 sm:p-6 sm:pt-2"
+      >
         {(previewMode || view === 'week') && (
-          <div
-            className="grid min-w-[980px] gap-2"
-            style={{
-              gridTemplateColumns: previewMode
-                ? weekDates.map((d) => (d === weekFocus ? '1.35fr' : '1fr')).join(' ')
-                : weekDates.map((d) => (d === weekFocus ? '2.1fr' : '1fr')).join(' '),
-            }}
-          >
-            {weekDates.map((date, i) => {
+          <div className="mx-auto flex max-w-4xl flex-col gap-3">
+            {weekDates.map((date) => {
               const dayTodos = byDate.get(date) ?? [];
               const isToday = date === today;
               const isFocus = date === weekFocus;
+              const shouldScrollHere = date === scrollTargetDate;
               return (
-                <div
+                <DayRow
                   key={date}
-                  className={`flex flex-col overflow-hidden rounded-2xl transition-[flex-basis] ${
-                    previewMode ? 'min-h-[560px]' : 'min-h-[480px]'
-                  } ${isFocus ? 'bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]' : 'bg-white/80'}`}
-                >
-                  <button
-                    onClick={() => !previewMode && setFocusDate(date)}
-                    disabled={previewMode}
-                    className={`flex w-full items-baseline gap-1.5 rounded-t-2xl px-3 py-2 text-left transition-colors ${
-                      isToday
-                        ? 'bg-ink'
-                        : isFocus
-                          ? 'bg-paper-dim'
-                          : 'bg-paper-dim/60 hover:bg-paper-dim'
-                    } ${previewMode ? 'cursor-default' : ''}`}
-                    title={isZh ? '点击展开这一天' : 'Click to expand this day'}
-                  >
-                    <span className={`index-label ${isToday ? '!text-zinc-300' : ''}`}>{weekdays[i]}</span>
-                    <span className={`text-sm font-semibold ${isToday ? 'text-white' : 'text-ink'}`}>
-                      {parseDateStr(date).getDate()}
-                    </span>
-                    {isToday && (
-                      <span className="ml-auto text-[10px] font-medium text-zinc-300">
-                        {isZh ? '今天' : 'Today'}
-                      </span>
-                    )}
-                  </button>
-                  <div className="flex-1 space-y-2 p-2">
-                    {dayTodos.map((t) => (
-                      <TodoCard
-                        key={t.id}
-                        todo={t}
-                        interactive={interactive}
-                        compact={!previewMode && !isFocus}
-                        onOpen={openTask}
-                        onPrefetch={prefetchTask}
-                        onToggleStatus={onToggleStatus}
-                      />
-                    ))}
-                  </div>
-                </div>
+                  ref={shouldScrollHere ? todayRowRef : undefined}
+                  date={date}
+                  weekday={weekdayLabel(date)}
+                  dayLabel={formatDayLabel(date)}
+                  isToday={isToday}
+                  isFocus={isFocus}
+                  todos={dayTodos}
+                  interactive={interactive}
+                  compact={!previewMode && !isFocus}
+                  previewMode={previewMode}
+                  isZh={isZh}
+                  onFocus={() => !previewMode && setFocusDate(date)}
+                  onOpen={openTask}
+                  onPrefetch={prefetchTask}
+                  onToggleStatus={onToggleStatus}
+                />
               );
             })}
           </div>
         )}
 
         {!previewMode && view === 'day' && (
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto max-w-4xl">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 rounded-2xl bg-paper-dim/60 px-4 py-3">
+              <div>
+                <p className="index-label">{weekdayLabel(anchor)}</p>
+                <p className="text-lg font-bold text-ink">
+                  {formatDayLabel(anchor)}
+                  {anchor === today && (
+                    <span className="ml-2 text-xs font-medium text-zinc-500">
+                      {isZh ? '今天' : 'Today'}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
             {(byDate.get(anchor) ?? []).length === 0 ? (
               <p className="py-16 text-center text-sm text-zinc-400">
                 {isZh ? '这一天没有安排任务 — 休息也是策略的一部分。' : 'Nothing scheduled — rest is part of the strategy.'}
@@ -411,11 +455,15 @@ export default function CalendarBoard({
             ) : (
               <div className="space-y-2.5">
                 {(byDate.get(anchor) ?? []).map((t) => (
-                  <div key={t.id} className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-paper-dim/50">
+                  <div
+                    key={t.id}
+                    className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-paper-dim/50"
+                  >
                     <div className="flex w-16 shrink-0 items-center justify-center bg-paper-dim font-mono text-xs text-zinc-500">
                       {t.time ?? '—'}
                     </div>
                     <button
+                      type="button"
                       onClick={() => interactive && openTask(t.id)}
                       onMouseEnter={() => interactive && prefetchTask(t.id)}
                       className={`flex min-w-0 flex-1 items-center gap-3 p-4 text-left ${interactive ? 'hover:bg-paper-dim' : 'cursor-default'}`}
@@ -424,14 +472,22 @@ export default function CalendarBoard({
                         done={t.status === 'done'}
                         size="lg"
                         onToggle={
-                          interactive && onToggleStatus ? () => onToggleStatus(t.id) : undefined
+                          interactive && onToggleStatus
+                            ? () => onToggleStatus(t.id)
+                            : undefined
                         }
                       />
                       <div className="min-w-0 flex-1">
-                        <p className={`text-[15px] font-semibold text-ink ${t.status === 'done' ? 'line-through opacity-55' : ''}`}>
+                        <p
+                          className={`text-[15px] font-semibold text-ink ${
+                            t.status === 'done' ? 'line-through opacity-55' : ''
+                          }`}
+                        >
                           {t.title}
                         </p>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-zinc-400">{t.brief}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-zinc-400">
+                          {t.purpose || t.brief}
+                        </p>
                         {(t.market || t.audience) && (
                           <p className="mt-1 text-[11px] text-zinc-400">
                             {[t.market, t.audience].filter(Boolean).join(' · ')}
@@ -450,91 +506,147 @@ export default function CalendarBoard({
         )}
 
         {!previewMode && view === 'month' && (
-          <MonthGrid
-            anchor={anchor}
-            byDate={byDate}
-            onOpenDay={(date) => {
-              setAnchor(date);
-              setView('day');
-            }}
-            weekdays={weekdays}
-            today={today}
-          />
+          <div className="mx-auto flex max-w-4xl flex-col gap-3">
+            {monthDates.map((date) => {
+              const dayTodos = byDate.get(date) ?? [];
+              const isToday = date === today;
+              const isFocus = date === monthFocus;
+              const shouldScrollHere = date === scrollTargetDate;
+              return (
+                <DayRow
+                  key={date}
+                  ref={shouldScrollHere ? todayRowRef : undefined}
+                  date={date}
+                  weekday={weekdayLabel(date)}
+                  dayLabel={formatDayLabel(date)}
+                  isToday={isToday}
+                  isFocus={isFocus}
+                  todos={dayTodos}
+                  interactive={interactive}
+                  compact={!isFocus}
+                  previewMode={false}
+                  isZh={isZh}
+                  onFocus={() => setFocusDate(date)}
+                  onOpenDay={() => openDayView(date)}
+                  onOpen={openTask}
+                  onPrefetch={prefetchTask}
+                  onToggleStatus={onToggleStatus}
+                />
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function MonthGrid({
-  anchor,
-  byDate,
-  onOpenDay,
-  weekdays,
-  today,
-}: {
-  anchor: string;
-  byDate: Map<string, Todo[]>;
-  onOpenDay: (date: string) => void;
-  weekdays: string[];
-  today: string;
-}) {
-  const first = startOfMonth(anchor);
-  const gridStart = startOfWeek(first);
-  const total = daysInMonth(anchor);
-  const monthIdx = parseDateStr(first).getMonth();
-  // 覆盖整月所需的周数
-  const weeks = Math.ceil(
-    (parseDateStr(first).getDay() === 0 ? 6 : parseDateStr(first).getDay() - 1 + total) / 7
-  );
+const DayRow = forwardRef(function DayRow(
+  {
+    date,
+    weekday,
+    dayLabel,
+    isToday,
+    isFocus,
+    todos,
+    interactive,
+    compact,
+    previewMode,
+    isZh,
+    onFocus,
+    onOpenDay,
+    onOpen,
+    onPrefetch,
+    onToggleStatus,
+  }: {
+    date: string;
+    weekday: string;
+    dayLabel: string;
+    isToday: boolean;
+    isFocus: boolean;
+    todos: Todo[];
+    interactive: boolean;
+    compact: boolean;
+    previewMode: boolean;
+    isZh: boolean;
+    onFocus?: () => void;
+    onOpenDay?: () => void;
+    onOpen: (id: string) => void;
+    onPrefetch?: (id: string) => void;
+    onToggleStatus?: (id: string) => void;
+  },
+  ref: Ref<HTMLDivElement>
+) {
+  const dayNum = parseDateStr(date).getDate();
 
   return (
-    <div className="grid grid-cols-7 gap-1.5">
-      {weekdays.map((d) => (
-        <div key={d} className="rounded-lg bg-paper-dim px-2 py-2">
-          <span className="index-label">{d}</span>
-        </div>
-      ))}
-      {Array.from({ length: weeks * 7 }, (_, i) => {
-        const date = addDays(gridStart, i);
-        const inMonth = parseDateStr(date).getMonth() === monthIdx;
-        const dayTodos = byDate.get(date) ?? [];
-        const isToday = date === today;
-        return (
-          <button
-            key={date}
-            onClick={() => onOpenDay(date)}
-            className={`min-h-20 rounded-xl p-1.5 text-left align-top transition-colors sm:min-h-24 ${
-              inMonth
-                ? 'bg-white hover:bg-paper-dim'
-                : 'bg-paper-dim/60'
-            }`}
-          >
-            <span
-              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-medium ${
-                isToday ? 'bg-ink text-white' : inMonth ? 'text-ink' : 'text-zinc-300'
-              }`}
-            >
-              {parseDateStr(date).getDate()}
-            </span>
-            <div className="mt-1 space-y-0.5">
-              {dayTodos.slice(0, 2).map((t) => (
-                <p
-                  key={t.id}
-                  className={`truncate text-[10px] leading-tight ${
-                    t.status === 'done' ? 'text-zinc-300 line-through' : 'text-ink-soft'
-                  }`}
-                >
-                  {t.title}
-                </p>
-              ))}
-              {dayTodos.length > 2 && (
-                <p className="text-[10px] text-zinc-400">+{dayTodos.length - 2}</p>
-              )}
-            </div>
-          </button>
-        );
-      })}
+    <div
+      ref={ref}
+      className={`flex gap-3 overflow-hidden rounded-2xl sm:gap-4 ${
+        isFocus ? 'bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]' : 'bg-white/80'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => {
+          if (onOpenDay) onOpenDay();
+          else onFocus?.();
+        }}
+        disabled={previewMode && !onFocus && !onOpenDay}
+        className={`flex w-[72px] shrink-0 flex-col items-center justify-start rounded-l-2xl px-2 py-4 text-center transition-colors sm:w-24 ${
+          isToday
+            ? 'bg-ink text-white'
+            : isFocus
+              ? 'bg-paper-dim'
+              : 'bg-paper-dim/60 hover:bg-paper-dim'
+        } ${previewMode ? 'cursor-default' : 'cursor-pointer'}`}
+        title={
+          onOpenDay
+            ? isZh
+              ? '点击查看当天任务'
+              : 'Open day view'
+            : onFocus
+              ? isZh
+                ? '点击展开这一天'
+                : 'Click to expand this day'
+              : undefined
+        }
+      >
+        <span className={`index-label ${isToday ? '!text-zinc-300' : ''}`}>{weekday}</span>
+        <span className={`mt-1 text-2xl font-bold leading-none sm:text-3xl ${isToday ? 'text-white' : 'text-ink'}`}>
+          {dayNum}
+        </span>
+        <span className={`mt-1 text-[10px] font-medium ${isToday ? 'text-zinc-300' : 'text-zinc-400'}`}>
+          {dayLabel}
+        </span>
+        {isToday && (
+          <span className={`mt-2 text-[9px] font-semibold uppercase tracking-wider ${isToday ? 'text-brand-300' : ''}`}>
+            {isZh ? '今天' : 'Today'}
+          </span>
+        )}
+      </button>
+
+      <div className="min-w-0 flex-1 py-3 pr-3 sm:py-4 sm:pr-4">
+        {todos.length === 0 ? (
+          <p className="flex h-full min-h-[72px] items-center text-sm text-zinc-400">
+            {isZh ? '暂无任务' : 'No tasks'}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {todos.map((t) => (
+              <TodoCard
+                key={t.id}
+                todo={t}
+                interactive={interactive}
+                compact={compact}
+                onOpen={onOpen}
+                onPrefetch={onPrefetch}
+                onToggleStatus={onToggleStatus}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+});

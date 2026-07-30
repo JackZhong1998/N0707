@@ -9,6 +9,7 @@ import {
 import { addDays, todayStr } from './dates';
 import type {
   DirectorySubmission,
+  GtmStore,
   LaunchBlueprint,
   LaunchBrief,
   LaunchChannelPlan,
@@ -28,6 +29,17 @@ const INTERNAL_CHANNELS = new Set([
 export const SUPPORTED_LAUNCH_CHANNELS = CHANNEL_DEFINITIONS.filter(
   (channel) => !INTERNAL_CHANNELS.has(channel.channelId)
 );
+
+/** Channels confirmed for this Launch; falls back to store.channels, then empty. */
+export function resolveLaunchChannelIds(store: {
+  channels: string[];
+  launch?: { selectedChannelIds?: string[] };
+}): string[] {
+  const selected = store.launch?.selectedChannelIds;
+  if (selected && selected.length > 0) return selected;
+  if (store.channels.length > 0) return store.channels;
+  return [];
+}
 
 const DIRECTORY_SEEDS: Array<Pick<DirectorySubmission, 'name' | 'url'>> = [
   { name: 'Product Hunt', url: 'https://www.producthunt.com' },
@@ -119,6 +131,44 @@ export function createLaunchSkeleton(productUrl: string, isZh: boolean): LaunchS
     weeklyReviews: createWeeklyReviews(isZh),
     revisions: [],
     briefEditUsed: 0,
+  };
+}
+
+/** Reset campaign artifacts when a user starts a fresh product URL. */
+export function storePatchForNewLaunch(launch: LaunchState): Partial<GtmStore> {
+  return {
+    launch,
+    startDate: launch.project.startDate,
+    planReady: false,
+    channels: [],
+    todos: [],
+    topics: [],
+    topicVariants: [],
+    todoChats: {},
+    channelStrategies: {},
+    strategy: undefined,
+  };
+}
+
+export function markBriefResearchStepsDone(
+  launch: LaunchState,
+  isZh: boolean
+): LaunchState {
+  const steps = launch.researchProgress.some((step) => step.id === 'brief')
+    ? launch.researchProgress
+    : createBriefResearchSteps(isZh);
+  return {
+    ...launch,
+    researchProgress: steps.map((step) => ({
+      ...step,
+      status: step.status === 'warning' ? 'warning' : ('done' as const),
+    })),
+    project: {
+      ...launch.project,
+      phase: 'brief_ready',
+      status: 'building',
+      updatedAt: Date.now(),
+    },
   };
 }
 

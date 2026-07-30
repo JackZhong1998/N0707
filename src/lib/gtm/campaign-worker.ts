@@ -11,7 +11,7 @@ import {
   type CampaignJobRecord,
   type CampaignJobStepRecord,
 } from './campaign-jobs';
-import { saveGtmStore } from './database';
+import { saveGtmStoreWithConflictRetry } from './database';
 import {
   buildLaunchBlueprint,
   createCampaignBuildSteps,
@@ -363,7 +363,7 @@ export async function processNextCampaignJob(
     stepRecorded = true;
     const stepsAfter = await listCampaignJobSteps(job.clerk_user_id, job.id);
     const store = materializeStore(job, stepsAfter);
-    await saveGtmStore(job.clerk_user_id, store);
+    await saveGtmStoreWithConflictRetry(job.clerk_user_id, store);
 
     if (step.step_type === 'finalize') {
       await completeCampaignJob(job.id, workerId, {
@@ -401,4 +401,45 @@ export async function processNextCampaignJob(
       stepKey: step?.step_key,
     };
   }
+}
+
+/**
+ * Keep claiming steps until idle/complete/failed or the time budget is spent.
+ * One browser poll (or cron hit) can therefore advance many steps even if the
+ * tab is backgrounded afterward — the work already runs in `after()` on the
+ * server.
+ */
+export async function drainCampaignJobs(
+  workerId: string,
+  budgetMs = 240_000
+): Promise<{
+  outcome: 'idle' | 'step_completed' | 'job_completed' | 'step_failed';
+  jobId?: string;
+  stepKey?: string;
+  stepsProcessed: number;
+}> {
+  const started = Date.now();
+  let stepsProcessed = 0;
+  let last: {
+    outcome: 'idle' | 'step_completed' | 'job_completed' | 'step_failed';
+    jobId?: string;
+    stepKey?: string;
+  } = { outcome: 'idle' };
+
+  while (Date.now() - started < budgetMs) {
+    const result = await processNextCampaignJob(
+      `${workerId}-${stepsProcessed}`
+    );
+    last = result;
+    if (result.outcome === 'step_completed') {
+      stepsProcessed += 1;
+      continue;
+    }
+    if (result.outcome === 'job_completed') {
+      stepsProcessed += 1;
+    }
+    break;
+  }
+
+  return { ...last, stepsProcessed };
 }

@@ -115,7 +115,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} ${interTight.variable} ${plexMono.variable} min-h-screen bg-white antialiased`}>
         <GoogleAnalytics />
         {isClerkConfigured ? (

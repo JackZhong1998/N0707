@@ -2,6 +2,7 @@ export type LaunchAgentId =
   | 'launch_partner'
   | 'research'
   | 'context'
+  | 'channel_recommender'
   | 'strategy'
   | 'repurposing'
   | 'channel'
@@ -57,6 +58,15 @@ export const LAUNCH_AGENT_ARCHITECTURE: LaunchAgentDefinition[] = [
     reads: ['recent conversation', 'current campaign context'],
     writes: ['bounded profiles', 'conversation summary', 'memory facts'],
     confirmationBoundary: 'never upgrades inference to confirmed fact',
+  },
+  {
+    id: 'channel_recommender',
+    role: 'Product×market×founder channel fit recommender',
+    userVisible: false,
+    owns: 'channel priority recommendations mapped to supported channelIds',
+    reads: ['Product Profile', 'user profile', 'router Skills', 'channel catalog'],
+    writes: ['channel recommendation cards', 'diagnosis summary'],
+    confirmationBoundary: 'recommendations only; user confirms selection before plans',
   },
   {
     id: 'strategy',

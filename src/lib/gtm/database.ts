@@ -934,6 +934,32 @@ export async function saveGtmStore(
   return nextRevision;
 }
 
+/**
+ * Server writers (Campaign enqueue / worker) race the browser's debounced
+ * PUT /api/gtm/state. Re-read + CAS without an expectedRevision on each try.
+ */
+export async function saveGtmStoreWithConflictRetry(
+  clerkUserId: string,
+  store: GtmStore,
+  attempts = 5
+): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await saveGtmStore(clerkUserId, store);
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof GtmStateConflictError) || attempt === attempts - 1) {
+        throw error;
+      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, 40 * 2 ** attempt)
+      );
+    }
+  }
+  throw lastError;
+}
+
 export function isGtmStore(value: unknown): value is GtmStore {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<GtmStore>;

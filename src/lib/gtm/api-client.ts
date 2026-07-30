@@ -2,6 +2,7 @@
 
 import type {
   ChannelChatResponse,
+  ChannelRecommendationResponse,
   ChannelTodosResponse,
   ChannelWriteResponse,
   ChatMessage,
@@ -57,6 +58,10 @@ export function callDirector(input: {
       memoryFacts: input.store.memoryFacts,
       hasStrategy: Boolean(input.store.strategy),
       hasTodos: input.store.todos.length > 0,
+      hasChannelRecommendations: Boolean(
+        input.store.launch?.channelRecommendations
+      ),
+      selectedChannelIds: input.store.launch?.selectedChannelIds ?? [],
       channels: input.store.channels,
       todos: input.store.todos.map((t) => ({
         id: t.id,
@@ -117,6 +122,25 @@ export function callContextAgent(input: {
     memoryFacts: input.store.memoryFacts,
     campaignContext: buildAgentContextEnvelope(input.store),
     locale: input.locale,
+  });
+}
+
+export function callChannelRecommender(input: {
+  store: GtmStore;
+  locale: string;
+  feedback?: string;
+}): Promise<ChannelRecommendationResponse> {
+  const digest = input.store.directorChat
+    .slice(-14)
+    .map((m) => `${m.role === 'user' ? '用户' : '合伙人'}：${m.content.slice(0, 200)}`)
+    .join('\n');
+  return post('/api/agents/channel-recommendations', {
+    userProfileDoc: input.store.userProfileDoc,
+    projectProfileDoc: input.store.projectProfileDoc,
+    conversationDigest: digest,
+    campaignContext: buildAgentContextEnvelope(input.store),
+    locale: input.locale,
+    feedback: input.feedback,
   });
 }
 

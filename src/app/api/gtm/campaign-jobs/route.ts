@@ -7,12 +7,16 @@ import {
   getLatestCampaignJob,
   listCampaignJobSteps,
 } from '@/lib/gtm/campaign-jobs';
-import { isGtmStore, saveGtmStore } from '@/lib/gtm/database';
+import {
+  GtmStateConflictError,
+  isGtmStore,
+  saveGtmStoreWithConflictRetry,
+} from '@/lib/gtm/database';
 import {
   createCampaignBuildSteps,
-  SUPPORTED_LAUNCH_CHANNELS,
+  resolveLaunchChannelIds,
 } from '@/lib/gtm/launch';
-import { processNextCampaignJob } from '@/lib/gtm/campaign-worker';
+import { drainCampaignJobs } from '@/lib/gtm/campaign-worker';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -41,7 +45,7 @@ export async function GET() {
     const steps = job ? await listCampaignJobSteps(userId, job.id) : [];
     if (job && (job.status === 'queued' || job.status === 'running')) {
       after(async () => {
-        await processNextCampaignJob(`browser-poll-${crypto.randomUUID()}`);
+        await drainCampaignJobs(`browser-poll-${crypto.randomUUID()}`);
       });
     }
     return NextResponse.json({ job, steps });
@@ -78,9 +82,13 @@ export async function POST(request: Request) {
     const launchId = body.store.launch.project.id;
     const buildKey = `campaign:${launchId}:${body.store.launch.project.createdAt}`;
     const locale = body.locale === 'zh' ? 'zh' : 'en';
-    const channelIds = SUPPORTED_LAUNCH_CHANNELS.map(
-      (channel) => channel.channelId
-    );
+    const channelIds = resolveLaunchChannelIds(body.store);
+    if (channelIds.length === 0) {
+      return NextResponse.json(
+        { error: 'Select channels before starting the campaign worker' },
+        { status: 400 }
+      );
+    }
     const store = {
       ...body.store,
       paid: true,
@@ -100,7 +108,8 @@ export async function POST(request: Request) {
     };
 
     // The Brief must be durable before a worker can claim the job.
-    await saveGtmStore(userId, store);
+    // Retries absorb races with the browser's concurrent PUT /api/gtm/state.
+    await saveGtmStoreWithConflictRetry(userId, store);
     const job = await enqueueCampaignJob({
       clerkUserId: userId,
       buildKey,
@@ -110,11 +119,17 @@ export async function POST(request: Request) {
     });
     const steps = await listCampaignJobSteps(userId, job.id);
     after(async () => {
-      await processNextCampaignJob(`enqueue-${crypto.randomUUID()}`);
+      await drainCampaignJobs(`enqueue-${crypto.randomUUID()}`);
     });
     return NextResponse.json({ job, steps }, { status: 202 });
   } catch (error) {
     console.error('Failed to enqueue Campaign job:', error);
+    if (error instanceof GtmStateConflictError) {
+      return NextResponse.json(
+        { error: 'State changed in another session' },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to enqueue Campaign job' },
       { status: 500 }

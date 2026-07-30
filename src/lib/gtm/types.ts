@@ -241,6 +241,8 @@ export type MessageCard =
   | { kind: 'options'; card: OptionCard }
   | { kind: 'kickoff'; card: KickoffCard }
   | { kind: 'strategy'; title: string; channelIds: string[] }
+  | { kind: 'channel_plan'; channelId: string; channelName: string }
+  | { kind: 'channel_todos'; channelId: string; channelName: string; todoCount: number }
   | { kind: 'calendar'; title: string }
   | {
       kind: 'artifact';
@@ -661,6 +663,36 @@ export interface LaunchRevision {
   createdAt: number;
 }
 
+export type ChannelRecommendationPriority =
+  | 'primary'
+  | 'secondary'
+  | 'explore'
+  | 'skip';
+
+export interface ChannelRecommendationItem {
+  channelId: string;
+  channelName: string;
+  priority: ChannelRecommendationPriority;
+  fitScore: number;
+  rationale: string;
+  marketFit: string;
+  effortLevel: 'low' | 'medium' | 'high';
+  suggestedCadence: string;
+}
+
+export interface ChannelRecommendationResponse {
+  summaryMarkdown: string;
+  diagnosis: {
+    productType: string;
+    growthStage: string;
+    primaryMarket: string;
+    bottleneck: string;
+  };
+  recommendations: ChannelRecommendationItem[];
+  specialistSkillsUsed: string[];
+  updatedAt: number;
+}
+
 export interface LaunchState {
   project: LaunchProject;
   researchProgress: ResearchProgressStep[];
@@ -680,6 +712,10 @@ export interface LaunchState {
   briefEditUsed?: number;
   /** Idempotency key so post-payment campaign generation is not restarted twice. */
   campaignBuildId?: string;
+  /** Channel Recommender Agent output; present after recommend_channels. */
+  channelRecommendations?: ChannelRecommendationResponse;
+  /** User-confirmed channels for this Launch (drives plan + todo generation). */
+  selectedChannelIds?: string[];
 }
 
 /* ---------- 全局 Store ---------- */
@@ -762,6 +798,9 @@ export function createInitialStore(): GtmStore {
 
 /** 市场总监向前端返回的动作指令（前端负责发起后台任务） */
 export type DirectorAction =
+  | { type: 'recommend_channels'; feedback?: string }
+  | { type: 'select_channels'; channelIds: string[] }
+  | { type: 'generate_channel_plans'; channelIds: string[] }
   | { type: 'generate_strategy'; channelIds: string[]; feedback?: string }
   | { type: 'generate_todos'; channelIds: string[] }
   | { type: 'generate_topics'; channelIds: string[]; count?: number }

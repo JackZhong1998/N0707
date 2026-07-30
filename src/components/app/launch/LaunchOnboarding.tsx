@@ -4,15 +4,8 @@ import { FormEvent, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
-import {
-  buildLaunchBrief,
-  createLaunchSkeleton,
-  createMatchedDirectoryPipeline,
-  SUPPORTED_LAUNCH_CHANNELS,
-} from '@/lib/gtm/launch';
-import { deriveProductFitProfile } from '@/lib/directories/matching';
-import { callProductResearch } from '@/lib/gtm/api-client';
-import type { LaunchState } from '@/lib/gtm/types';
+import { createLaunchSkeleton, storePatchForNewLaunch } from '@/lib/gtm/launch';
+import { runFreeLaunchResearch } from '@/lib/gtm/free-launch-research';
 
 function validPublicUrl(raw: string): string | null {
   try {
@@ -35,21 +28,6 @@ export default function LaunchOnboarding() {
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
 
-  const updateLaunch = (launch: LaunchState) => {
-    gtm.update({ launch, startDate: launch.project.startDate });
-  };
-
-  const setSteps = (
-    launch: LaunchState,
-    updates: Record<string, { status: LaunchState['researchProgress'][number]['status']; detail?: string }>
-  ): LaunchState => ({
-    ...launch,
-    researchProgress: launch.researchProgress.map((step) =>
-      updates[step.id] ? { ...step, ...updates[step.id] } : step
-    ),
-    project: { ...launch.project, updatedAt: Date.now() },
-  });
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (starting) return;
@@ -58,7 +36,6 @@ export default function LaunchOnboarding() {
       setError(isZh ? '请输入一个可公开访问的产品链接。' : 'Enter a publicly accessible product URL.');
       return;
     }
-    // Free tier: research + Launch Brief. Do not check subscription or open paywall here.
     if (gtm.accessStatus === 'checking') {
       setError(
         isZh
@@ -70,16 +47,18 @@ export default function LaunchOnboarding() {
     setError('');
     setStarting(true);
 
-    let launch = createLaunchSkeleton(productUrl, isZh);
-    const channelIds = SUPPORTED_LAUNCH_CHANNELS.map((channel) => channel.channelId);
-    gtm.setChannels(channelIds);
-    updateLaunch(launch);
+    const launch = createLaunchSkeleton(productUrl, isZh);
+    gtm.update(storePatchForNewLaunch(launch));
     gtm.addDirectorMessage({
       role: 'user',
       content: isZh
         ? `请先免费分析这个产品，并生成一份冷启动简报：${productUrl}`
         : `Please free-analyze this product and prepare a Launch Brief: ${productUrl}`,
-      contextRef: { view: 'launch_onboarding', entityType: 'launch_project', entityId: launch.project.id },
+      contextRef: {
+        view: 'launch_onboarding',
+        entityType: 'launch_project',
+        entityId: launch.project.id,
+      },
     });
     gtm.addDirectorMessage({
       role: 'assistant',
@@ -88,99 +67,19 @@ export default function LaunchOnboarding() {
         : 'Got it. I’ll study the site, audience, and competitors, then prepare a Launch Brief you can correct. The full 30-day team unlocks after you confirm the Brief.',
     });
 
-    let research = null;
-    launch = setSteps(launch, {
-      website: { status: 'running', detail: productUrl },
-      product: { status: 'running' },
-      competitors: { status: 'running' },
-    });
-    updateLaunch(launch);
     try {
-      research = await callProductResearch({ websiteUrl: productUrl, locale });
-      launch = {
-        ...setSteps(launch, {
-          website: { status: 'done' },
-          product: { status: 'done' },
-          competitors: {
-            status: 'done',
-            detail: isZh
-              ? `已分析 ${research.competitors.length} 个主要竞品`
-              : `${research.competitors.length} primary competitors analyzed`,
-          },
-          audience: { status: 'running' },
-        }),
-        researchConfidence: research.competitors.length > 0 ? 'high' : 'medium',
-        researchSources: research.sources,
-      };
-      const researchProfile = `${research.productProfileMarkdown}\n\n${research.competitorAnalysisMarkdown}`;
-      gtm.setProfiles(gtm.store.userProfileDoc, researchProfile);
+      await runFreeLaunchResearch({ launch, locale, isZh, gtm });
+      router.replace('/app/brief');
     } catch (researchError) {
-      launch = {
-        ...setSteps(launch, {
-          website: {
-            status: 'warning',
-            detail: isZh
-              ? '部分页面读取失败，已使用可用公开信息继续'
-              : 'Some pages could not be read; continuing with available public information',
-          },
-          product: { status: 'done' },
-          competitors: {
-            status: 'warning',
-            detail: isZh ? '竞品置信度较低，不阻塞主流程' : 'Low competitor confidence; launch continues',
-          },
-          audience: { status: 'running' },
-        }),
-        researchConfidence: 'low',
-      };
-      void researchError;
+      console.error('Free launch research failed:', researchError);
+      setError(
+        isZh
+          ? '产品分析失败，请稍后重试。'
+          : 'Product analysis failed. Please try again.'
+      );
+    } finally {
+      setStarting(false);
     }
-    updateLaunch(launch);
-
-    const brief = buildLaunchBrief(launch, research, isZh);
-    const productName =
-      research?.product?.name?.trim() &&
-      research.product.name !== 'Unknown product'
-        ? research.product.name.trim().slice(0, 120)
-        : launch.project.productName;
-    const productFit = deriveProductFitProfile({
-      category: research?.product?.category,
-      targetUsers: research?.product?.targetUsers,
-      summary: research?.product?.summary ?? brief.product.summary,
-      capabilities: research?.product?.capabilities ?? brief.product.features,
-      stage: brief.product.stage,
-    });
-    launch = {
-      ...setSteps(launch, {
-        audience: { status: 'done' },
-        brief: { status: 'done' },
-      }),
-      brief,
-      directories: createMatchedDirectoryPipeline(productFit, isZh),
-      briefEditUsed: 0,
-      project: {
-        ...launch.project,
-        productName,
-        phase: 'brief_ready',
-        status: 'building',
-        updatedAt: Date.now(),
-      },
-    };
-    updateLaunch(launch);
-    gtm.addDirectorMessage({
-      role: 'assistant',
-      content: isZh
-        ? '冷启动简报已经准备好。哪里不准确，直接在右侧告诉我（最多可免费修改 20 次）。确认无误后，点击「组建我的 30 天推广团队」，即可开启完整执行。'
-        : 'Your Launch Brief is ready. Tell me on the right what to correct (up to 20 free edits). When ready, tap “Assemble my 30-day Agent Team” to unlock full execution.',
-    });
-    gtm.addAgentNotification({
-      title: isZh ? '冷启动简报已就绪' : 'Launch Brief is ready',
-      summary: isZh
-        ? '产品分析已经完成。确认并修正简报后，即可开启完整的 30 天执行团队。'
-        : 'Product analysis is done. Correct the Brief, then unlock the full 30-day execution team.',
-      priority: 'important',
-    });
-    setStarting(false);
-    router.replace('/app/brief');
   };
 
   return (

@@ -26,8 +26,8 @@ CRON_SECRET=<至少 32 位随机字符串>
 
 主恢复路径（推荐，Hobby 可用）：
 
-- 用户离开页面时任务可以暂停
-- 用户回到标签页后，前端 `ResumeOnReturn` 会自动拉取 `/api/gtm/state`，并对付费用户调用 `/api/gtm/campaign-jobs` 继续 Worker
+- 浏览器轮询或回到页面时会触发 Worker；每次触发会在服务端 `after()` 内连续推进多个步骤（约 4 分钟预算），因此短暂切换应用通常不会打断已启动的组装
+- 用户长时间离开后，前端 `ResumeOnReturn` 会自动拉取 `/api/gtm/state`，并对付费用户调用 `/api/gtm/campaign-jobs` 继续 Worker
 - 同步失败时提示刷新页面
 
 `vercel.json` 另配置每天一次 Cron 作兜底（Hobby 限制：不能超过每天 1 次）：
@@ -37,7 +37,7 @@ CRON_SECRET=<至少 32 位随机字符串>
 schedule: 0 2 * * *   # 每天约 02:00 UTC
 ```
 
-浏览器轮询 / 回到页面时也会触发 Worker。若需要用户离线时仍每分钟推进任务，请升级 Vercel Pro。
+浏览器轮询 / 回到页面时也会触发 Worker。若需要用户完全离线时仍每分钟推进任务，请升级 Vercel Pro。
 
 ## 3. 验证数据库
 

@@ -307,6 +307,11 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
 
 export const CHANNEL_ROUTER_SKILL_IDS = ['gingiris-growth-finder', 'go-to-market-playbook'];
 
+export const CHANNEL_RECOMMENDER_SKILL_IDS = [
+  ...CHANNEL_ROUTER_SKILL_IDS,
+  'custom/channel-recommender',
+] as const;
+
 export const KICKOFF_SKILL_IDS = ['go-to-market-playbook', 'startup-launch-playbook'];
 
 export function getChannelDefinition(channelId: string): ChannelDefinition | undefined {

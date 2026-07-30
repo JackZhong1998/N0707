@@ -14,6 +14,7 @@ import { useLocale } from 'next-intl';
 import { useGtm } from './store';
 import {
   callChannelChat,
+  callChannelRecommender,
   callChannelTodos,
   callChannelWrite,
   callContextAgent,
@@ -26,6 +27,7 @@ import {
 } from './api-client';
 import { addDays, parseDateStr, todayStr } from './dates';
 import { buildAgentContextEnvelope } from './agent-context';
+import { applyStrategyToChannelPlans } from './launch';
 import { formatKickoffAnswers } from './kickoff';
 import {
   CONTEXT_SYNC_INTERVAL,
@@ -469,44 +471,279 @@ export function useDirector(defaultViewContext?: ViewContext) {
     [gtm, locale, publishDirectorMessage]
   );
 
-  const runGenerateTodos = useCallback(
-    async (
-      channelIds: string[],
-      options?: { preservePublished?: boolean; storeOverride?: GtmStore }
-    ) => {
-      const taskId = `todos-${Date.now()}`;
+  const runRecommendChannels = useCallback(
+    async (feedback?: string) => {
+      const taskId = `recommend-${Date.now()}`;
+      const isZh = locale !== 'en';
       setBackgroundTasks((t) => [...t, taskId]);
-      const executionStore = options?.storeOverride ?? storeRef.current;
-      const startDate = executionStore.startDate ?? todayStr();
-      if (!executionStore.startDate) {
-        gtm.update({ startDate });
-      }
       const cardMsg = await publishDirectorMessage({
         role: 'assistant',
         content: '',
         card: {
           kind: 'agent-task',
-          label: `渠道专员正在编写 30 天 To-Do（${channelIds.length} 个渠道）…`,
+          label: isZh
+            ? '渠道推荐 Agent 正在分析产品与目标市场…'
+            : 'Channel Recommender is analyzing fit…',
           status: 'running',
         },
       });
       try {
-        await Promise.all(
-          channelIds.map(async (channelId) => {
+        const res = await callChannelRecommender({
+          store: storeRef.current,
+          locale,
+          feedback,
+        });
+        gtm.setChannelRecommendations(res);
+        const primaryIds = res.recommendations
+          .filter((item) => item.priority === 'primary')
+          .map((item) => item.channelId);
+        if (primaryIds.length > 0) {
+          gtm.setSelectedChannelIds(primaryIds);
+        }
+        gtm.patchDirectorMessage(cardMsg.id, {
+          card: {
+            kind: 'agent-task',
+            label: isZh ? '渠道推荐已生成' : 'Channel recommendations ready',
+            status: 'done',
+          },
+        });
+        await publishDirectorMessage({
+          role: 'assistant',
+          content: isZh
+            ? '渠道推荐已经放到左侧「渠道推荐」页。你可以勾选或调整，确认后我再帮你逐个写渠道计划。'
+            : 'Channel recommendations are on the left. Review and confirm your picks, then I can write channel plans one by one.',
+        });
+      } catch (err) {
+        gtm.patchDirectorMessage(cardMsg.id, {
+          card: {
+            kind: 'agent-task',
+            label: isZh
+              ? `渠道推荐失败：${err instanceof Error ? err.message : '未知错误'}`
+              : `Recommendations failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+            status: 'error',
+          },
+        });
+      } finally {
+        setBackgroundTasks((t) => t.filter((id) => id !== taskId));
+      }
+    },
+    [gtm, locale, publishDirectorMessage]
+  );
+
+  const runSelectChannels = useCallback(
+    async (channelIds: string[]) => {
+      if (channelIds.length === 0) return;
+      gtm.setSelectedChannelIds(channelIds);
+      const isZh = locale !== 'en';
+      await publishDirectorMessage({
+        role: 'assistant',
+        content: isZh
+          ? `已确认 ${channelIds.length} 个渠道：${channelIds.join('、')}。需要我现在为这些渠道写计划吗？`
+          : `Confirmed ${channelIds.length} channels: ${channelIds.join(', ')}. Should I write channel plans for them now?`,
+      });
+    },
+    [gtm, locale, publishDirectorMessage]
+  );
+
+  const runGenerateChannelPlans = useCallback(
+    async (channelIds: string[]) => {
+      if (channelIds.length === 0) return;
+      const isZh = locale !== 'en';
+      const taskId = `channel-plans-${Date.now()}`;
+      setBackgroundTasks((t) => [...t, taskId]);
+      const launch = storeRef.current.launch;
+      const brief = launch?.brief;
+      const existingOverview =
+        storeRef.current.strategy?.overviewMarkdown ||
+        (brief
+          ? [
+              `# ${isZh ? 'Campaign 主线' : 'Campaign spine'}`,
+              brief.positioning.statement,
+              brief.audience.primary,
+              ...brief.positioning.sellingPoints.map((d) => `- ${d}`),
+            ].join('\n\n')
+          : '');
+
+      const cardMsg = await publishDirectorMessage({
+        role: 'assistant',
+        content: '',
+        card: {
+          kind: 'agent-task',
+          label: isZh
+            ? `渠道专员正在编写计划（0/${channelIds.length}）…`
+            : `Writing channel plans (0/${channelIds.length})…`,
+          status: 'running',
+        },
+      });
+
+      let finished = 0;
+      await Promise.allSettled(
+        channelIds.map(async (channelId) => {
+          try {
+            const res = await callStrategist({
+              channelIds: [channelId],
+              store: storeRef.current,
+              locale,
+              phase: 'channel',
+              existingOverview,
+            });
+            const generated =
+              res.channels.find((item) => item.channelId === channelId) ??
+              res.channels[0];
+            if (!generated) {
+              throw new Error(isZh ? '渠道策略为空' : 'Empty channel strategy');
+            }
+            freshStrategiesRef.current[channelId] = {
+              markdown: generated.markdown,
+              name: generated.channelName,
+            };
+            gtm.upsertChannelStrategy({
+              channelId: generated.channelId,
+              channelName: generated.channelName,
+              positioning: generated.positioning,
+              direction: generated.direction,
+              contentPillars: generated.contentPillars,
+              markdown: generated.markdown,
+              updatedAt: Date.now(),
+            });
+            const currentLaunch = storeRef.current.launch;
+            if (currentLaunch) {
+              const nextPlans = applyStrategyToChannelPlans(
+                currentLaunch,
+                { goal: res.goal, overviewMarkdown: res.overviewMarkdown, channels: [generated] },
+                isZh
+              );
+              gtm.update({
+                launch: {
+                  ...currentLaunch,
+                  channelPlans: {
+                    ...currentLaunch.channelPlans,
+                    [channelId]: {
+                      ...nextPlans[channelId],
+                      status: 'ready',
+                    },
+                  },
+                  project: {
+                    ...currentLaunch.project,
+                    updatedAt: Date.now(),
+                  },
+                },
+              });
+            }
+            await publishDirectorMessage({
+              role: 'assistant',
+              content: '',
+              card: {
+                kind: 'channel_plan',
+                channelId: generated.channelId,
+                channelName: generated.channelName,
+              },
+            });
+          } catch (err) {
+            await publishDirectorMessage({
+              role: 'assistant',
+              content: isZh
+                ? `${channelId} 计划生成失败：${err instanceof Error ? err.message : '未知错误'}`
+                : `${channelId} plan failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+            });
+          } finally {
+            finished += 1;
+            gtm.patchDirectorMessage(cardMsg.id, {
+              card: {
+                kind: 'agent-task',
+                label: isZh
+                  ? `渠道专员正在编写计划（${finished}/${channelIds.length}）…`
+                  : `Writing channel plans (${finished}/${channelIds.length})…`,
+                status: finished === channelIds.length ? 'done' : 'running',
+              },
+            });
+          }
+        })
+      );
+      setBackgroundTasks((t) => t.filter((id) => id !== taskId));
+      await publishDirectorMessage({
+        role: 'assistant',
+        content: isZh
+          ? '渠道计划已全部返回。你可以在左侧点开各渠道查看详情。需要我为这些渠道生成 30 天 Todo 吗？'
+          : 'All channel plans are back. Open each channel on the left for details. Should I generate 30-day todos for them?',
+      });
+      await publishDirectorMessage({
+        role: 'assistant',
+        content: isZh ? '是否生成 Todo？' : 'Generate todos?',
+        card: {
+          kind: 'options',
+          card: {
+            question: isZh ? '是否生成 Todo？' : 'Generate todos?',
+            multi: false,
+            options: [
+              {
+                id: 'generate_todos_yes',
+                label: isZh ? '生成全部渠道的 Todo' : 'Generate todos for all channels',
+              },
+              {
+                id: 'generate_todos_later',
+                label: isZh ? '稍后再说' : 'Not yet',
+              },
+            ],
+          },
+        },
+      });
+    },
+    [gtm, locale, publishDirectorMessage]
+  );
+
+  const runGenerateTodos = useCallback(
+    async (
+      channelIds: string[],
+      options?: { preservePublished?: boolean; storeOverride?: GtmStore }
+    ) => {
+      if (channelIds.length === 0) return;
+      const isZh = locale !== 'en';
+      const taskId = `todos-${Date.now()}`;
+      setBackgroundTasks((t) => [...t, taskId]);
+      const startDate =
+        options?.storeOverride?.startDate ??
+        storeRef.current.startDate ??
+        todayStr();
+      if (!storeRef.current.startDate) {
+        gtm.update({ startDate });
+      }
+
+      const cardMsg = await publishDirectorMessage({
+        role: 'assistant',
+        content: '',
+        card: {
+          kind: 'agent-task',
+          label: isZh
+            ? `渠道专员正在编写 To-Do（0/${channelIds.length}）…`
+            : `Writing todos (0/${channelIds.length})…`,
+          status: 'running',
+        },
+      });
+
+      let finished = 0;
+      let succeeded = 0;
+
+      await Promise.allSettled(
+        channelIds.map(async (channelId) => {
+          try {
+            const executionStore = options?.storeOverride ?? storeRef.current;
             const res = await callChannelTodos({
               channelId,
               store: executionStore,
               locale,
-              strategyMarkdownOverride: freshStrategiesRef.current[channelId]?.markdown,
+              strategyMarkdownOverride:
+                freshStrategiesRef.current[channelId]?.markdown,
             });
             const channelDoc = executionStore.channelStrategies[channelId];
+            const channelName =
+              channelDoc?.channelName ??
+              freshStrategiesRef.current[channelId]?.name ??
+              channelId;
             const todos: Todo[] = res.todos.map((t, i) => ({
               id: `${channelId}-${t.dayIndex}-${i}-${Date.now()}`,
               channelId,
-              channelName:
-                channelDoc?.channelName ??
-                freshStrategiesRef.current[channelId]?.name ??
-                channelId,
+              channelName,
               dayIndex: t.dayIndex,
               date: addDays(startDate, t.dayIndex - 1),
               time: t.time,
@@ -519,12 +756,16 @@ export function useDirector(defaultViewContext?: ViewContext) {
               market: t.market,
               audience: t.audience,
               status: 'pending',
-              launchStatus: t.launchStatus ?? (t.dayIndex <= 7 ? 'draft' : 'planned'),
+              launchStatus:
+                t.launchStatus ?? (t.dayIndex <= 7 ? 'draft' : 'planned'),
               contentStatus: 'none',
               revision: 1,
             }));
+            if (todos.length === 0) {
+              throw new Error(isZh ? '任务为空' : 'No todos returned');
+            }
             const preserved = options?.preservePublished
-              ? executionStore.todos.filter(
+              ? storeRef.current.todos.filter(
                   (todo) => todo.channelId === channelId && todo.publishedUrl
                 )
               : [];
@@ -533,28 +774,75 @@ export function useDirector(defaultViewContext?: ViewContext) {
               ...preserved,
               ...todos.filter((todo) => !publishedDays.has(todo.dayIndex)),
             ]);
-          })
-        );
+            succeeded += 1;
+            await publishDirectorMessage({
+              role: 'assistant',
+              content: '',
+              card: {
+                kind: 'channel_todos',
+                channelId,
+                channelName,
+                todoCount: todos.length,
+              },
+            });
+          } catch (err) {
+            await publishDirectorMessage({
+              role: 'assistant',
+              content: isZh
+                ? `${channelId} To-Do 生成失败：${err instanceof Error ? err.message : '未知错误'}`
+                : `${channelId} todos failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+            });
+          } finally {
+            finished += 1;
+            gtm.patchDirectorMessage(cardMsg.id, {
+              card: {
+                kind: 'agent-task',
+                label: isZh
+                  ? `渠道专员正在编写 To-Do（${finished}/${channelIds.length}）…`
+                  : `Writing todos (${finished}/${channelIds.length})…`,
+                status:
+                  finished === channelIds.length
+                    ? succeeded > 0
+                      ? 'done'
+                      : 'error'
+                    : 'running',
+              },
+            });
+          }
+        })
+      );
+
+      if (succeeded > 0) {
         gtm.update({ planReady: true });
-        gtm.patchDirectorMessage(cardMsg.id, {
-          card: { kind: 'agent-task', label: '30 天 To-Do 已排入日历', status: 'done' },
-        });
+      }
+
+      if (succeeded === channelIds.length) {
         await publishDirectorMessage({
           role: 'assistant',
           content: '',
-          card: { kind: 'calendar', title: '你的 30 天行动日历已就绪' },
+          card: {
+            kind: 'calendar',
+            title: isZh ? '30 天行动日历已就绪' : 'Your 30-day calendar is ready',
+          },
         });
-      } catch (err) {
+      } else if (succeeded > 0) {
+        await publishDirectorMessage({
+          role: 'assistant',
+          content: isZh
+            ? `${succeeded}/${channelIds.length} 个渠道的 To-Do 已写入日历。失败的渠道可以单独重试。`
+            : `${succeeded}/${channelIds.length} channel todo calendars are in place. Retry failed channels individually.`,
+        });
+      } else {
         gtm.patchDirectorMessage(cardMsg.id, {
           card: {
             kind: 'agent-task',
-            label: `To-Do 编写失败：${err instanceof Error ? err.message : '未知错误'}`,
+            label: isZh ? 'To-Do 编写失败' : 'Todo generation failed',
             status: 'error',
           },
         });
-      } finally {
-        setBackgroundTasks((t) => t.filter((id) => id !== taskId));
       }
+
+      setBackgroundTasks((t) => t.filter((id) => id !== taskId));
     },
     [gtm, locale, publishDirectorMessage]
   );
@@ -1613,7 +1901,13 @@ export function useDirector(defaultViewContext?: ViewContext) {
         const executionId = agentJobId
           ? `${agentJobId}:${actionIndex}:${action.type}`
           : undefined;
-        if (action.type === 'generate_strategy') {
+        if (action.type === 'recommend_channels') {
+          await runRecommendChannels(action.feedback);
+        } else if (action.type === 'select_channels') {
+          await runSelectChannels(action.channelIds);
+        } else if (action.type === 'generate_channel_plans') {
+          await runGenerateChannelPlans(action.channelIds);
+        } else if (action.type === 'generate_strategy') {
           await runGenerateStrategy(action.channelIds, action.feedback);
         } else if (action.type === 'generate_todos') {
           // 首次排期必须覆盖用户已确认的全部渠道（LLM 只带部分渠道时补全）；
@@ -1696,6 +1990,9 @@ export function useDirector(defaultViewContext?: ViewContext) {
     [
       locale,
       publishDirectorMessage,
+      runRecommendChannels,
+      runSelectChannels,
+      runGenerateChannelPlans,
       runGenerateStrategy,
       runGenerateTodos,
       runGenerateTopics,

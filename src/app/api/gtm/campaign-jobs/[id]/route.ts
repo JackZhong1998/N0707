@@ -5,7 +5,7 @@ import {
   getCampaignJob,
   listCampaignJobSteps,
 } from '@/lib/gtm/campaign-jobs';
-import { processNextCampaignJob } from '@/lib/gtm/campaign-worker';
+import { drainCampaignJobs } from '@/lib/gtm/campaign-worker';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -30,7 +30,7 @@ export async function GET(
     const steps = await listCampaignJobSteps(userId, job.id);
     if (job.status === 'queued' || job.status === 'running') {
       after(async () => {
-        await processNextCampaignJob(`job-poll-${crypto.randomUUID()}`);
+        await drainCampaignJobs(`job-poll-${crypto.randomUUID()}`);
       });
     }
     return NextResponse.json({ job, steps });

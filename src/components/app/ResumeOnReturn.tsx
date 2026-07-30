@@ -5,8 +5,12 @@ import { useLocale } from 'next-intl';
 import { useGtm } from '@/lib/gtm/store';
 import type { GtmStore } from '@/lib/gtm/types';
 
-/** Ignore brief tab blips (alt-tab flicker, system overlays). */
-const AWAY_MS = 5_000;
+/**
+ * Ignore brief focus blips (alt-tab, app switcher, system overlays). Only
+ * surface a sync banner after a meaningful away period.
+ */
+const AWAY_MS = 60_000;
+const QUIET_SYNC_MS = 5_000;
 
 type BannerState = {
   message: string;
@@ -14,9 +18,9 @@ type BannerState = {
 };
 
 /**
- * When the user leaves the tab and comes back, pull the latest server store
- * and nudge the Campaign worker. Offline progress is not assumed; resume on
- * return is the primary recovery path on Hobby (daily cron only).
+ * When the user returns after being away, pull the latest server store and
+ * nudge the Campaign worker. Short app switches sync quietly; long absences
+ * show a brief status toast.
  */
 export default function ResumeOnReturn() {
   const gtm = useGtm();
@@ -31,44 +35,53 @@ export default function ResumeOnReturn() {
   useEffect(() => {
     if (!gtm.hydrated || !gtm.remoteReady) return;
 
-    const resume = async () => {
+    const resume = async (showBanner: boolean) => {
       if (syncingRef.current) return;
       const current = gtmRef.current;
       if (!current.hydrated || !current.remoteReady) return;
 
       syncingRef.current = true;
-      setBanner({
-        status: 'syncing',
-        message: isZh
-          ? '你回来了，正在同步最新进度…'
-          : 'Welcome back — syncing latest progress…',
-      });
+      if (showBanner) {
+        setBanner({
+          status: 'syncing',
+          message: isZh
+            ? '正在同步最新进度…'
+            : 'Syncing latest progress…',
+        });
+      }
 
       try {
         let remotePaid = current.store.paid;
-        const stateResponse = await fetch('/api/gtm/state', {
-          cache: 'no-store',
-        });
-        if (stateResponse.ok) {
-          const payload = (await stateResponse.json()) as {
-            store?: GtmStore;
-          };
-          if (payload.store) {
-            current.update(payload.store);
-            remotePaid = Boolean(payload.store.paid);
+        // Free tier state lives in the browser write-ahead cache until checkout.
+        // Pulling an empty Supabase snapshot would erase in-progress research.
+        if (remotePaid) {
+          const stateResponse = await fetch('/api/gtm/state', {
+            cache: 'no-store',
+          });
+          if (stateResponse.ok) {
+            const payload = (await stateResponse.json()) as {
+              store?: GtmStore;
+              revision?: string;
+            };
+            if (payload.store) {
+              current.adoptRemoteStore(payload.store, payload.revision);
+              remotePaid = Boolean(payload.store.paid);
+            }
           }
         }
 
-        // Paid users: also kick the queue worker so unfinished Campaign steps
-        // continue after the tab was away.
+        // Paid users: kick the queue worker so unfinished Campaign steps
+        // continue (server drains multiple steps per invocation).
         if (remotePaid) {
           await fetch('/api/gtm/campaign-jobs', { cache: 'no-store' });
         }
 
-        setBanner({
-          status: 'ok',
-          message: isZh ? '已同步最新进度' : 'Latest progress synced',
-        });
+        if (showBanner) {
+          setBanner({
+            status: 'ok',
+            message: isZh ? '已同步最新进度' : 'Latest progress synced',
+          });
+        }
       } catch {
         setBanner({
           status: 'error',
@@ -78,15 +91,19 @@ export default function ResumeOnReturn() {
         });
       } finally {
         syncingRef.current = false;
-        window.setTimeout(() => setBanner(null), 4_500);
+        if (showBanner) {
+          window.setTimeout(() => setBanner(null), 4_500);
+        }
       }
     };
 
     const maybeResume = () => {
       const hiddenAt = hiddenAtRef.current;
       hiddenAtRef.current = null;
-      if (hiddenAt == null || Date.now() - hiddenAt < AWAY_MS) return;
-      void resume();
+      if (hiddenAt == null) return;
+      const awayMs = Date.now() - hiddenAt;
+      if (awayMs < QUIET_SYNC_MS) return;
+      void resume(awayMs >= AWAY_MS);
     };
 
     const onVisibility = () => {
@@ -98,7 +115,7 @@ export default function ResumeOnReturn() {
     };
 
     const onPageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) void resume();
+      if (event.persisted) void resume(true);
     };
 
     document.addEventListener('visibilitychange', onVisibility);

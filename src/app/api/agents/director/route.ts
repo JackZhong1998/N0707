@@ -160,6 +160,13 @@ export async function POST(request: Request) {
       memoryFacts,
       hasStrategy: Boolean(body.hasStrategy),
       hasTodos: Boolean(body.hasTodos),
+      hasChannelRecommendations: Boolean(body.hasChannelRecommendations),
+      selectedChannelIds: (Array.isArray(body.selectedChannelIds)
+        ? body.selectedChannelIds
+        : []
+      )
+        .filter((channel): channel is string => typeof channel === 'string')
+        .slice(0, 20),
       channels: (Array.isArray(body.channels) ? body.channels : [])
         .filter((channel): channel is string => typeof channel === 'string')
         .slice(0, 20),

@@ -14,15 +14,28 @@ export default function AppIndexPage() {
   const isZh = useLocale() !== 'en';
 
   useEffect(() => {
-    if (!hydrated || !store.launch) return;
-    if (store.launch.project.phase === 'brief_ready' && !store.paid) {
+    if (!hydrated || !store.launch || store.paid) return;
+    const rawPhase = store.launch.project.phase;
+    const shouldOpenBrief =
+      Boolean(store.launch.brief) &&
+      (rawPhase === 'brief_ready' ||
+        ['building_team', 'blueprint_ready', 'active', 'completed'].includes(
+          rawPhase
+        ));
+    if (shouldOpenBrief) {
       router.replace('/app/brief');
     }
   }, [hydrated, router, store.launch, store.paid]);
 
   if (!store.launch) return <LaunchOnboarding />;
 
-  const phase = store.launch.project.phase;
+  const rawPhase = store.launch.project.phase;
+  const phase =
+    !store.paid &&
+    store.launch.brief &&
+    ['building_team', 'blueprint_ready', 'active', 'completed'].includes(rawPhase)
+      ? 'brief_ready'
+      : rawPhase;
   if (phase === 'brief_ready' && !store.paid) {
     return (
       <div className="flex h-full items-center justify-center px-6">

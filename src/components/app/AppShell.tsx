@@ -21,6 +21,7 @@ import AutoMetricsSync from '@/components/app/AutoMetricsSync';
 import ResumeOnReturn from '@/components/app/ResumeOnReturn';
 import Paywall from '@/components/app/Paywall';
 import CampaignBootstrap from '@/components/app/launch/CampaignBootstrap';
+import FreeLaunchResearchRunner from '@/components/app/launch/FreeLaunchResearchRunner';
 import { GtmProvider, useGtm } from '@/lib/gtm/store';
 import type { ChatMessage, MessageCard } from '@/lib/gtm/types';
 import { useDirector } from '@/lib/gtm/use-director';
@@ -45,6 +46,7 @@ type NavigationKey =
   | 'calendar'
   | 'blueprint'
   | 'channels'
+  | 'channel-recommendations'
   | 'posts'
   | 'reviews'
   | 'report'
@@ -185,6 +187,7 @@ function AvatarFallback() {
 function getActiveKey(pathname: string): NavigationKey {
   if (/\/app\/?$/.test(pathname)) return 'command';
   if (pathname.includes('/app/posts')) return 'posts';
+  if (pathname.includes('/app/channel-recommendations')) return 'channel-recommendations';
   if (pathname.includes('/app/blueprint') || pathname.includes('/app/brief')) return 'blueprint';
   if (pathname.includes('/app/channels') || pathname.includes('/app/directories')) return 'channels';
   if (pathname.includes('/app/reviews')) return 'reviews';
@@ -232,6 +235,13 @@ function getRouteViewContext(
   if (pathname.includes('/app/brief')) {
     return { view: 'launch_brief', entityType: 'launch_brief', title: isZh ? '冷启动简报' : 'Launch Brief' };
   }
+  if (pathname.includes('/app/channel-recommendations')) {
+    return {
+      view: 'channel_recommendations',
+      entityType: 'channel_recommendations',
+      title: isZh ? '渠道推荐' : 'Channel Recommendations',
+    };
+  }
   if (pathname.includes('/app/blueprint')) {
     return { view: 'launch_blueprint', entityType: 'launch_blueprint', title: isZh ? '30 天推广蓝图' : '30-Day Campaign Blueprint' };
   }
@@ -272,6 +282,28 @@ function mapMessageArtifact(
   }
   if (card.kind === 'strategy') {
     return { label: card.title, status: 'done', href: '/app/blueprint' };
+  }
+  if (card.kind === 'channel_plan') {
+    const href =
+      card.channelId === 'directory'
+        ? '/app/directories'
+        : `/app/channels/${card.channelId}`;
+    return {
+      label: `${card.channelName} · ${isZh ? '渠道计划' : 'Channel plan'}`,
+      status: 'done',
+      href,
+    };
+  }
+  if (card.kind === 'channel_todos') {
+    const href =
+      card.channelId === 'directory'
+        ? '/app/directories'
+        : `/app/channels/${card.channelId}`;
+    return {
+      label: `${card.channelName} · ${card.todoCount} ${isZh ? '个任务' : 'tasks'}`,
+      status: 'done',
+      href,
+    };
   }
   if (card.kind === 'calendar') {
     return { label: card.title, status: 'done', href: '/app/calendar' };
@@ -400,6 +432,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         description: isZh ? '各平台的打法、任务与复盘' : 'Channel playbooks, queues, and reviews',
         icon: 'channels',
         iconTone: 'bg-cyan-500/12 text-cyan-300',
+      },
+      {
+        key: 'channel-recommendations',
+        href: '/app/channel-recommendations',
+        label: isZh ? '渠道推荐' : 'Channel Picks',
+        description: isZh ? '按产品与市场推荐优先渠道' : 'Product-fit channel priorities',
+        icon: 'channels',
+        iconTone: 'bg-violet-500/12 text-violet-300',
       },
       {
         key: 'posts',
@@ -754,6 +794,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     <div className="bg-grid-dark relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-night md:flex-row">
       <AutoMetricsSync />
       <ResumeOnReturn />
+      <FreeLaunchResearchRunner />
       <AgentBootstrap />
 
       {/* 56px 品牌栏：Logo 与产品控制在左，账号固定在左下角。 */}
