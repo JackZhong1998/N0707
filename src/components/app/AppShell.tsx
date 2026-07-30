@@ -18,6 +18,7 @@ import AgentPanelView, {
 } from '@/components/app/AgentPanelView';
 import AgentBootstrap from '@/components/app/AgentBootstrap';
 import AutoMetricsSync from '@/components/app/AutoMetricsSync';
+import ResumeOnReturn from '@/components/app/ResumeOnReturn';
 import Paywall from '@/components/app/Paywall';
 import CampaignBootstrap from '@/components/app/launch/CampaignBootstrap';
 import { GtmProvider, useGtm } from '@/lib/gtm/store';
@@ -752,6 +753,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-grid-dark relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-night md:flex-row">
       <AutoMetricsSync />
+      <ResumeOnReturn />
       <AgentBootstrap />
 
       {/* 56px 品牌栏：Logo 与产品控制在左，账号固定在左下角。 */}

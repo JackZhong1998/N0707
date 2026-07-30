@@ -16,8 +16,8 @@ type JobResponse = {
 
 /**
  * Enqueue the paid Campaign once, then mirror durable server progress into the
- * local UI. Generation continues in server workers after this component
- * unmounts; refresh merely reconnects to the same idempotent build key.
+ * local UI. While the tab is away, work may pause; ResumeOnReturn + polling
+ * reconnect and continue the same idempotent build key.
  */
 export default function CampaignBootstrap() {
   const locale = useLocale();
@@ -58,8 +58,8 @@ export default function CampaignBootstrap() {
     gtmRef.current.addDirectorMessage({
       role: 'assistant',
       content: isZh
-        ? '支付已确认。Campaign 已进入后台队列；你可以离开或刷新，回来后会恢复真实进度。'
-        : 'Payment confirmed. Your Campaign is now queued in the background; you can leave or refresh and return to the real progress.',
+        ? '支付已确认。Campaign 已进入队列。离开页面时任务可能暂停；你回来后会自动同步最新进度并继续未完成步骤。'
+        : 'Payment confirmed. Your Campaign is queued. It may pause while you are away; when you return we sync the latest progress and continue unfinished steps.',
     });
 
     const syncRemoteStore = async () => {

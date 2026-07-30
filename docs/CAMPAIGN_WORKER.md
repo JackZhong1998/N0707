@@ -24,14 +24,20 @@
 CRON_SECRET=<至少 32 位随机字符串>
 ```
 
-`vercel.json` 已配置每天调用一次（Hobby 套餐限制：cron 不能超过每天 1 次）：
+主恢复路径（推荐，Hobby 可用）：
+
+- 用户离开页面时任务可以暂停
+- 用户回到标签页后，前端 `ResumeOnReturn` 会自动拉取 `/api/gtm/state`，并对付费用户调用 `/api/gtm/campaign-jobs` 继续 Worker
+- 同步失败时提示刷新页面
+
+`vercel.json` 另配置每天一次 Cron 作兜底（Hobby 限制：不能超过每天 1 次）：
 
 ```text
 /api/internal/campaign-worker
-schedule: 0 2 * * *   # 每天约 02:00 UTC（Hobby 实际触发可能在该小时内）
+schedule: 0 2 * * *   # 每天约 02:00 UTC
 ```
 
-浏览器在线时也会触发 Worker；Cron 用于用户关闭页面后的兜底接管。若需要每分钟跑 Worker，请升级 Vercel Pro。
+浏览器轮询 / 回到页面时也会触发 Worker。若需要用户离线时仍每分钟推进任务，请升级 Vercel Pro。
 
 ## 3. 验证数据库
 
