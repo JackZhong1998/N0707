@@ -2,6 +2,7 @@ import { SignIn } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { setRequestLocale } from 'next-intl/server';
+import { languageAlternates, localePath } from '@/lib/seo';
 
 const isClerkConfigured =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
@@ -17,8 +18,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: locale === 'zh' ? '登录' : 'Sign In',
     description: locale === 'zh' ? '登录 NowBuild，继续推进你的产品冷启动。' : 'Sign in to your account.',
     alternates: {
-      canonical: `/${locale}/sign-in`,
-      languages: { en: '/en/sign-in', zh: '/zh/sign-in' },
+      canonical: localePath(locale, '/sign-in'),
+      languages: languageAlternates('/sign-in'),
     },
     robots: {
       index: false,
@@ -32,6 +33,7 @@ export default async function SignInPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const isZh = locale === 'zh';
+  const afterAuthUrl = localePath(locale, '/app');
 
   // Clerk 未配置（本地演示）：模拟登录，直接进入产品内页
   if (!isClerkConfigured) {
@@ -48,7 +50,7 @@ export default async function SignInPage({ params }: Props) {
               : 'Demo mode: auth is not configured. Continue straight in.'}
           </p>
           <Link
-            href={`/${locale}/app`}
+            href={afterAuthUrl}
             className="mt-8 flex h-12 w-full items-center justify-center bg-white text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
           >
             {isZh ? '进入 NowBuild →' : 'Enter NowBuild →'}
@@ -61,8 +63,9 @@ export default async function SignInPage({ params }: Props) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper-dim px-4">
       <SignIn
-        fallbackRedirectUrl={`/${locale}/app`}
-        signUpFallbackRedirectUrl={`/${locale}/app`}
+        fallbackRedirectUrl={afterAuthUrl}
+        forceRedirectUrl={afterAuthUrl}
+        signUpFallbackRedirectUrl={afterAuthUrl}
         appearance={{
           elements: {
             rootBox: 'mx-auto',

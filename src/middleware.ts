@@ -43,14 +43,39 @@ function routeRequest(request: NextRequest) {
   return handleI18nRouting(request);
 }
 
+function redirectToSignIn(request: NextRequest) {
+  const signInUrl = new URL('/sign-in', request.url);
+  // Keep users on the public (as-needed) path after auth — /en/app only 307s away.
+  const returnUrl = new URL(request.url);
+  if (returnUrl.pathname === `/${routing.defaultLocale}` || returnUrl.pathname.startsWith(`/${routing.defaultLocale}/`)) {
+    returnUrl.pathname =
+      returnUrl.pathname === `/${routing.defaultLocale}`
+        ? '/'
+        : returnUrl.pathname.slice(`/${routing.defaultLocale}`.length) || '/';
+  }
+  signInUrl.searchParams.set('redirect_url', returnUrl.toString());
+  return NextResponse.redirect(signInUrl);
+}
+
 // Clerk 未配置（本地演示）时跳过鉴权，仅做 i18n 路由。
 const middleware = isClerkConfigured
-  ? clerkMiddleware(async (auth, request) => {
-      if (isProtectedRoute(request)) {
-        await auth.protect();
+  ? clerkMiddleware(
+      async (auth, request) => {
+        if (isProtectedRoute(request)) {
+          const { userId } = await auth();
+          // Do not use auth.protect(): its internal /clerk_* rewrite is captured by
+          // [locale] and becomes a 404, which also breaks post-OAuth redirects to /app.
+          if (!userId) {
+            return redirectToSignIn(request);
+          }
+        }
+        return routeRequest(request);
+      },
+      {
+        signInUrl: '/sign-in',
+        signUpUrl: '/sign-up',
       }
-      return routeRequest(request);
-    })
+    )
   : (request: NextRequest) => routeRequest(request);
 
 export default middleware;

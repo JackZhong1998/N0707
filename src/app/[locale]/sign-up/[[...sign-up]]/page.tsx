@@ -2,6 +2,7 @@ import { SignUp } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
+import { languageAlternates, localePath } from '@/lib/seo';
 
 const isClerkConfigured =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
@@ -17,8 +18,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: locale === 'zh' ? '注册' : 'Sign Up',
     description: locale === 'zh' ? '创建 NowBuild 账户，免费生成你的冷启动简报。' : 'Create your account.',
     alternates: {
-      canonical: `/${locale}/sign-up`,
-      languages: { en: '/en/sign-up', zh: '/zh/sign-up' },
+      canonical: localePath(locale, '/sign-up'),
+      languages: languageAlternates('/sign-up'),
     },
     robots: {
       index: false,
@@ -34,16 +35,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SignUpPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const afterAuthUrl = localePath(locale, '/app');
 
   if (!isClerkConfigured) {
-    redirect(`/${locale}/sign-in`);
+    redirect(localePath(locale, '/sign-in'));
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper-dim px-4">
       <SignUp
-        fallbackRedirectUrl={`/${locale}/app`}
-        signInFallbackRedirectUrl={`/${locale}/app`}
+        fallbackRedirectUrl={afterAuthUrl}
+        forceRedirectUrl={afterAuthUrl}
+        signInFallbackRedirectUrl={afterAuthUrl}
         appearance={{
           elements: {
             rootBox: 'mx-auto',
