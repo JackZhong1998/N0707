@@ -60,7 +60,7 @@ export default function LaunchProgress({ launch }: { launch: LaunchState }) {
         isZh,
         gtm,
       });
-      router.replace('/app/documents');
+      router.replace('/app/documents/project');
     } catch (error) {
       console.error('Free launch research retry failed:', error);
     } finally {

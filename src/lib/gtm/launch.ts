@@ -6,6 +6,7 @@ import {
   matchDirectories,
   type ProductFitProfile,
 } from '@/lib/directories/matching';
+import { channelHasCalendarTodos } from './channel-capabilities';
 import { addDays, todayStr } from './dates';
 import type {
   DirectorySubmission,
@@ -351,6 +352,32 @@ function createChannelPlan(channelId: string, channelName: string, productName: 
   };
 }
 
+/** Channels that still need a durable channel plan / strategy doc. */
+export function isChannelPlanReady(
+  store: {
+    channelStrategies: Record<string, { markdown?: string }>;
+    launch?: { channelPlans: Record<string, { status?: string }> };
+  },
+  channelId: string
+): boolean {
+  const plan = store.launch?.channelPlans[channelId];
+  const strategy = store.channelStrategies[channelId];
+  return plan?.status === 'ready' && Boolean(strategy?.markdown?.trim());
+}
+
+export function resolvePendingChannelPlanIds(
+  store: {
+    channelStrategies: Record<string, { markdown?: string }>;
+    launch?: { channelPlans: Record<string, { status?: string }> };
+  },
+  requestedIds: string[],
+  options?: { force?: boolean }
+): string[] {
+  const unique = [...new Set(requestedIds.filter(Boolean))];
+  if (options?.force) return unique;
+  return unique.filter((channelId) => !isChannelPlanReady(store, channelId));
+}
+
 export function applyStrategyToChannelPlans(
   launch: LaunchState,
   strategy: StrategyResponse | null,
@@ -386,13 +413,13 @@ function taskPurpose(day: number, isZh: boolean): string {
 export function createFallbackLaunchTasks(launch: LaunchState, isZh: boolean): Todo[] {
   const tasks: Todo[] = [];
   for (const channel of SUPPORTED_LAUNCH_CHANNELS) {
+    if (!channelHasCalendarTodos(channel.channelId)) continue;
     const frequency = Math.max(1, channel.postsPerWeek);
     const interval = Math.max(1, Math.floor(7 / frequency));
     for (let day = 1; day <= 30; day += interval) {
       const week = Math.min(4, Math.ceil(day / 7));
       const type = channel.defaultTaskTypes[(tasks.length + day) % channel.defaultTaskTypes.length] ?? 'post';
       const purpose = taskPurpose(day, isZh);
-      const isDirectory = channel.channelId === 'directory';
       tasks.push({
         id: `${channel.channelId}-${day}-launch`,
         channelId: channel.channelId,
@@ -400,9 +427,7 @@ export function createFallbackLaunchTasks(launch: LaunchState, isZh: boolean): T
         dayIndex: day,
         date: addDays(launch.project.startDate, day - 1),
         time: channel.channelId === 'twitter_x' ? '09:30' : channel.channelId === 'reddit' ? '20:00' : '10:00',
-        title: isDirectory
-          ? (isZh ? `处理第 ${week} 周目录提交批次` : `Process the week ${week} directory batch`)
-          : (isZh ? `${purpose} · ${channel.name}` : `${purpose} · ${channel.nameEn}`),
+        title: isZh ? `${purpose} · ${channel.name}` : `${purpose} · ${channel.nameEn}`,
         brief: isZh ? `围绕 Week ${week} 共同叙事，为 ${channel.name} 准备原生的 ${type} 交付。` : `Prepare a native ${type} deliverable for ${channel.nameEn}, aligned with the shared week ${week} narrative.`,
         purpose,
         pillar: week === 1 ? (isZh ? '问题与错误认知' : 'Problem & misconceptions') : week === 2 ? (isZh ? 'Founder 判断' : 'Founder judgment') : week === 3 ? (isZh ? '真实使用场景' : 'Real use cases') : (isZh ? '证明与邀请' : 'Proof & invitation'),
@@ -410,8 +435,8 @@ export function createFallbackLaunchTasks(launch: LaunchState, isZh: boolean): T
         phase: `Week ${week}`,
         audience: launch.brief?.audience.primary,
         status: 'pending',
-        launchStatus: day === 1 ? (isDirectory ? 'needs_action' : 'ready') : day <= 3 ? 'draft' : 'planned',
-        contentStatus: day === 1 && !isDirectory ? 'none' : 'none',
+        launchStatus: day === 1 ? 'ready' : day <= 3 ? 'draft' : 'planned',
+        contentStatus: 'none',
         revision: 1,
       });
     }
@@ -437,7 +462,7 @@ export function createMatchedDirectoryPipeline(
   product: ProductFitProfile,
   isZh: boolean
 ): DirectorySubmission[] {
-  const matches = matchDirectories(product, launchDirectories).sort((a, b) => {
+  const matches = matchDirectories(product, launchDirectories, isZh).sort((a, b) => {
     const automation =
       Number(Boolean(directoryAdapterId(b.directory.url))) -
       Number(Boolean(directoryAdapterId(a.directory.url)));

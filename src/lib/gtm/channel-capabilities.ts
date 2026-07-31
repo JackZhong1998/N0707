@@ -26,6 +26,21 @@ const DEFAULT_FIELDS: Array<keyof PostMetrics> = [
   'shares',
 ];
 
+/**
+ * Directory execution is tracked in its own submission pipeline, so it owns no
+ * calendar days and no todos — every entry point links to the Directory page.
+ */
+export const PIPELINE_ONLY_CHANNEL_IDS = ['directory'] as const;
+
+export function channelHasCalendarTodos(channelId: string): boolean {
+  return !(PIPELINE_ONLY_CHANNEL_IDS as readonly string[]).includes(channelId);
+}
+
+/** Keep only channels whose 30-day work belongs on the calendar. */
+export function filterCalendarChannelIds(channelIds: string[]): string[] {
+  return channelIds.filter(channelHasCalendarTodos);
+}
+
 const NONE = {
   publishAction: 'none' as const,
   extensionSupport: 'none' as const,

@@ -65,10 +65,55 @@ function confidencePenalty(profile: DirectoryFitProfile): number {
   return 12;
 }
 
+const copy = {
+  aiOnlyRisk: {
+    zh: '该平台只面向 AI 产品，但产品的核心价值并不依赖 AI。',
+    en: 'This directory only accepts AI products, but the product does not rely on AI for its core value.',
+  },
+  typeReason: {
+    zh: '产品类型与平台收录范围匹配',
+    en: 'Product type matches what the directory lists',
+  },
+  audienceReason: {
+    zh: '平台用户与目标用户有重合',
+    en: 'Directory audience overlaps with the target users',
+  },
+  marketReason: {
+    zh: 'B2B/B2C/开发者市场方向匹配',
+    en: 'B2B/B2C/developer market direction matches',
+  },
+  stageReason: {
+    zh: '产品阶段符合平台定位',
+    en: 'Product stage fits the directory positioning',
+  },
+  goalReason: {
+    zh: '符合当前推广目标',
+    en: 'Aligned with the current promotion goals',
+  },
+  authorityReason: {
+    zh: '平台具有较高的公开域名权重',
+    en: 'Directory has high public domain authority',
+  },
+  paidRisk: {
+    zh: '需要付费，提交前应核实投入产出',
+    en: 'Paid submission, so verify the return on investment first',
+  },
+  lowConfidenceRisk: {
+    zh: '平台档案来自目录分类推断，需要逐站核实',
+    en: 'Directory profile is inferred from category data and needs per-site verification',
+  },
+  mediumConfidenceRisk: {
+    zh: '部分适配信息属于平台定位推断',
+    en: 'Some fit details are inferred from the directory positioning',
+  },
+} satisfies Record<string, { zh: string; en: string }>;
+
 export function scoreDirectoryFit(
   product: ProductFitProfile,
-  directory: LaunchDirectory
+  directory: LaunchDirectory,
+  isZh = true
 ): DirectoryMatch {
+  const t = (key: keyof typeof copy) => (isZh ? copy[key].zh : copy[key].en);
   const profile = getDirectoryFitProfile(directory);
   const reasons: string[] = [];
   const risks: string[] = [];
@@ -80,7 +125,7 @@ export function scoreDirectoryFit(
       score: 0,
       tier: 'not_suitable',
       reasons: [],
-      risks: ['该平台只面向 AI 产品，但产品的核心价值并不依赖 AI。'],
+      risks: [t('aiOnlyRisk')],
     };
   }
 
@@ -112,15 +157,15 @@ export function scoreDirectoryFit(
     )
   );
 
-  if (typeScore >= 16) reasons.push('产品类型与平台收录范围匹配');
-  if (audienceScore >= 10) reasons.push('平台用户与目标用户有重合');
-  if (marketScore >= 7) reasons.push('B2B/B2C/开发者市场方向匹配');
-  if (stageScore >= 5) reasons.push('产品阶段符合平台定位');
-  if (goalScore >= 7) reasons.push('符合当前推广目标');
-  if (directory.dr >= 70) reasons.push('平台具有较高的公开域名权重');
-  if (directory.pricing === 'Paid') risks.push('需要付费，提交前应核实投入产出');
-  if (profile.confidence === 'low') risks.push('平台档案来自目录分类推断，需要逐站核实');
-  if (profile.confidence === 'medium') risks.push('部分适配信息属于平台定位推断');
+  if (typeScore >= 16) reasons.push(t('typeReason'));
+  if (audienceScore >= 10) reasons.push(t('audienceReason'));
+  if (marketScore >= 7) reasons.push(t('marketReason'));
+  if (stageScore >= 5) reasons.push(t('stageReason'));
+  if (goalScore >= 7) reasons.push(t('goalReason'));
+  if (directory.dr >= 70) reasons.push(t('authorityReason'));
+  if (directory.pricing === 'Paid') risks.push(t('paidRisk'));
+  if (profile.confidence === 'low') risks.push(t('lowConfidenceRisk'));
+  if (profile.confidence === 'medium') risks.push(t('mediumConfidenceRisk'));
 
   const tier: DirectoryMatchTier =
     score >= 58 && typeScore >= 16
@@ -134,10 +179,11 @@ export function scoreDirectoryFit(
 
 export function matchDirectories(
   product: ProductFitProfile,
-  directories: LaunchDirectory[]
+  directories: LaunchDirectory[],
+  isZh = true
 ): DirectoryMatch[] {
   return directories
-    .map((directory) => scoreDirectoryFit(product, directory))
+    .map((directory) => scoreDirectoryFit(product, directory, isZh))
     .sort(
       (a, b) =>
         b.score - a.score ||

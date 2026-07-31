@@ -97,20 +97,20 @@ const FOUNDER_EMAIL = new Set([
 ]);
 
 const REQUIREMENT_DETAILS: Partial<
-  Record<string, Partial<Record<DirectoryMaterialKey, string>>>
+  Record<string, Partial<Record<DirectoryMaterialKey, [string, string]>>>
 > = {
   aura_plus_plus: {
-    longDescription: '至少 200 词',
-    screenshots: '至少一张 16:9 产品图',
+    longDescription: ['至少 200 词', 'At least 200 words'],
+    screenshots: ['至少一张 16:9 产品图', 'At least one 16:9 product image'],
   },
   tinylaunch: {
-    screenshots: '最多 3 张产品图片',
+    screenshots: ['最多 3 张产品图片', 'Up to 3 product images'],
   },
   micro_saas_examples: {
-    screenshots: '需要一张 1200×630 缩略图',
+    screenshots: ['需要一张 1200×630 缩略图', 'Requires a 1200×630 thumbnail'],
   },
   launchy: {
-    screenshots: '需要一张 1280×720 缩略图',
+    screenshots: ['需要一张 1280×720 缩略图', 'Requires a 1280×720 thumbnail'],
   },
 };
 
@@ -137,7 +137,8 @@ const LABELS: Record<DirectoryMaterialKey, [string, string]> = {
 function requirement(
   key: DirectoryMaterialKey,
   resolution: Resolution,
-  adapterId?: string,
+  adapterId: string | undefined,
+  isZh: boolean,
   minLength?: number
 ): DirectoryMaterialRequirement {
   return {
@@ -145,12 +146,15 @@ function requirement(
     resolution,
     required: true,
     minLength,
-    detail: adapterId ? REQUIREMENT_DETAILS[adapterId]?.[key] : undefined,
+    detail: adapterId
+      ? REQUIREMENT_DETAILS[adapterId]?.[key]?.[isZh ? 0 : 1]
+      : undefined,
   };
 }
 
 export function getDirectoryMaterialRequirements(
-  directory: Pick<DirectorySubmission, 'url'>
+  directory: Pick<DirectorySubmission, 'url'>,
+  isZh = true
 ): DirectoryMaterialRequirement[] {
   const adapterId = directoryAdapterId(directory.url) ?? undefined;
   const result = [...BASE_REQUIREMENTS];
@@ -161,27 +165,28 @@ export function getDirectoryMaterialRequirements(
         'longDescription',
         'ai',
         adapterId,
+        isZh,
         adapterId === 'aura_plus_plus' ? 900 : 80
       )
     );
   }
   if (CATEGORY.has(adapterId)) {
-    result.push(requirement('categories', 'ai', adapterId));
+    result.push(requirement('categories', 'ai', adapterId, isZh));
   }
   if (PRICING.has(adapterId)) {
-    result.push(requirement('pricing', 'user', adapterId));
+    result.push(requirement('pricing', 'user', adapterId, isZh));
   }
   if (LOGO.has(adapterId)) {
-    result.push(requirement('logo', 'user', adapterId));
+    result.push(requirement('logo', 'user', adapterId, isZh));
   }
   if (SCREENSHOTS.has(adapterId)) {
-    result.push(requirement('screenshots', 'user', adapterId));
+    result.push(requirement('screenshots', 'user', adapterId, isZh));
   }
   if (FOUNDER_NAME.has(adapterId)) {
-    result.push(requirement('founderName', 'user', adapterId));
+    result.push(requirement('founderName', 'user', adapterId, isZh));
   }
   if (FOUNDER_EMAIL.has(adapterId)) {
-    result.push(requirement('founderEmail', 'user', adapterId));
+    result.push(requirement('founderEmail', 'user', adapterId, isZh));
   }
   return result;
 }
@@ -251,7 +256,7 @@ export function preflightDirectory(
   const checks: DirectoryMaterialCheck[] =
     (
       options.requirements?.filter((item) => item.required) ??
-      getDirectoryMaterialRequirements(directory)
+      getDirectoryMaterialRequirements(directory, isZh)
     ).map((item) => {
       const ready = hasValue(kit, item);
       const status: DirectoryMaterialCheck['status'] = ready

@@ -19,6 +19,7 @@ import {
   type ChannelRecommendationResponse,
   type ChannelStrategyDoc,
   type GtmStore,
+  type LaunchChannelPlan,
   type MarketStrategy,
   type MemoryFact,
   type PendingAgentRequest,
@@ -56,6 +57,22 @@ function cacheRemoteRevision(storeKey: string | null, revision: string) {
   }
 }
 
+// Notifications persist until read, so a prompt we stop sending would otherwise
+// stay pinned in the panel forever.
+const RETIRED_NOTIFICATION_TITLES = new Set([
+  '项目文档已就绪',
+  'Project document is ready',
+]);
+
+function dropRetiredNotifications(store: GtmStore): GtmStore {
+  const kept = store.agentNotifications.filter(
+    (notification) => !RETIRED_NOTIFICATION_TITLES.has(notification?.title ?? '')
+  );
+  return kept.length === store.agentNotifications.length
+    ? store
+    : { ...store, agentNotifications: kept };
+}
+
 function migrate(raw: unknown): GtmStore {
   const fresh = createInitialStore();
   if (!raw || typeof raw !== 'object') return fresh;
@@ -67,7 +84,7 @@ function migrate(raw: unknown): GtmStore {
   // Browser storage may contain `paid: true` from the old simulated checkout.
   // Preserve the user's work, but payment access must only come from the
   // server-side Stripe subscription lookup.
-  return {
+  return dropRetiredNotifications({
     ...fresh,
     ...parsed,
     version: GTM_STORE_VERSION,
@@ -100,13 +117,17 @@ function migrate(raw: unknown): GtmStore {
       parsed.todoChats && typeof parsed.todoChats === 'object'
         ? parsed.todoChats
         : fresh.todoChats,
-  };
+  });
 }
 
 function loadStore(key: string): GtmStore {
   try {
     const raw = localStorage.getItem(key);
-    if (raw) return sanitizeUnpaidStore(migrate(JSON.parse(raw)));
+    // Never sanitize here: migrate() forces `paid: false` because entitlement is
+    // server-owned, so sanitizing at load time would treat every paid user as
+    // free and drop their channels, strategies and todos. The subscription
+    // lookup below applies sanitizeUnpaidStore once access is actually known.
+    if (raw) return migrate(JSON.parse(raw));
   } catch {
     // corrupt storage — start fresh
   }
@@ -185,13 +206,7 @@ function mergeHydratedStores(
 
   const launch = localIsNewerLaunch
     ? localStore.launch
-    : preferFartherLaunch(
-        undefined,
-        remoteStore.launch,
-        localStore.launch
-      ) ??
-      remoteStore.launch ??
-      localStore.launch;
+    : mergeLaunchStates(undefined, remoteStore.launch, localStore.launch);
 
   // Same-project sessions must keep local write-ahead work (todos / plans /
   // planReady) that may not have landed in Supabase yet.
@@ -304,6 +319,71 @@ function preferFartherLaunch(
   if (remoteScore > localScore && remoteScore >= baseScore) return remote;
   if (localScore > remoteScore && localScore >= baseScore) return local;
   return mergeThreeWayValue(base, remote, local);
+}
+
+/** Keep the most recently written copy of an agent-authored document. */
+function newerDocument<T>(
+  remote: T | undefined,
+  local: T | undefined,
+  updatedAtOf: (document: T) => number
+): T | undefined {
+  if (!remote) return local;
+  if (!local) return remote;
+  return updatedAtOf(remote) > updatedAtOf(local) ? remote : local;
+}
+
+function mergeChannelPlans(
+  remote: Record<string, LaunchChannelPlan>,
+  local: Record<string, LaunchChannelPlan>
+): Record<string, LaunchChannelPlan> {
+  const merged = { ...local };
+  for (const [channelId, plan] of Object.entries(remote)) {
+    const current = merged[channelId];
+    if (!current || plan.updatedAt > current.updatedAt) merged[channelId] = plan;
+  }
+  return merged;
+}
+
+/**
+ * Agent workers write into `launch` while this tab keeps editing the same
+ * object, so choosing one side wholesale drops the other's work — a
+ * worker-written channel recommendation would vanish behind a local snapshot.
+ * Launches for different projects still resolve to a single winner; within one
+ * project the agent-authored documents are reconciled on their own timestamps.
+ */
+function mergeLaunchStates(
+  base: GtmStore['launch'] | undefined,
+  remote: GtmStore['launch'] | undefined,
+  local: GtmStore['launch'] | undefined
+): GtmStore['launch'] | undefined {
+  if (!remote || !local) return remote ?? local;
+  if (remote.project.id !== local.project.id) {
+    return preferFartherLaunch(base, remote, local);
+  }
+  const sameProjectBase =
+    base && base.project.id === local.project.id ? base : undefined;
+  const merged = preferFartherLaunch(sameProjectBase, remote, local) ?? local;
+  const research =
+    launchProgressScore(remote) >= launchProgressScore(local) ? remote : local;
+
+  return {
+    ...merged,
+    researchProgress: research.researchProgress,
+    researchConfidence: research.researchConfidence,
+    researchSources: research.researchSources,
+    brief: newerDocument(remote.brief, local.brief, (brief) => brief.updatedAt),
+    blueprint: newerDocument(
+      remote.blueprint,
+      local.blueprint,
+      (blueprint) => blueprint.updatedAt
+    ),
+    channelRecommendations: newerDocument(
+      remote.channelRecommendations,
+      local.channelRecommendations,
+      (recommendations) => recommendations.updatedAt
+    ),
+    channelPlans: mergeChannelPlans(remote.channelPlans, local.channelPlans),
+  };
 }
 
 function mergeThreeWayByKey<T>(
@@ -431,7 +511,7 @@ function mergeConflictingStores(
 
   // Campaign worker owns launch.researchProgress / planReady. Prefer the
   // farther-along side so a chat-only local write cannot wipe build progress.
-  const launch = preferFartherLaunch(
+  const launch = mergeLaunchStates(
     baseStore.launch,
     remoteStore.launch,
     localStore.launch
@@ -463,6 +543,16 @@ function mergeConflictingStores(
       baseStore.conversationSummary,
       remoteStore.conversationSummary,
       localStore.conversationSummary
+    ),
+    postPayProfileComplete: mergeThreeWayValue(
+      baseStore.postPayProfileComplete,
+      remoteStore.postPayProfileComplete,
+      localStore.postPayProfileComplete
+    ),
+    targetMarketLocale: mergeThreeWayValue(
+      baseStore.targetMarketLocale,
+      remoteStore.targetMarketLocale,
+      localStore.targetMarketLocale
     ),
     paid: remoteStore.paid,
     strategy: mergeThreeWayValue(
@@ -678,6 +768,8 @@ function GtmProviderState({
   const remoteBaseStoreRef = useRef<GtmStore | null>(null);
   /** When set, the next debounced save is skipped if store still matches. */
   const adoptedRemoteStoreRef = useRef<GtmStore | null>(null);
+  const storeRef = useRef(store);
+  storeRef.current = store;
   const flushRemoteSavesRef = useRef<() => Promise<void>>(
     async () => undefined
   );
@@ -943,19 +1035,20 @@ function GtmProviderState({
               revision: string;
             }>('/api/gtm/state', 15_000);
             if (cancelled) return;
+            const remoteStore = dropRetiredNotifications(payload.store);
             remoteRevisionRef.current = payload.revision;
-            remoteBaseStoreRef.current = payload.store;
+            remoteBaseStoreRef.current = remoteStore;
             cacheRemoteRevision(key, payload.revision);
             setStore((current) =>
               payload.hasRemoteData
                 ? cachedRemoteRevision === payload.revision
                   ? mergeConflictingStores(
                       current,
-                      { ...payload.store, paid: true },
-                      { ...payload.store, paid: true }
+                      { ...remoteStore, paid: true },
+                      { ...remoteStore, paid: true }
                     )
                   : mergeHydratedStores(current, {
-                      ...payload.store,
+                      ...remoteStore,
                       paid: true,
                     })
                 : cachedRemoteRevision === payload.revision
@@ -1006,6 +1099,8 @@ function GtmProviderState({
     []
   );
 
+  // Debounce local writes during rapid generation updates so navigation stays
+  // responsive; flush the latest snapshot on unmount / tab hide.
   useEffect(() => {
     if (
       !hydrated ||
@@ -1014,12 +1109,38 @@ function GtmProviderState({
     ) {
       return;
     }
-    try {
-      localStorage.setItem(keyRef.current, JSON.stringify(store));
-    } catch {
-      // quota exceeded — ignore
-    }
+    const key = keyRef.current;
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(key, JSON.stringify(storeRef.current));
+      } catch {
+        // quota exceeded — ignore
+      }
+    }, 400);
+    return () => window.clearTimeout(timer);
   }, [store, hydrated]);
+
+  useEffect(() => {
+    const flushLocal = () => {
+      if (
+        !hydrated ||
+        !keyRef.current ||
+        loadedKeyRef.current !== keyRef.current
+      ) {
+        return;
+      }
+      try {
+        localStorage.setItem(keyRef.current, JSON.stringify(storeRef.current));
+      } catch {
+        // quota exceeded — ignore
+      }
+    };
+    window.addEventListener('pagehide', flushLocal);
+    return () => {
+      window.removeEventListener('pagehide', flushLocal);
+      flushLocal();
+    };
+  }, [hydrated]);
 
   // Supabase is the durable source of truth for authenticated users. A short
   // debounce coalesces rapid chat/token updates into one normalized write.
@@ -1064,11 +1185,19 @@ function GtmProviderState({
       remoteRevisionRef.current = revision;
       cacheRemoteRevision(keyRef.current, revision);
     }
+    const base = remoteBaseStoreRef.current;
     remoteBaseStoreRef.current = remote;
     adoptedRemoteStoreRef.current = remote;
     setStore((current) => {
       const paid = Boolean(current.paid || remote.paid);
-      const merged = mergeHydratedStores(current, { ...remote, paid });
+      const incoming = { ...remote, paid };
+      // The previously adopted snapshot is a real common base, so worker output
+      // this tab never touched (channel recommendations, finished job progress,
+      // patched task cards) is taken from the server instead of losing to the
+      // stale local copy of the same field.
+      const merged = base
+        ? mergeConflictingStores(current, incoming, base)
+        : mergeHydratedStores(current, incoming);
       return paid ? merged : sanitizeUnpaidStore(merged);
     });
   }, []);

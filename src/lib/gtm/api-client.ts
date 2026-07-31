@@ -7,6 +7,7 @@ import type {
   ChannelWriteResponse,
   ChatMessage,
   ContextResponse,
+  DirectorAction,
   DirectorResponse,
   DirectoryLaunchKit,
   DirectoryMaterialKey,
@@ -327,4 +328,182 @@ export function callTopicPlanner(input: {
     campaignContext: buildAgentContextEnvelope(input.store),
     locale: input.locale,
   });
+}
+
+export async function enqueueChannelPlans(input: {
+  channelIds: string[];
+  store: GtmStore;
+  locale: string;
+  taskMessageId: string;
+  force?: boolean;
+}): Promise<{
+  job: {
+    id: string;
+    status: string;
+    progress_completed: number;
+    progress_total: number;
+    last_error: string | null;
+  } | null;
+  steps: unknown[];
+  skipped?: boolean;
+  resumed?: boolean;
+  channelIds?: string[];
+  reason?: string;
+  error?: string;
+}> {
+  const res = await fetch('/api/agents/channel-plans', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      channelIds: input.channelIds,
+      store: input.store,
+      locale: input.locale,
+      taskMessageId: input.taskMessageId,
+      force: input.force === true,
+    }),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    job?: {
+      id: string;
+      status: string;
+      progress_completed: number;
+      progress_total: number;
+      last_error: string | null;
+    } | null;
+    steps?: unknown[];
+    skipped?: boolean;
+    resumed?: boolean;
+    channelIds?: string[];
+    reason?: string;
+    error?: string;
+  };
+  if (!res.ok) {
+    throw new Error(data.error ?? `Request failed: ${res.status}`);
+  }
+  return {
+    job: data.job ?? null,
+    steps: data.steps ?? [],
+    skipped: data.skipped,
+    resumed: data.resumed,
+    channelIds: data.channelIds,
+    reason: data.reason,
+  };
+}
+
+export async function pollChannelPlans(jobId?: string): Promise<{
+  job: {
+    id: string;
+    status: string;
+    progress_completed: number;
+    progress_total: number;
+    last_error: string | null;
+  } | null;
+  steps: unknown[];
+}> {
+  const url = jobId
+    ? `/api/agents/channel-plans?jobId=${encodeURIComponent(jobId)}`
+    : '/api/agents/channel-plans';
+  const res = await fetch(url, { cache: 'no-store' });
+  const data = (await res.json().catch(() => ({}))) as {
+    job?: {
+      id: string;
+      status: string;
+      progress_completed: number;
+      progress_total: number;
+      last_error: string | null;
+    } | null;
+    steps?: unknown[];
+    error?: string;
+  };
+  if (!res.ok) {
+    throw new Error(data.error ?? `Request failed: ${res.status}`);
+  }
+  return { job: data.job ?? null, steps: data.steps ?? [] };
+}
+
+export async function enqueueAgentWork(input: {
+  actions: DirectorAction[];
+  store: GtmStore;
+  locale: string;
+  taskMessageId: string;
+  label?: string;
+  buildKey?: string;
+}): Promise<{
+  job: {
+    id: string;
+    status: string;
+    progress_completed: number;
+    progress_total: number;
+    last_error: string | null;
+  } | null;
+  steps: unknown[];
+  skipped?: boolean;
+  resumed?: boolean;
+  error?: string;
+}> {
+  const res = await fetch('/api/agents/work', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      actions: input.actions,
+      store: input.store,
+      locale: input.locale,
+      taskMessageId: input.taskMessageId,
+      label: input.label,
+      buildKey: input.buildKey,
+    }),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    job?: {
+      id: string;
+      status: string;
+      progress_completed: number;
+      progress_total: number;
+      last_error: string | null;
+    } | null;
+    steps?: unknown[];
+    skipped?: boolean;
+    resumed?: boolean;
+    error?: string;
+  };
+  if (!res.ok) {
+    throw new Error(data.error ?? `Request failed: ${res.status}`);
+  }
+  return {
+    job: data.job ?? null,
+    steps: data.steps ?? [],
+    skipped: data.skipped,
+    resumed: data.resumed,
+  };
+}
+
+export async function pollAgentWork(jobId?: string): Promise<{
+  job: {
+    id: string;
+    status: string;
+    progress_completed: number;
+    progress_total: number;
+    last_error: string | null;
+  } | null;
+  steps: unknown[];
+}> {
+  const url = jobId
+    ? `/api/agents/work?jobId=${encodeURIComponent(jobId)}`
+    : '/api/agents/work';
+  const res = await fetch(url, { cache: 'no-store' });
+  const data = (await res.json().catch(() => ({}))) as {
+    job?: {
+      id: string;
+      status: string;
+      progress_completed: number;
+      progress_total: number;
+      last_error: string | null;
+    } | null;
+    steps?: unknown[];
+    error?: string;
+  };
+  if (!res.ok) {
+    throw new Error(data.error ?? `Request failed: ${res.status}`);
+  }
+  return { job: data.job ?? null, steps: data.steps ?? [] };
 }

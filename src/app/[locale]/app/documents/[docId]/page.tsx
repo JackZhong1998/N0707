@@ -14,6 +14,7 @@ import {
   runFreeLaunchResearch,
 } from '@/lib/gtm/free-launch-research';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
+import type { LaunchBrief } from '@/lib/gtm/types';
 import {
   buildDocumentList,
   DocumentDetailBody,
@@ -40,6 +41,14 @@ export default function DocumentDetailPage({
   const doc = docs.find((item) => item.id === docId) ?? docs[0];
   const paid = store.paid;
   const brief = store.launch?.brief;
+  const recommendations = store.launch?.channelRecommendations;
+  const lastBriefRevision = store.launch?.revisions
+    .slice()
+    .reverse()
+    .find((item) => item.entityType === 'brief');
+  const canUndoBrief =
+    docId === 'project' &&
+    store.launch?.revisions.at(-1)?.entityType === 'brief';
 
   const unknown = isZh ? '官网未说明' : 'Not stated on the website';
   const looksLikeFailedResearch =
@@ -50,16 +59,70 @@ export default function DocumentDetailPage({
     (brief!.product.summary === unknown || brief!.product.problem === unknown) &&
     (brief!.competitors?.length ?? 0) === 0;
 
+  const versionLabel = useMemo(() => {
+    if (docId === 'project' && brief) return brief.revision;
+    return undefined;
+  }, [brief, docId]);
+
   useEffect(() => {
+    if (!store.launch) return;
+
+    if (docId === 'project' && brief) {
+      setViewContext({
+        view: 'document_detail',
+        entityType: 'launch_brief',
+        entityId: store.launch.project.id,
+        title: doc?.label,
+        section: 'project',
+        revision: brief.revision,
+      });
+      return clearViewContext;
+    }
+
+    if (docId === 'recommendations') {
+      setViewContext({
+        view: 'document_detail',
+        entityType: 'channel_recommendations',
+        entityId: store.launch.project.id,
+        title: doc?.label,
+        section: 'recommendations',
+        revision: recommendations?.updatedAt ?? 0,
+      });
+      return clearViewContext;
+    }
+
+    if (docId.startsWith('channel-')) {
+      const channelId = docId.replace('channel-', '');
+      setViewContext({
+        view: 'document_detail',
+        entityType: 'channel_strategy',
+        entityId: channelId,
+        channelId,
+        title: doc?.label,
+        section: docId,
+        revision: store.channelStrategies[channelId]?.updatedAt,
+      });
+      return clearViewContext;
+    }
+
     setViewContext({
       view: 'document_detail',
-      entityType: 'document',
-      entityId: docId,
+      entityType: 'user_profile',
+      entityId: 'user',
       title: doc?.label,
-      section: docId,
+      section: 'user',
     });
     return clearViewContext;
-  }, [clearViewContext, doc?.label, docId, setViewContext]);
+  }, [
+    brief,
+    clearViewContext,
+    doc?.label,
+    docId,
+    recommendations?.updatedAt,
+    setViewContext,
+    store.channelStrategies,
+    store.launch,
+  ]);
 
   if (!store.launch) {
     return (
@@ -92,8 +155,23 @@ export default function DocumentDetailPage({
     }
   };
 
+  const undoBriefRevision = () => {
+    const launch = store.launch;
+    const revision = launch?.revisions.at(-1);
+    if (!launch || !revision || revision.entityType !== 'brief') return;
+    gtm.update({
+      launch: {
+        ...launch,
+        brief: revision.snapshot as LaunchBrief,
+        revisions: launch.revisions.slice(0, -1),
+        lastUndoLabel: undefined,
+        project: { ...launch.project, updatedAt: Date.now() },
+      },
+    });
+  };
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-7 sm:px-8 sm:py-10">
+    <div className="mx-auto max-w-3xl px-4 py-7 pb-24 sm:px-8 sm:py-10 sm:pb-28">
       <Link
         href="/app/documents"
         className="text-xs text-zinc-600 transition hover:text-white"
@@ -102,24 +180,40 @@ export default function DocumentDetailPage({
       </Link>
 
       <header className="mt-5 flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.08] pb-6">
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-300">
-            {isZh ? '文档详情' : 'Document'}
+            {docId === 'project' && versionLabel
+              ? `Campaign Foundation · v${versionLabel}`
+              : isZh
+                ? '文档详情'
+                : 'Document'}
           </p>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
             {doc?.label}
           </h1>
           <p className="mt-2 text-sm text-zinc-500">{doc?.summary}</p>
         </div>
-        {docId === 'project' && !paid && brief ? (
-          <button
-            type="button"
-            onClick={openTeamPaywall}
-            className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black hover:bg-zinc-200"
-          >
-            {isZh ? '组建我的 30 天推广团队 →' : 'Assemble my 30-day Agent Team →'}
-          </button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {canUndoBrief ? (
+            <button
+              type="button"
+              onClick={undoBriefRevision}
+              className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/[0.06]"
+              title={lastBriefRevision?.label}
+            >
+              {isZh ? '撤销上次修改' : 'Undo last change'}
+            </button>
+          ) : null}
+          {docId === 'project' && !paid && brief ? (
+            <button
+              type="button"
+              onClick={openTeamPaywall}
+              className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black hover:bg-zinc-200"
+            >
+              {isZh ? '组建我的 30 天推广团队 →' : 'Assemble my 30-day Agent Team →'}
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {looksLikeFailedResearch ? (
@@ -146,9 +240,17 @@ export default function DocumentDetailPage({
         </div>
       ) : null}
 
-      <section className="mt-6 rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-7">
+      {docId === 'project' && !paid && brief ? (
+        <div className="mt-6 rounded-2xl border border-brand-400/20 bg-brand-400/[0.06] px-5 py-4 text-sm leading-6 text-zinc-300">
+          {isZh
+            ? '如果文档有误，直接在右侧告诉冷启动合伙人。需要撤回时点上方「撤销上次修改」，或直接说「撤销」。'
+            : 'Tell Launch Partner on the right to correct this document. Use “Undo last change” above, or say “undo”.'}
+        </div>
+      ) : null}
+
+      <article className="mt-6 min-w-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-7">
         <DocumentDetailBody docId={docId} store={store} isZh={isZh} />
-      </section>
+      </article>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
+import { Markdown } from '@/lib/gtm/markdown';
 import { publishTo } from '@/lib/gtm/publish-links';
 import PostMetricsPanel from '@/components/app/PostMetricsPanel';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
@@ -60,7 +61,7 @@ export default function TaskDetailPage({
   const [copied, setCopied] = useState(false);
   const [urlError, setUrlError] = useState('');
   const [manualUrl, setManualUrl] = useState('');
-  const [dayTodosOpen, setDayTodosOpen] = useState(false);
+  const [dayTodosOpen, setDayTodosOpen] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
   const [publisher, setPublisher] = useState<PublisherAvailability | null>(null);
@@ -395,12 +396,12 @@ export default function TaskDetailPage({
   };
 
   const contentPane = (
-    <div className="min-h-0 flex-1 overflow-y-auto p-3">
-      <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025]">
        <section className="p-5">
         <p className="index-label mb-3">{isZh ? '为什么安排这项任务' : 'Why this task'}</p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] font-medium text-ink">
+          <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-ink">
             {todo.channelName}
           </span>
           <span className="index-label">
@@ -408,7 +409,7 @@ export default function TaskDetailPage({
             {todo.phase ? ` · ${todo.phase}` : ''}
           </span>
           {todo.launchStatus && (
-            <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[10px] uppercase text-zinc-500">
+            <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[10px] uppercase text-zinc-500">
               {todo.launchStatus.replace('_', ' ')}
             </span>
           )}
@@ -417,7 +418,7 @@ export default function TaskDetailPage({
           {capabilityLabels(capability, isZh).map((label) => (
             <span
               key={label}
-              className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] text-zinc-400"
+              className="rounded-full border border-white/[0.08] px-2 py-0.5 text-[10px] text-zinc-400"
             >
               {label}
             </span>
@@ -430,13 +431,13 @@ export default function TaskDetailPage({
         {(todo.pillar || todo.taskType) && (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {todo.pillar && (
-              <div className="rounded-xl bg-paper-dim p-3">
+              <div className="rounded-xl bg-white/[0.04] p-3">
                 <span className="index-label">{isZh ? 'Campaign 支柱' : 'Campaign pillar'}</span>
                 <p className="mt-1 text-xs text-ink-soft">{todo.pillar}</p>
               </div>
             )}
             {todo.taskType && (
-              <div className="rounded-xl bg-paper-dim p-3">
+              <div className="rounded-xl bg-white/[0.04] p-3">
                 <span className="index-label">{isZh ? '交付类型' : 'Deliverable type'}</span>
                 <p className="mt-1 text-xs capitalize text-ink-soft">{todo.taskType}</p>
               </div>
@@ -447,13 +448,13 @@ export default function TaskDetailPage({
         {(todo.market || todo.audience) && (
           <div className="mt-2.5 flex flex-wrap gap-2">
             {todo.market && (
-              <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] text-ink-soft">
+              <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11px] text-ink-soft">
                 {isZh ? '目标市场：' : 'Market: '}
                 {todo.market}
               </span>
             )}
             {todo.audience && (
-              <span className="rounded-full bg-paper-dim px-2.5 py-0.5 text-[11px] text-ink-soft">
+              <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11px] text-ink-soft">
                 {isZh ? '目标人群：' : 'Audience: '}
                 {todo.audience}
               </span>
@@ -462,7 +463,7 @@ export default function TaskDetailPage({
         )}
        </section>
 
-      <section className="border-t border-zinc-100 p-5">
+      <section className="border-t border-white/[0.06] p-5">
         <p className="index-label mb-4">{isZh ? '发布文案' : 'Publishing copy'}</p>
         {todo.contentStatus === 'writing' && (
           <div className="flex h-full flex-col items-center justify-center gap-3">
@@ -491,7 +492,7 @@ export default function TaskDetailPage({
                   <button
                     type="button"
                     onClick={undoContentRewrite}
-                    className="flex h-8 items-center rounded-full border border-zinc-200 px-3 text-xs font-medium text-ink-soft transition-colors hover:bg-paper-dim"
+                    className="flex h-8 items-center rounded-full border border-white/[0.1] px-3 text-xs font-medium text-ink-soft transition-colors hover:bg-white/[0.06]"
                   >
                     {isZh ? '撤销本次修改' : 'Undo rewrite'}
                   </button>
@@ -499,7 +500,7 @@ export default function TaskDetailPage({
                 <button
                   type="button"
                   onClick={() => void handleCopyContent()}
-                  className="flex h-8 items-center gap-1.5 rounded-full bg-paper-dim px-3 text-xs font-medium text-ink transition-colors hover:bg-zinc-200"
+                  className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.06] px-3 text-xs font-medium text-ink transition-colors hover:bg-white/[0.1]"
                 >
                   <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path
@@ -512,16 +513,18 @@ export default function TaskDetailPage({
                 </button>
               </div>
             </div>
-            <div className="mt-4 whitespace-pre-wrap text-[15px] leading-[1.85] text-ink-soft">
-              {todo.content.body}
-            </div>
+            <Markdown
+              text={todo.content.body}
+              breaks
+              className="doc-prose mt-4 max-w-none break-words !text-[15px] !leading-[1.85]"
+            />
           </article>
         )}
         {todo.contentStatus === 'none' && (
           <div className="flex h-full items-center justify-center">
             <button
               onClick={requestWrite}
-              className="rounded-full bg-paper-dim px-5 py-2.5 text-sm text-ink-soft hover:bg-zinc-200"
+              className="rounded-full bg-white/[0.06] px-5 py-2.5 text-sm text-ink-soft hover:bg-white/[0.1]"
             >
               {isZh ? '内容生成失败，点击重试' : 'Failed to write. Retry'}
             </button>
@@ -529,10 +532,10 @@ export default function TaskDetailPage({
         )}
       </section>
 
-      <section className="border-t border-zinc-100 p-5">
+      <section className="border-t border-white/[0.06] p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <p className="index-label">{isZh ? '发布状态' : 'Publishing status'}</p>
-          <span className="rounded-full bg-paper-dim px-2.5 py-1 text-[10px] font-medium text-ink-soft">
+          <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-medium text-ink-soft">
             {publishStatusLabel(
               todo.publishedUrl ? 'tracked' : todo.publishStatus,
               isZh
@@ -613,7 +616,7 @@ export default function TaskDetailPage({
                 )}
               </div>
             ) : (
-              <div className="rounded-2xl bg-paper-dim p-4">
+              <div className="rounded-2xl bg-white/[0.04] p-4">
                 <p className="text-xs font-medium text-ink-soft">
                   {isZh ? '此任务不显示内容发布按钮' : 'No content-publishing button for this task'}
                 </p>
@@ -640,13 +643,13 @@ export default function TaskDetailPage({
                 placeholder={
                   isZh ? `粘贴${todo.channelName}帖子链接` : `Paste the ${todo.channelName} post URL`
                 }
-                className="h-10 min-w-0 flex-1 rounded-full bg-paper-dim px-4 text-xs text-ink outline-none focus:ring-2 focus:ring-zinc-200"
+                className="h-10 min-w-0 flex-1 rounded-full bg-white/[0.06] px-4 text-xs text-ink outline-none focus:ring-2 focus:ring-white/10"
               />
               <button
                 type="button"
                 onClick={() => recordPublished(manualUrl)}
                 disabled={!manualUrl.trim()}
-                className="h-10 rounded-full bg-paper-dim px-4 text-xs font-medium text-ink disabled:text-zinc-300"
+                className="h-10 rounded-full bg-white/[0.06] px-4 text-xs font-medium text-ink disabled:text-zinc-600"
               >
                 {confirmUrl
                   ? isZh
@@ -679,7 +682,7 @@ export default function TaskDetailPage({
               <p className="text-xs text-zinc-400">{publishMessage}</p>
             )}
             {todo.publishedUrl && (
-              <div className="border-t border-zinc-100 pt-4">
+              <div className="border-t border-white/[0.06] pt-4">
                 <PostMetricsPanel
                   todo={todo}
                   onSnapshot={(snapshot) =>
@@ -698,8 +701,8 @@ export default function TaskDetailPage({
   );
 
   return (
-    <div className="flex h-full flex-col gap-3 bg-paper-dim p-3">
-      <div className="flex shrink-0 items-center justify-between rounded-2xl bg-white px-4 py-2.5 shadow-[0_1px_8px_rgba(0,0,0,0.04)] sm:px-5">
+    <div className="flex h-full flex-col gap-3 p-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 px-1">
         <Link
           href="/app/calendar"
           className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-ink"
@@ -709,56 +712,74 @@ export default function TaskDetailPage({
           </svg>
           {isZh ? '返回日历' : 'Back to calendar'}
         </Link>
-        <span className="text-[10px] text-zinc-400">
+        <span className="text-[10px] text-zinc-500">
           {isZh ? '在右侧与冷启动合伙人讨论当前内容' : 'Discuss this content with your Launch Partner on the right'}
         </span>
       </div>
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <aside className={`hidden shrink-0 flex-col gap-2 lg:flex ${dayTodosOpen ? 'w-60' : 'w-12'}`}>
-          <button
-            type="button"
-            onClick={() => setDayTodosOpen((open) => !open)}
-            aria-expanded={dayTodosOpen}
-            className="flex min-h-12 shrink-0 items-center justify-center rounded-2xl bg-white px-3 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"
-          >
-            {dayTodosOpen ? (
-              <div className="flex w-full items-center justify-between gap-2 text-left">
-                <div>
-                  <p className="index-label">{isZh ? '当天任务' : "Today's tasks"}</p>
-                  <p className="mt-0.5 font-mono text-xs text-zinc-400">{todo.date}</p>
-                </div>
-                <span className="text-zinc-400">‹</span>
-              </div>
-            ) : (
-              <span className="text-lg text-zinc-400">›</span>
-            )}
-          </button>
-          {dayTodosOpen && <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto rounded-2xl bg-white p-2 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-            {dayTodos.map((t) => (
-              <Link
-                key={t.id}
-                href={`/app/calendar/task/${t.id}`}
-                className={`block rounded-xl p-3 transition-colors ${
-                  t.id === id ? 'bg-paper-dim' : 'hover:bg-paper-dim/70'
-                }`}
+        <aside className={`hidden shrink-0 lg:block ${dayTodosOpen ? 'w-60' : 'w-4'}`}>
+          {dayTodosOpen ? (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
+              <button
+                type="button"
+                onClick={() => setDayTodosOpen(false)}
+                aria-expanded
+                className="flex shrink-0 items-center justify-between gap-2 px-3 py-3 text-left"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                    {t.channelName}
-                  </span>
-                  {t.time && <span className="font-mono text-[10px] text-zinc-300">{t.time}</span>}
-                </div>
-                <p
-                  className={`mt-1 text-[12.5px] font-medium leading-snug ${
-                    t.status === 'done' ? 'text-zinc-300 line-through' : 'text-ink'
+                <p className="font-mono text-xs text-zinc-400">{todo.date}</p>
+                <span className="text-zinc-500">‹</span>
+              </button>
+              <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
+                {dayTodos.map((t) => (
+                  <Link
+                    key={t.id}
+                    href={`/app/calendar/task/${t.id}`}
+                    className={`block rounded-xl p-3 transition-colors ${
+                      t.id === id
+                        ? 'border border-white/20 bg-white/[0.045]'
+                        : 'border border-transparent hover:border-white/20 hover:bg-white/[0.045]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                        {t.channelName}
+                      </span>
+                      {t.time && <span className="font-mono text-[10px] text-zinc-500">{t.time}</span>}
+                    </div>
+                    <p
+                      className={`mt-1 text-[12.5px] font-medium leading-snug ${
+                        t.status === 'done' ? 'text-zinc-500 line-through' : 'text-ink'
+                      }`}
+                    >
+                      {t.title}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDayTodosOpen(true)}
+              aria-expanded={false}
+              aria-label={isZh ? '展开当天任务' : "Expand today's tasks"}
+              className="group flex w-full flex-col items-stretch gap-[5px] py-1"
+            >
+              {(dayTodos.length > 0 ? dayTodos : [null, null, null]).map((t, index) => (
+                <span
+                  key={t?.id ?? `bar-${index}`}
+                  className={`block h-1.5 w-full rounded-full transition-opacity group-hover:opacity-100 ${
+                    t && t.id === id
+                      ? 'bg-white opacity-100'
+                      : t?.status === 'done'
+                        ? 'bg-white/40 opacity-70'
+                        : 'bg-white/70 opacity-80'
                   }`}
-                >
-                  {t.title}
-                </p>
-              </Link>
-            ))}
-          </div>}
+                />
+              ))}
+            </button>
+          )}
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">

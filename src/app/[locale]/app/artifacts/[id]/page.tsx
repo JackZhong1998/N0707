@@ -49,10 +49,10 @@ export default function ArtifactPage({
             {isZh ? '这份内容不存在或尚未同步。' : 'This artifact is unavailable.'}
           </p>
           <Link
-            href="/app/calendar"
+            href="/app/documents"
             className="mt-4 inline-flex rounded-full border border-white/10 px-4 py-2 text-xs text-zinc-400 hover:text-white"
           >
-            {isZh ? '返回工作台' : 'Back to workspace'}
+            {isZh ? '返回文档列表' : 'Back to documents'}
           </Link>
         </div>
       </div>
@@ -80,14 +80,14 @@ export default function ArtifactPage({
   });
 
   return (
-    <div className="min-h-full bg-night bg-grid-dark px-4 py-6 text-zinc-100 sm:px-8 sm:py-8">
-      <div className="mx-auto max-w-4xl">
+    <div className="px-4 py-6 pb-24 text-zinc-100 sm:px-8 sm:py-8 sm:pb-28">
+      <div className="mx-auto max-w-3xl min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href="/app/calendar"
+            href="/app/documents"
             className="text-xs text-zinc-500 transition-colors hover:text-white"
           >
-            ← {isZh ? '返回执行工作台' : 'Back to workspace'}
+            ← {isZh ? '文档列表' : 'All documents'}
           </Link>
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
             <span
@@ -114,11 +114,11 @@ export default function ArtifactPage({
           </div>
         </div>
 
-        <header className="mt-6 rounded-3xl border border-white/[0.09] bg-night-panel/95 p-6 shadow-2xl sm:p-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+        <header className="mt-6 border-b border-white/[0.08] pb-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-brand-300">
             {artifact.kind.replaceAll('_', ' ')}
           </p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-4xl">
+          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl">
             {artifact.title}
           </h1>
           {artifact.summary && (
@@ -133,15 +133,15 @@ export default function ArtifactPage({
           </p>
         </header>
 
-        <article className="mt-4 rounded-3xl border border-white/[0.08] bg-night-panel p-6 sm:p-8">
+        <article className="mt-6 min-w-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-7">
           <Markdown
             text={artifact.markdown}
-            className="doc-prose doc-prose-invert max-w-none !text-zinc-300 [&_a]:text-sky-300 [&_h1]:text-white [&_h2]:text-white [&_h3]:text-zinc-100 [&_strong]:text-white"
+            className="doc-prose doc-prose-invert max-w-none break-words !text-zinc-300 [&_a]:break-all [&_a]:text-sky-300 [&_h1]:text-white [&_h2]:text-white [&_h3]:text-zinc-100 [&_pre]:overflow-x-auto [&_strong]:text-white"
           />
         </article>
 
         {sources.length > 0 && (
-          <section className="mt-4 rounded-3xl border border-white/[0.08] bg-night-panel p-6">
+          <section className="mt-4 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6">
             <h2 className="text-sm font-semibold text-white">
               {isZh ? '研究来源' : 'Research sources'}
             </h2>

@@ -7,7 +7,7 @@
  * - 右侧市场合伙人是唯一、常驻的交互入口
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { UserButton } from '@clerk/nextjs';
@@ -23,6 +23,7 @@ import Paywall from '@/components/app/Paywall';
 import CampaignBootstrap from '@/components/app/launch/CampaignBootstrap';
 import FreeLaunchResearchRunner from '@/components/app/launch/FreeLaunchResearchRunner';
 import { GtmProvider, useGtm } from '@/lib/gtm/store';
+import { channelHasCalendarTodos } from '@/lib/gtm/channel-capabilities';
 import type { ChatMessage, MessageCard } from '@/lib/gtm/types';
 import { useDirector } from '@/lib/gtm/use-director';
 import {
@@ -158,6 +159,7 @@ function getActiveKey(pathname: string): NavigationKey {
   }
   if (
     pathname.includes('/app/documents') ||
+    pathname.includes('/app/artifacts') ||
     pathname.includes('/app/brief') ||
     pathname.includes('/app/blueprint') ||
     pathname.includes('/app/channel-recommendations') ||
@@ -209,10 +211,19 @@ function getRouteViewContext(
   }
   if (pathname.includes('/app/documents/')) {
     const docMatch = pathname.match(/\/app\/documents\/([^/?]+)/);
+    const docId = docMatch ? decodeURIComponent(docMatch[1]) : undefined;
+    if (docId === 'project') {
+      return {
+        view: 'document_detail',
+        entityType: 'launch_brief',
+        title: isZh ? '项目文档' : 'Project document',
+        section: 'project',
+      };
+    }
     return {
       view: 'document_detail',
       entityType: 'document',
-      entityId: docMatch ? decodeURIComponent(docMatch[1]) : undefined,
+      entityId: docId,
       title: isZh ? '文档详情' : 'Document',
     };
   }
@@ -273,11 +284,17 @@ function mapMessageArtifact(
       href: '/app/documents/recommendations',
     };
   }
+  if (card.kind === 'channel_recommendations') {
+    return {
+      label: card.title,
+      status: 'done',
+      href: '/app/documents/recommendations',
+    };
+  }
   if (card.kind === 'channel_plan') {
-    const href =
-      card.channelId === 'directory'
-        ? '/app/directories'
-        : `/app/documents/channel-${card.channelId}`;
+    const href = channelHasCalendarTodos(card.channelId)
+      ? `/app/documents/channel-${encodeURIComponent(card.channelId)}`
+      : '/app/directories';
     return {
       label: `${card.channelName} · ${isZh ? '渠道计划' : 'Channel plan'}`,
       status: 'done',
@@ -285,20 +302,33 @@ function mapMessageArtifact(
     };
   }
   if (card.kind === 'channel_todos') {
-    const href =
-      card.channelId === 'directory'
-        ? '/app/directories'
-        : `/app/calendar?channel=${encodeURIComponent(card.channelId)}`;
+    const href = channelHasCalendarTodos(card.channelId)
+      ? `/app/calendar?channel=${encodeURIComponent(card.channelId)}`
+      : '/app/directories';
     return {
       label: `${card.channelName} · ${card.todoCount} ${isZh ? '个任务' : 'tasks'}`,
       status: 'done',
       href,
     };
   }
+  if (card.kind === 'directory_pipeline') {
+    const suffix =
+      typeof card.pendingCount === 'number' && card.pendingCount > 0
+        ? ` · ${card.pendingCount} ${isZh ? '个待提交' : 'to submit'}`
+        : '';
+    return {
+      label: `${isZh ? '产品目录 · 提交流水线' : 'Directories · submission pipeline'}${suffix}`,
+      status: 'done',
+      href: '/app/directories',
+    };
+  }
   if (card.kind === 'calendar') {
     return { label: card.title, status: 'done', href: '/app/calendar' };
   }
   if (card.kind === 'options') {
+    return undefined;
+  }
+  if (card.kind === 'paywall_cta') {
     return undefined;
   }
   if (card.kind === 'artifact') {
@@ -344,7 +374,28 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [mobileAgentOpen, setMobileAgentOpen] = useState(false);
   const [input, setInput] = useState('');
   const [extensionNeedsUpdate, setExtensionNeedsUpdate] = useState(false);
+  const [glowPos, setGlowPos] = useState({ x: 42, y: 28 });
   const autoReviewStarted = useRef(false);
+  const glowRaf = useRef(0);
+
+  const handleShellPointerMove = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const { clientX, clientY, currentTarget } = event;
+      cancelAnimationFrame(glowRaf.current);
+      glowRaf.current = requestAnimationFrame(() => {
+        const rect = currentTarget.getBoundingClientRect();
+        setGlowPos({
+          x: ((clientX - rect.left) / rect.width) * 100,
+          y: ((clientY - rect.top) / rect.height) * 100,
+        });
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(glowRaf.current);
+  }, []);
 
   useEffect(() => {
     const openPaywall = () => setPaywallOpen(true);
@@ -556,8 +607,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   // Free tier may stay on onboarding, research progress, project docs, and brief.
   // Paid-only destinations keep the paywall; do not force unpaid users to calendar.
+  // Users who already have todos land on calendar (handled by /app index).
   useEffect(() => {
     if (!hydrated || accessStatus !== 'unpaid' || !store.launch) return;
+    if (store.todos.length > 0) return;
     const phase = store.launch.project.phase;
     const freePath =
       /\/app\/?$/.test(pathname) ||
@@ -568,20 +621,32 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       !pathname.includes('/app/brief') &&
       !pathname.includes('/app/documents')
     ) {
-      router.replace('/app/documents');
+      router.replace('/app/documents/project');
       return;
     }
+    // Keep users on the research runner by default, but do not fight intentional
+    // navigation to previewable surfaces (calendar paywall, docs, directories).
     if (
       (phase === 'researching' || phase === 'building_team') &&
-      !/\/app\/?$/.test(pathname)
+      !/\/app\/?$/.test(pathname) &&
+      !pathname.includes('/app/calendar') &&
+      !pathname.includes('/app/documents') &&
+      !pathname.includes('/app/directories')
     ) {
       router.replace('/app');
       return;
     }
     if (!freePath && phase === 'brief_ready') {
-      router.replace('/app/documents');
+      router.replace('/app/documents/project');
     }
-  }, [accessStatus, hydrated, pathname, router, store.launch]);
+  }, [
+    accessStatus,
+    hydrated,
+    pathname,
+    router,
+    store.launch,
+    store.todos.length,
+  ]);
 
   // 主动复盘不插队到当前会话：满足一周数据条件后静默执行，结果进入通知箱。
   useEffect(() => {
@@ -758,7 +823,16 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="bg-grid-dark relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-night md:flex-row">
+    <div
+      className="relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-black md:flex-row"
+      onMouseMove={handleShellPointerMove}
+    >
+      <div className="bg-grid-app pointer-events-none absolute inset-0 opacity-50" aria-hidden />
+      <div
+        className="pointer-events-none absolute h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-500/[0.11] blur-[140px] transition-[left,top] duration-500 ease-out"
+        style={{ left: `${glowPos.x}%`, top: `${glowPos.y}%` }}
+        aria-hidden
+      />
       <AutoMetricsSync />
       <ResumeOnReturn />
       <FreeLaunchResearchRunner />
@@ -850,12 +924,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
       {navigationMenu}
 
-      <div className="flex min-h-0 min-w-0 flex-1 gap-2 p-2 md:pl-2">
+      <div className="relative z-10 flex min-h-0 min-w-0 flex-1 gap-2 p-2 md:pl-2">
         {/* 左侧执行工作台 */}
         <main
           onMouseUp={captureWorkspaceSelection}
           onKeyUp={captureWorkspaceSelection}
-          className="agent-workspace bg-grid-dark min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/[0.08] bg-night text-zinc-200 shadow-2xl"
+          className="agent-workspace min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/45 text-zinc-200 shadow-2xl backdrop-blur-sm"
         >
           <div className="h-full overflow-y-auto">{children}</div>
         </main>
@@ -863,7 +937,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         {/* 桌面端常驻 Agent；收起后保留状态轨道。 */}
         <AgentPanelView
           messages={panelMessages}
-          artifacts={store.artifacts}
           notifications={panelNotifications}
           input={input}
           onInput={setInput}
@@ -890,10 +963,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
       {/* 移动端 Agent 抽屉，不挤压工作画布。 */}
       {mobileAgentOpen && (
-        <div className="fixed inset-0 z-40 bg-night p-2 md:hidden">
+        <div className="fixed inset-0 z-40 bg-black p-2 md:hidden">
           <AgentPanelView
             messages={panelMessages}
-            artifacts={store.artifacts}
             notifications={panelNotifications}
             input={input}
             onInput={setInput}

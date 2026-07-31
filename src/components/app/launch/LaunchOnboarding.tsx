@@ -69,7 +69,7 @@ export default function LaunchOnboarding() {
 
     try {
       await runFreeLaunchResearch({ launch, locale, isZh, gtm });
-      router.replace('/app/documents');
+      router.replace('/app/documents/project');
     } catch (researchError) {
       console.error('Free launch research failed:', researchError);
       setError(

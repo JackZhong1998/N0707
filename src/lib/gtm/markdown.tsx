@@ -1,22 +1,45 @@
 /**
  * 轻量 Markdown 渲染（无第三方依赖）。
- * 支持：标题、粗体/斜体/行内代码、无序/有序列表、表格、引用、分隔线、段落。
+ * 支持：标题、粗体/斜体/删除线/行内代码、链接、无序/有序列表、表格、引用、
+ * 分隔线、围栏代码块、段落。
  */
 
 import React from 'react';
 
+/** 只放行安全协议，避免把模型生成的 javascript: 链接直接渲染成可点击元素。 */
+function safeHref(raw: string): string | null {
+  const url = raw.trim();
+  if (/^(https?:|mailto:)/i.test(url)) return url;
+  if (/^[/#]/.test(url)) return url;
+  return null;
+}
+
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
-  // 粗体 / 斜体 / 行内代码
-  const re = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  // 链接 / 粗体 / 斜体 / 删除线 / 行内代码
+  const re = /(\[[^\]\n]+\]\([^)\s]+\)|\*\*[^*]+\*\*|~~[^~]+~~|\*[^*]+\*|`[^`]+`)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
     const token = m[0];
-    if (token.startsWith('**')) {
+    if (token.startsWith('[')) {
+      const link = token.match(/^\[([^\]\n]+)\]\(([^)\s]+)\)$/);
+      const href = link ? safeHref(link[2]) : null;
+      if (link && href) {
+        nodes.push(
+          <a key={`${keyPrefix}-a${i}`} href={href} target="_blank" rel="noopener noreferrer">
+            {link[1]}
+          </a>
+        );
+      } else {
+        nodes.push(token);
+      }
+    } else if (token.startsWith('**')) {
       nodes.push(<strong key={`${keyPrefix}-b${i}`}>{token.slice(2, -2)}</strong>);
+    } else if (token.startsWith('~~')) {
+      nodes.push(<del key={`${keyPrefix}-s${i}`}>{token.slice(2, -2)}</del>);
     } else if (token.startsWith('`')) {
       nodes.push(<code key={`${keyPrefix}-c${i}`}>{token.slice(1, -1)}</code>);
     } else {
@@ -29,7 +52,22 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   return nodes;
 }
 
-export function Markdown({ text, className }: { text: string; className?: string }) {
+const FENCE = /^\s*```/;
+
+function isTableDivider(line: string): boolean {
+  return line.includes('|') && line.includes('-') && /^[\s:|-]+$/.test(line);
+}
+
+export function Markdown({
+  text,
+  className,
+  breaks = false,
+}: {
+  text: string;
+  className?: string;
+  /** 保留段落内的单个换行（社媒文案里的分行是有意义的排版）。 */
+  breaks?: boolean;
+}) {
   const lines = (text ?? '').split('\n');
   const blocks: React.ReactNode[] = [];
   let i = 0;
@@ -40,6 +78,23 @@ export function Markdown({ text, className }: { text: string; className?: string
 
     if (line.trim() === '') {
       i++;
+      continue;
+    }
+
+    // 围栏代码块
+    if (FENCE.test(line)) {
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !FENCE.test(lines[i])) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      if (i < lines.length) i++;
+      blocks.push(
+        <pre key={key++}>
+          <code>{codeLines.join('\n')}</code>
+        </pre>
+      );
       continue;
     }
 
@@ -64,7 +119,7 @@ export function Markdown({ text, className }: { text: string; className?: string
     }
 
     // 表格
-    if (line.includes('|') && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i + 1])) {
+    if (line.includes('|') && i + 1 < lines.length && isTableDivider(lines[i + 1])) {
       const headerCells = line.split('|').map((c) => c.trim()).filter(Boolean);
       const rows: string[][] = [];
       let j = i + 2;
@@ -138,12 +193,25 @@ export function Markdown({ text, className }: { text: string; className?: string
       !/^\s*[-*•]\s+/.test(lines[i]) &&
       !/^\s*\d+[.)]\s+/.test(lines[i]) &&
       !lines[i].startsWith('>') &&
-      !/^\s*---+\s*$/.test(lines[i])
+      !/^\s*---+\s*$/.test(lines[i]) &&
+      !FENCE.test(lines[i]) &&
+      // 紧跟表格的段落不能把表头吃掉
+      !(lines[i].includes('|') && i + 1 < lines.length && isTableDivider(lines[i + 1]))
     ) {
       paraLines.push(lines[i]);
       i++;
     }
-    blocks.push(<p key={key++}>{renderInline(paraLines.join(' '), `p${key}`)}</p>);
+    const paraKey = key++;
+    blocks.push(
+      <p key={paraKey}>
+        {breaks
+          ? paraLines.flatMap((paraLine, li) => [
+              ...(li > 0 ? [<br key={`p${paraKey}-br${li}`} />] : []),
+              ...renderInline(paraLine, `p${paraKey}-${li}`),
+            ])
+          : renderInline(paraLines.join(' '), `p${paraKey}`)}
+      </p>
+    );
   }
 
   return <div className={className ?? 'doc-prose'}>{blocks}</div>;

@@ -20,19 +20,39 @@ export default function AgentBootstrap() {
     if (!hydrated || initialized.current) return;
     initialized.current = true;
 
+    const activeTaskMessageId =
+      store.launch?.activeAgentWorkJob?.taskMessageId ||
+      store.launch?.channelPlanJob?.taskMessageId;
+    const activeJobId =
+      store.launch?.activeAgentWorkJob?.jobId ||
+      store.launch?.channelPlanJob?.jobId;
+
     for (const message of store.directorChat) {
       if (
         message.card?.kind === 'agent-task' &&
         message.card.status === 'running'
       ) {
+        // Server-side jobs keep running after refresh; leave the progress card alone.
+        if (
+          activeTaskMessageId &&
+          (message.id === activeTaskMessageId ||
+            message.agentJobId === activeJobId)
+        ) {
+          continue;
+        }
+
+        const hasQueuedWork = store.agentActionJobs.length > 0;
         patchDirectorMessage(message.id, {
           card: {
             kind: 'agent-task',
-            label:
-              store.agentActionJobs.length > 0
-                ? `${message.card.label}（会话恢复后已重新排队）`
-                : `${message.card.label}（上次会话已中断，请重新发起）`,
-            status: 'error',
+            label: hasQueuedWork
+              ? isZh
+                ? `${message.card.label.replace(/（[^）]*）$/, '')}（后台任务恢复中…）`
+                : `${message.card.label.replace(/\s*\([^)]*\)$/, '')} (resuming background work…)`
+              : isZh
+                ? `${message.card.label.replace(/（[^）]*）$/, '')}（上次会话已中断，请重新发起）`
+                : `${message.card.label.replace(/\s*\([^)]*\)$/, '')} (interrupted — please ask again)`,
+            status: hasQueuedWork ? 'running' : 'error',
           },
         });
       }
@@ -54,6 +74,10 @@ export default function AgentBootstrap() {
     store.agentActionJobs.length,
     store.directorChat,
     store.directorChat.length,
+    store.launch?.channelPlanJob?.jobId,
+    store.launch?.channelPlanJob?.taskMessageId,
+    store.launch?.activeAgentWorkJob?.jobId,
+    store.launch?.activeAgentWorkJob?.taskMessageId,
   ]);
 
   return null;

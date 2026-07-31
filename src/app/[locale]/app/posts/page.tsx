@@ -134,27 +134,25 @@ export default function PostsPage() {
   }
 
   return (
-    <div className="min-h-full bg-paper-dim p-4 sm:p-6">
-      <div className="mx-auto max-w-5xl">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="index-label">{isZh ? '执行反馈' : 'Execution feedback'}</p>
-            <h1 className="mt-1 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-ink">
-              {isZh ? '帖子与数据' : 'Posts & metrics'}
-            </h1>
-            <p className="mt-1 text-sm text-zinc-400">
-              {isZh
-                ? '每一条已发布内容，都会成为市场总监调整策略的证据。'
-                : 'Every published post becomes evidence for your marketing director.'}
-            </p>
-          </div>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 sm:px-6">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="text-base font-bold tracking-tight text-white sm:text-lg">
+            {isZh ? '帖子与数据' : 'Posts & metrics'}
+          </h1>
+          <span className="hidden text-xs text-zinc-500 sm:inline">
+            {isZh
+              ? '每一条已发布内容，都会成为策略调整的证据'
+              : 'Every published post becomes evidence for strategy'}
+          </span>
+        </div>
           <div className="flex flex-wrap items-center gap-2">
             {syncableCount > 0 && (
               <button
                 type="button"
                 onClick={() => void handleSyncAll()}
                 disabled={syncing}
-                className="flex h-9 items-center gap-2 rounded-full bg-ink px-4 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 disabled:bg-zinc-300"
+                className="flex h-8 items-center gap-2 rounded-full bg-white px-3.5 text-[11px] font-semibold text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
               >
                 <svg
                   className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`}
@@ -178,7 +176,7 @@ export default function PostsPage() {
                     : 'Sync all metrics'}
               </button>
             )}
-            <div className="flex rounded-full bg-white p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+            <div className="flex rounded-full border border-white/[0.08] bg-white/[0.025] p-1">
               {([
                 { id: 'all', label: isZh ? '全部' : 'All' },
                 ...channelFilters,
@@ -200,8 +198,10 @@ export default function PostsPage() {
                       channelId: value === 'all' ? undefined : value,
                     });
                   }}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                    filter === value ? 'bg-ink text-white' : 'text-ink-muted hover:text-ink'
+                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                    filter === value
+                      ? 'bg-white text-black'
+                      : 'text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
                   {label}
@@ -210,25 +210,27 @@ export default function PostsPage() {
               )}
             </div>
           </div>
-        </div>
+      </header>
 
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto max-w-5xl pb-16">
         {(syncProgress || syncMessage) && (
           <div
-            className={`mt-4 rounded-2xl px-4 py-3 text-xs ${
+            className={`rounded-2xl border px-4 py-3 text-xs ${
               syncProgress
-                ? 'bg-ink text-white'
-                : 'bg-white text-ink-soft shadow-[0_1px_8px_rgba(0,0,0,0.04)]'
+                ? 'border-white/20 bg-white/[0.06] text-white'
+                : 'border-white/[0.08] bg-white/[0.025] text-zinc-300'
             }`}
           >
             {syncProgress ? (
               <div className="flex items-center gap-3">
-                <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-white" />
+                <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-brand-400" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
                     {isZh ? '正在抓取：' : 'Syncing: '}
                     {syncProgress.message}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-zinc-400">
+                  <p className="mt-0.5 text-[10px] text-zinc-500">
                     {syncProgress.current} / {syncProgress.total}
                   </p>
                 </div>
@@ -239,47 +241,47 @@ export default function PostsPage() {
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
               {isZh ? '已发布' : 'Published'}
             </p>
-            <p className="mt-1 font-mono text-2xl font-semibold text-ink">{published.length}</p>
+            <p className="mt-1 font-mono text-2xl font-semibold text-white">{published.length}</p>
           </div>
-          <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
               {isZh ? '累计曝光/浏览' : 'Total reach'}
             </p>
-            <p className="mt-1 font-mono text-2xl font-semibold text-ink">
+            <p className="mt-1 font-mono text-2xl font-semibold text-white">
               {formatMetric(measured.length ? totalReach : undefined)}
             </p>
           </div>
-          <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
               {isZh ? '累计互动' : 'Interactions'}
             </p>
-            <p className="mt-1 font-mono text-2xl font-semibold text-ink">
+            <p className="mt-1 font-mono text-2xl font-semibold text-white">
               {formatMetric(measured.length ? totalInteractions : undefined)}
             </p>
           </div>
         </div>
 
-        <div className="mt-5 space-y-3">
+        <div className="mt-2 space-y-2">
           {visible.length === 0 ? (
-            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-              <p className="text-sm font-medium text-ink">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] px-6 py-16 text-center">
+              <p className="text-sm font-medium text-white">
                 {isZh ? '还没有已发布帖子' : 'No published posts yet'}
               </p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="mt-1 text-xs text-zinc-500">
                 {isZh
                   ? '从 Launch Calendar 发布第一条内容后，它会出现在这里。'
                   : 'Publish your first calendar item and it will appear here.'}
               </p>
               <Link
                 href="/app/calendar"
-                className="mt-4 inline-flex h-10 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white"
+                className="mt-4 inline-flex h-10 items-center rounded-full bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
               >
-                {isZh ? '返回 Launch Calendar' : 'Open calendar'}
+                {isZh ? '打开 Launch Calendar' : 'Open calendar'}
               </Link>
             </div>
           ) : (
@@ -303,15 +305,15 @@ export default function PostsPage() {
                         todo.publishedAt,
                     })
                   }
-                  className="block rounded-2xl bg-white p-5 shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-transform hover:-translate-y-0.5"
+                  className="block rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 transition hover:border-white/20 hover:bg-white/[0.045]"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-paper-dim px-2.5 py-1 text-[10px] font-medium text-ink">
+                        <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium text-zinc-300">
                           {todo.channelName}
                         </span>
-                        <span className="text-[10px] text-zinc-400">
+                        <span className="text-[10px] text-zinc-500">
                           {todo.publishedAt
                             ? new Date(todo.publishedAt).toLocaleString(
                                 isZh ? 'zh-CN' : 'en-US'
@@ -319,50 +321,50 @@ export default function PostsPage() {
                             : ''}
                         </span>
                       </div>
-                      <p className="mt-2 truncate text-sm font-semibold text-ink">
+                      <p className="mt-2 truncate text-sm font-semibold text-white">
                         {todo.content?.title || todo.title}
                       </p>
-                      <p className="mt-1 line-clamp-1 text-xs text-zinc-400">
+                      <p className="mt-1 line-clamp-1 text-xs text-zinc-500">
                         {todo.content?.body || todo.brief}
                       </p>
                     </div>
                     {metrics ? (
                       <div className="grid w-full grid-cols-2 gap-4 text-right sm:w-auto sm:grid-cols-4">
                         <div>
-                          <p className="text-[9px] uppercase tracking-wider text-zinc-400">
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
                             {isZh ? '曝光' : 'Reach'}
                           </p>
-                          <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                          <p className="mt-1 font-mono text-sm font-semibold text-white">
                             {formatMetric(primaryReach(metrics))}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-wider text-zinc-400">
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
                             {isZh ? '点赞' : 'Likes'}
                           </p>
-                          <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                          <p className="mt-1 font-mono text-sm font-semibold text-white">
                             {formatMetric(metrics.likes)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-wider text-zinc-400">
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
                             {isZh ? '收藏' : 'Saves'}
                           </p>
-                          <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                          <p className="mt-1 font-mono text-sm font-semibold text-white">
                             {formatMetric(metrics.saves)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-wider text-zinc-400">
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
                             {isZh ? '互动率' : 'Rate'}
                           </p>
-                          <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                          <p className="mt-1 font-mono text-sm font-semibold text-white">
                             {rate === undefined ? '—' : `${(rate * 100).toFixed(1)}%`}
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <span className="rounded-full bg-paper-dim px-3 py-1.5 text-[10px] text-zinc-400">
+                      <span className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-500">
                         {isZh ? '等待首次数据' : 'Awaiting metrics'}
                       </span>
                     )}
@@ -371,6 +373,7 @@ export default function PostsPage() {
               );
             })
           )}
+        </div>
         </div>
       </div>
     </div>

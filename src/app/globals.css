@@ -102,9 +102,17 @@
 
   .bg-grid-dark {
     background-image:
-      linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
-    background-size: 72px 72px;
+      linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  /* App 工作台：更浅、更疏的网格，避免抢视觉 */
+  .bg-grid-app {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 56px 56px;
   }
 
   /* 大标题的紧排版 */
@@ -318,13 +326,40 @@
   border-radius: 4px;
   padding: 0.1em 0.35em;
 }
+.doc-prose a {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+.doc-prose del { color: var(--color-ink-muted); }
+.doc-prose pre {
+  margin: 1em 0;
+  padding: 0.875em 1em;
+  overflow-x: auto;
+  background: var(--color-paper-dim);
+  border: 1px solid var(--color-hairline);
+  border-radius: 8px;
+}
+.doc-prose pre code {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre;
+}
 .doc-prose hr {
   border: none;
   border-top: 1px solid var(--color-hairline);
   margin: 1.5em 0;
 }
 .doc-prose table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin: 1em 0;
   font-size: 0.875rem;
@@ -353,6 +388,14 @@
   color: inherit;
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.25);
+}
+.doc-prose-invert pre {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.doc-prose-invert pre code {
+  background: none;
+  border: none;
 }
 .doc-prose-invert blockquote {
   border-left-color: rgba(255, 255, 255, 0.5);

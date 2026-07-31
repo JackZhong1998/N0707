@@ -76,7 +76,7 @@ export function CalendarCard({ title }: { title: string }) {
   const isZh = locale !== 'en';
   return (
     <Link
-      href="/app/calendar?view=week"
+      href="/app/calendar"
       className="group mt-2 block max-w-md overflow-hidden rounded-2xl border border-ink bg-ink transition-colors hover:bg-white"
     >
       <div className="border-b border-zinc-700 px-4 py-2.5 group-hover:border-hairline">

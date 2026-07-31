@@ -241,8 +241,11 @@ export type MessageCard =
   | { kind: 'options'; card: OptionCard }
   | { kind: 'kickoff'; card: KickoffCard }
   | { kind: 'strategy'; title: string; channelIds: string[] }
+  | { kind: 'channel_recommendations'; title: string }
   | { kind: 'channel_plan'; channelId: string; channelName: string }
   | { kind: 'channel_todos'; channelId: string; channelName: string; todoCount: number }
+  /** Directory has no calendar todos — the card links straight to the pipeline. */
+  | { kind: 'directory_pipeline'; pendingCount?: number }
   | { kind: 'calendar'; title: string }
   | {
       kind: 'artifact';
@@ -251,7 +254,9 @@ export type MessageCard =
       summary: string;
       status: AgentArtifactStatus;
     }
-  | { kind: 'agent-task'; label: string; status: 'running' | 'done' | 'error' };
+  | { kind: 'agent-task'; label: string; status: 'running' | 'done' | 'error' }
+  /** Simulated paywall CTA after free research — opens checkout modal. */
+  | { kind: 'paywall_cta'; label: string };
 
 export interface ChatMessage {
   id: string;
@@ -712,6 +717,28 @@ export interface LaunchState {
   briefEditUsed?: number;
   /** Idempotency key so post-payment campaign generation is not restarted twice. */
   campaignBuildId?: string;
+  /**
+   * Active server-side channel-plan job started from Launch Partner chat.
+   * Survives refresh; the browser only polls / adopts remote progress.
+   */
+  channelPlanJob?: {
+    jobId: string;
+    taskMessageId: string;
+    channelIds: string[];
+    completedCount: number;
+    totalCount: number;
+    force?: boolean;
+    updatedAt: number;
+  };
+  /** Active universal agent work job (all durable LLM actions). */
+  activeAgentWorkJob?: {
+    jobId: string;
+    taskMessageId: string;
+    label: string;
+    completedCount: number;
+    totalCount: number;
+    updatedAt: number;
+  };
   /** Channel Recommender Agent output; present after recommend_channels. */
   channelRecommendations?: ChannelRecommendationResponse;
   /** User-confirmed channels for this Launch (drives plan + todo generation). */
@@ -809,7 +836,7 @@ export function createInitialStore(): GtmStore {
 export type DirectorAction =
   | { type: 'recommend_channels'; feedback?: string }
   | { type: 'select_channels'; channelIds: string[] }
-  | { type: 'generate_channel_plans'; channelIds: string[] }
+  | { type: 'generate_channel_plans'; channelIds: string[]; force?: boolean }
   | { type: 'generate_strategy'; channelIds: string[]; feedback?: string }
   | { type: 'generate_todos'; channelIds: string[] }
   | { type: 'generate_topics'; channelIds: string[]; count?: number }

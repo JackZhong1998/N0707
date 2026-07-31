@@ -5,7 +5,6 @@ import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import LaunchOnboarding from '@/components/app/launch/LaunchOnboarding';
 import LaunchProgress from '@/components/app/launch/LaunchProgress';
-import LaunchCommandCenter from '@/components/app/launch/LaunchCommandCenter';
 import { useGtm } from '@/lib/gtm/store';
 
 export default function AppIndexPage() {
@@ -14,25 +13,53 @@ export default function AppIndexPage() {
   const isZh = useLocale() !== 'en';
 
   useEffect(() => {
-    if (!hydrated || !store.launch || store.paid) return;
+    if (!hydrated || !store.launch) return;
+
+    // Todos already generated → land on calendar.
+    if (store.todos.length > 0) {
+      router.replace('/app/calendar');
+      return;
+    }
+
+    if (store.paid) {
+      if (
+        ['active', 'completed', 'blueprint_ready'].includes(
+          store.launch.project.phase
+        )
+      ) {
+        router.replace('/app/calendar');
+      }
+      return;
+    }
+
     const rawPhase = store.launch.project.phase;
     const failedResearch =
       rawPhase === 'researching' &&
       (store.launch.project.status === 'paused' ||
         store.launch.researchProgress.some((step) => step.status === 'error'));
     if (failedResearch) return;
-    const shouldOpenBrief =
+    const shouldOpenDocs =
       Boolean(store.launch.brief) &&
       (rawPhase === 'brief_ready' ||
         ['building_team', 'blueprint_ready', 'active', 'completed'].includes(
           rawPhase
         ));
-    if (shouldOpenBrief) {
-      router.replace('/app/documents');
+    if (shouldOpenDocs) {
+      router.replace('/app/documents/project');
     }
-  }, [hydrated, router, store.launch, store.paid]);
+  }, [hydrated, router, store.launch, store.paid, store.todos.length]);
 
   if (!store.launch) return <LaunchOnboarding />;
+
+  if (store.todos.length > 0) {
+    return (
+      <div className="flex h-full items-center justify-center px-6">
+        <p className="text-sm text-zinc-500">
+          {isZh ? '正在打开日历…' : 'Opening calendar…'}
+        </p>
+      </div>
+    );
+  }
 
   const rawPhase = store.launch.project.phase;
   const phase =
@@ -45,7 +72,7 @@ export default function AppIndexPage() {
     return (
       <div className="flex h-full items-center justify-center px-6">
         <p className="text-sm text-zinc-500">
-          {isZh ? '正在打开文档…' : 'Opening documents…'}
+          {isZh ? '正在打开项目文档…' : 'Opening project document…'}
         </p>
       </div>
     );
@@ -54,7 +81,13 @@ export default function AppIndexPage() {
     return <LaunchProgress launch={store.launch} />;
   }
   if (['active', 'completed'].includes(phase)) {
-    return <LaunchCommandCenter />;
+    return (
+      <div className="flex h-full items-center justify-center px-6">
+        <p className="text-sm text-zinc-500">
+          {isZh ? '正在打开日历…' : 'Opening calendar…'}
+        </p>
+      </div>
+    );
   }
   return <LaunchProgress launch={store.launch} />;
 }

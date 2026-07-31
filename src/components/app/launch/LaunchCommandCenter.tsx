@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import { todayStr } from '@/lib/gtm/dates';
+import { channelHasCalendarTodos } from '@/lib/gtm/channel-capabilities';
 import ChannelLogo from '@/components/ChannelLogo';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
 import type { LaunchTaskStatus, Todo } from '@/lib/gtm/types';
@@ -180,11 +181,17 @@ export default function LaunchCommandCenter() {
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {Object.values(launch.channelPlans).slice(0, 6).map((plan) => {
+            // Directory reports submission progress instead of calendar todos.
+            const isPipeline = !channelHasCalendarTodos(plan.channelId);
             const channelTasks = store.todos.filter((todo) => todo.channelId === plan.channelId);
-            const channelDone = channelTasks.filter((todo) => todo.status === 'done' || todo.publishedUrl).length;
-            const channelReady = channelTasks.filter((todo) => ['ready', 'draft'].includes(effectiveStatus(todo))).length;
+            const channelDone = isPipeline
+              ? launch.directories.filter((item) => ['submitted', 'under_review', 'published'].includes(item.status)).length
+              : channelTasks.filter((todo) => todo.status === 'done' || todo.publishedUrl).length;
+            const channelReady = isPipeline
+              ? launch.directories.filter((item) => ['matched', 'prepared', 'needs_action'].includes(item.status)).length
+              : channelTasks.filter((todo) => ['ready', 'draft'].includes(effectiveStatus(todo))).length;
             return (
-              <Link key={plan.channelId} href={`/app/channels/${plan.channelId}`} className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]">
+              <Link key={plan.channelId} href={isPipeline ? '/app/directories' : `/app/channels/${plan.channelId}`} className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]">
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.06]"><ChannelLogo channelId={plan.channelId} size={18} /></span>
                   <span>
@@ -194,7 +201,11 @@ export default function LaunchCommandCenter() {
                   <span className="ml-auto h-2 w-2 rounded-full bg-emerald-400" />
                 </div>
                 <p className="mt-3 line-clamp-2 text-xs leading-5 text-zinc-500">{plan.mission}</p>
-                <p className="mt-3 text-[10px] text-zinc-600">{channelDone} {isZh ? '已完成' : 'completed'} · {channelReady} {isZh ? '已准备' : 'ready'}</p>
+                <p className="mt-3 text-[10px] text-zinc-600">
+                  {isPipeline
+                    ? `${channelDone} ${isZh ? '已提交' : 'submitted'} · ${channelReady} ${isZh ? '待提交' : 'to submit'}`
+                    : `${channelDone} ${isZh ? '已完成' : 'completed'} · ${channelReady} ${isZh ? '已准备' : 'ready'}`}
+                </p>
               </Link>
             );
           })}

@@ -48,6 +48,9 @@ type DirectoryFilter =
   | 'submitted'
   | 'published';
 
+const EMPTY_DIRECTORIES: DirectorySubmission[] = [];
+const EMPTY_DIRECTORY_JOBS: DirectorySubmissionJob[] = [];
+
 const filterLabels: Record<DirectoryFilter, [string, string]> = {
   all: ['全部', 'All'],
   recommended: ['推荐', 'Recommended'],
@@ -119,9 +122,25 @@ export default function DirectoryWorkspacePage() {
   const [preparing, setPreparing] = useState(false);
   const [directoryMessage, setDirectoryMessage] = useState('');
   const launch = gtm.store.launch;
-  const directories = launch?.directories ?? [];
-  const jobs = launch?.directoryJobs ?? [];
+  // Stable empty fallbacks — `?? []` would allocate every render and retrigger
+  // the view-context effect (clear → set → re-render → infinite loop).
+  const directories = launch?.directories ?? EMPTY_DIRECTORIES;
+  const jobs = launch?.directoryJobs ?? EMPTY_DIRECTORY_JOBS;
+  const launchId = launch?.project.id;
   const launchRef = useRef(launch);
+  const directoryViewRevision = useMemo(
+    () =>
+      launchId
+        ? [
+            launchId,
+            ...directories.map(
+              (item) => `${item.id}:${item.status}:${item.lastVerified}`
+            ),
+            ...jobs.map((job) => `${job.id}:${job.status}:${job.updatedAt}`),
+          ].join('|')
+        : null,
+    [directories, jobs, launchId]
+  );
   const activeJobRef = useRef<string | null>(null);
   const initializedSelectionRef = useRef(false);
   const listenerDisposersRef = useRef(new Map<string, () => void>());
@@ -413,22 +432,18 @@ export default function DirectoryWorkspacePage() {
   ]);
 
   useEffect(() => {
-    if (!launch) return;
+    if (!launchId || directoryViewRevision === null) return;
     setViewContext({
       view: 'directory_pipeline',
       entityType: 'directory_pipeline',
-      entityId: launch.project.id,
+      entityId: launchId,
       channelId: 'directory',
       title: 'Directory Agent · Submission Pipeline',
-      revision: [
-        ...directories.map(
-          (item) => `${item.id}:${item.status}:${item.lastVerified}`
-        ),
-        ...jobs.map((job) => `${job.id}:${job.status}:${job.updatedAt}`),
-      ].join('|'),
+      revision: directoryViewRevision,
     });
-    return clearViewContext;
-  }, [clearViewContext, directories, jobs, launch, setViewContext]);
+  }, [directoryViewRevision, launchId, setViewContext]);
+
+  useEffect(() => () => clearViewContext(), [clearViewContext]);
 
   const supportedDirectoryIds = useMemo(
     () =>
@@ -718,34 +733,29 @@ export default function DirectoryWorkspacePage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-7 sm:px-8 sm:py-10">
-      <Link href="/app/documents" className="text-xs text-zinc-600 hover:text-white">
-        ← {isZh ? '文档' : 'Documents'}
-      </Link>
-
-      <header className="mt-5 flex flex-wrap items-end justify-between gap-5">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
-            Directory · {isZh ? '固定能力' : 'Always on'}
-          </p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 sm:px-6">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="text-base font-bold tracking-tight text-white sm:text-lg">
             Directory
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+          <span className="hidden text-xs text-zinc-500 sm:inline">
             {isZh
-              ? '每个用户都有 Directory：先完善项目提交信息，再从推荐目录和其他目录里选择并提交。合伙人会在对话里提醒你来提交。'
-              : 'Every user has Directory: prepare project submission materials, then pick recommended and other directories. Partner will nudge you here in chat.'}
-          </p>
+              ? '完善提交资料，再从推荐目录中选择并提交'
+              : 'Prepare materials, then pick and submit directories'}
+          </span>
         </div>
         <Link
           href="/app/launch-kit"
-          className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white hover:text-black"
+          className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-zinc-300 hover:bg-white hover:text-black"
         >
           {isZh ? '查看提交资料' : 'Review submission materials'}
         </Link>
       </header>
 
-      <section className="mt-7 rounded-3xl border border-emerald-300/15 bg-emerald-300/[0.035] p-5 sm:p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+      <div className="mx-auto max-w-7xl pb-16">
+      <section className="rounded-3xl border border-emerald-300/15 bg-emerald-300/[0.035] p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
@@ -840,7 +850,13 @@ export default function DirectoryWorkspacePage() {
                       missing
                         .map(
                           (item) =>
-                            `${item.label}${item.detail ? `（${item.detail}）` : ''}`
+                            `${item.label}${
+                              item.detail
+                                ? isZh
+                                  ? `（${item.detail}）`
+                                  : ` (${item.detail})`
+                                : ''
+                            }`
                         )
                         .join(' · ') ||
                       (isZh
@@ -1090,6 +1106,8 @@ export default function DirectoryWorkspacePage() {
           );
         })}
       </section>
+      </div>
+      </div>
     </div>
   );
 }

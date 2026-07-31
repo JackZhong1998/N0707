@@ -38,3 +38,6 @@ next-env.d.ts
 
 # local daily SEO automation logs, locks, and generated reports
 /.seo-automation/
+
+# local scratch scripts and drafts
+/.tmp/

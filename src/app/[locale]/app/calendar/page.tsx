@@ -5,9 +5,7 @@
  *
  * - 未支付：展示预写好的模拟日历（整个产品区由 AppShell 的蒙层 + 支付墙接管）
  * - 已支付未生成：仍展示模拟日历 + 引导横幅（去和市场总监对话）
- * - 计划就绪：展示专属真实 30 天 To-Do 日历
- *
- * 视图：从导航栏进来默认日视图；从市场总监的日历卡片进来（?view=week）显示周视图。
+ * - 计划就绪：展示专属真实 30 天 To-Do 日历（默认全部日期）
  */
 
 import { Suspense, useCallback, useEffect, useMemo } from 'react';
@@ -27,13 +25,6 @@ function CalendarPageInner() {
   // While access is checking (or retrying after an error), prefer the user's
   // local workspace instead of replacing it with the unpaid demo calendar.
   const isPreview = accessStatus === 'unpaid';
-  const initialView = isPreview
-    ? 'week'
-    : searchParams.get('view') === 'day'
-      ? 'day'
-      : searchParams.get('view') === 'month'
-        ? 'month'
-        : 'week';
 
   const dateParam = searchParams.get('date');
   const initialDate =
@@ -56,23 +47,19 @@ function CalendarPageInner() {
 
   const handleViewStateChange = useCallback(
     (state: {
-      mode: 'day' | 'week' | 'month';
+      mode: 'all' | 'week';
       date?: string;
       rangeStart?: string;
       rangeEnd?: string;
     }) => {
       const modeLabel =
-        state.mode === 'day'
+        state.mode === 'week'
           ? isZh
-            ? '按天查看'
-            : 'Day view'
-          : state.mode === 'week'
-            ? isZh
-              ? '按周查看'
-              : 'Week view'
-            : isZh
-              ? '查看全月'
-              : 'Month view';
+            ? '按周查看'
+            : 'Week view'
+          : isZh
+            ? '全部任务'
+            : 'All tasks';
       setViewContext({
         view: 'launch_calendar',
         entityType: 'calendar_period',
@@ -89,8 +76,8 @@ function CalendarPageInner() {
     <div className="relative h-full">
       {/* 已支付未生成：引导去对话 */}
       {store.paid && usingDemo && (
-        <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ink px-4 py-3 sm:mx-6">
-          <p className="text-sm text-zinc-200">
+        <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 sm:mx-8">
+          <p className="text-sm text-zinc-400">
             {isZh
               ? '这是一份示例日历。输入产品链接后，NowBuild 会为你生成专属的 30 天冷启动计划。'
               : 'This is a sample calendar. Add your product URL to build the complete 30-day launch.'}
@@ -111,7 +98,6 @@ function CalendarPageInner() {
         <CalendarBoard
           todos={todos}
           interactive={!usingDemo && (store.planReady || store.todos.length > 0)}
-          initialView={initialView}
           initialDate={initialDate}
           initialChannelFilter={initialChannelFilter}
           previewMode={isPreview}

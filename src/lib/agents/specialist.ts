@@ -104,7 +104,7 @@ export async function runChannelTodos(
 1. 遵循 Blueprint 的四周共同叙事，但用该渠道的原生方法执行；不得自行改写产品定位。
 2. Week 1 必须给出可执行任务；Day 8–30 可以是计划骨架。按渠道 Skill 的合理 cadence 排期，**不要为了填满日历而每天制造低价值任务**。
 3. 每条任务必须是用户可理解的交付或必要行动：发布/新增内容、页面建设、研究交付、目录批次、验证或审批。自动化日常维护不占日历。
-4. Directory 只生成聚合批次和 Needs Action；单个目录状态留在 Pipeline。网站/SEO 任务必须指向具体页面、内容或技术交付。
+4. 网站/SEO 任务必须指向具体页面、内容或技术交付。目录提交不排进日历，无需为它生成任务。
 5. 每条任务写清 purpose（在 Campaign 中的目的）、pillar、taskType、phase、title 和 brief；purpose 不能只是复述标题。
 6. 每条任务必须标明 market（该条针对的目标市场，如「中国大陆」「United States」）
    和 audience（针对的目标人群一句话，如「正在做 side project 的独立开发者」）。

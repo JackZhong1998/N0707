@@ -2,8 +2,9 @@
 
 import { use, useEffect, useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
+import { channelHasCalendarTodos } from '@/lib/gtm/channel-capabilities';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
 import ChannelLogo from '@/components/ChannelLogo';
 
@@ -11,9 +12,15 @@ export default function ChannelWorkspacePage({ params }: { params: Promise<{ id:
   const { id } = use(params);
   const { store } = useGtm();
   const isZh = useLocale() !== 'en';
+  const router = useRouter();
   const { setViewContext, clearViewContext } = useViewContext();
   const [filter, setFilter] = useState<'all' | 'ready' | 'published' | 'planned'>('all');
-  const plan = store.launch?.channelPlans[id];
+  // Directory has no task queue — its workspace is the submission pipeline.
+  const pipelineOnly = !channelHasCalendarTodos(id);
+  const plan = pipelineOnly ? undefined : store.launch?.channelPlans[id];
+  useEffect(() => {
+    if (pipelineOnly) router.replace('/app/directories');
+  }, [pipelineOnly, router]);
   const tasks = useMemo(() => store.todos.filter((todo) => todo.channelId === id), [id, store.todos]);
   const shown = tasks.filter((todo) => filter === 'all' || (filter === 'published' ? Boolean(todo.publishedUrl) || todo.status === 'done' : filter === 'ready' ? ['ready', 'draft', 'needs_action'].includes(todo.launchStatus ?? '') : todo.launchStatus === 'planned'));
   const done = tasks.filter((todo) => todo.status === 'done' || todo.publishedUrl).length;
@@ -22,6 +29,7 @@ export default function ChannelWorkspacePage({ params }: { params: Promise<{ id:
     setViewContext({ view: 'channel_workspace', entityType: 'channel_plan', entityId: id, channelId: id, title: `${plan.channelName} Agent`, section: 'Playbook & Queue', revision: plan.revision });
     return clearViewContext;
   }, [clearViewContext, id, plan, setViewContext]);
+  if (pipelineOnly) return null;
   if (!plan) return <div className="flex h-full items-center justify-center"><Link href="/app/channels" className="text-sm text-zinc-400">{isZh ? '未找到渠道，返回团队 →' : 'Channel not found. Back to team →'}</Link></div>;
   return (
     <div className="mx-auto max-w-6xl px-4 py-7 sm:px-8 sm:py-10">

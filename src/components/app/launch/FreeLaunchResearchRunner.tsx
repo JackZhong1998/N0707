@@ -44,7 +44,7 @@ export default function FreeLaunchResearchRunner() {
     })
       .then(() => {
         if (activeLaunchIdRef.current === launchId) {
-          router.replace('/app/documents');
+          router.replace('/app/documents/project');
         }
       })
       .catch((error) => {

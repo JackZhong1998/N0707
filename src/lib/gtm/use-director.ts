@@ -24,10 +24,16 @@ import {
   callStrategist,
   callTopicPlanner,
   callWeeklyReflection,
+  enqueueChannelPlans,
+  pollChannelPlans,
+  enqueueAgentWork,
+  pollAgentWork,
 } from './api-client';
 import { addDays, parseDateStr, todayStr } from './dates';
 import { buildAgentContextEnvelope } from './agent-context';
-import { applyStrategyToChannelPlans } from './launch';
+import { filterCalendarChannelIds } from './channel-capabilities';
+import { applyStrategyToChannelPlans, resolvePendingChannelPlanIds } from './launch';
+import { defaultWorkLabel } from './agent-work-expand';
 import { formatKickoffAnswers } from './kickoff';
 import {
   buildChannelSelectOptionCard,
@@ -295,6 +301,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
   const actionTailRef = useRef<Promise<void>>(Promise.resolve());
   const contextSyncRunningRef = useRef(false);
   const scheduledActionJobIdsRef = useRef(new Set<string>());
+  const channelPlanPollLockRef = useRef<Promise<void> | null>(null);
+  const channelPlanResumeRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
   // store 的最新引用（后台任务链中避免闭包读到旧值）
   const storeRef = useRef<GtmStore>(gtm.store);
@@ -310,6 +318,25 @@ export function useDirector(defaultViewContext?: ViewContext) {
       abortControllerRef.current?.abort();
       mailboxRef.current = [];
     };
+  }, []);
+
+  /**
+   * Serialize job polling loops without ever dropping one: a caller that finds
+   * the lock taken waits for its turn instead of returning, otherwise the job
+   * it just enqueued is never polled, its progress card never advances, and its
+   * durable pointer is never released (which then blocks the next action).
+   */
+  const withPollLock = useCallback(async (run: () => Promise<void>) => {
+    while (channelPlanPollLockRef.current) {
+      await channelPlanPollLockRef.current.catch(() => undefined);
+    }
+    const lock = run().finally(() => {
+      if (channelPlanPollLockRef.current === lock) {
+        channelPlanPollLockRef.current = null;
+      }
+    });
+    channelPlanPollLockRef.current = lock;
+    await lock;
   }, []);
 
   // Authenticated state and local cache both persist the inbox. If the page was
@@ -440,6 +467,32 @@ export function useDirector(defaultViewContext?: ViewContext) {
     }
   }, [gtm, locale]);
 
+  /**
+   * A settled job must not leave its durable pointer behind: every mount
+   * re-attaches to that pointer, so the UI would stay "working in the
+   * background" forever after the worker stopped writing progress.
+   */
+  const releaseServerJobPointer = useCallback(
+    (serverJobId: string) => {
+      const launch = storeRef.current.launch;
+      if (!launch) return;
+      const wasWorkJob = launch.activeAgentWorkJob?.jobId === serverJobId;
+      const wasPlanJob = launch.channelPlanJob?.jobId === serverJobId;
+      if (!wasWorkJob && !wasPlanJob) return;
+      gtm.update({
+        launch: {
+          ...launch,
+          activeAgentWorkJob: wasWorkJob
+            ? undefined
+            : launch.activeAgentWorkJob,
+          channelPlanJob: wasPlanJob ? undefined : launch.channelPlanJob,
+          project: { ...launch.project, updatedAt: Date.now() },
+        },
+      });
+    },
+    [gtm]
+  );
+
   const runGenerateStrategy = useCallback(
     async (
       channelIds: string[],
@@ -555,8 +608,12 @@ export function useDirector(defaultViewContext?: ViewContext) {
         await publishDirectorMessage({
           role: 'assistant',
           content: isZh
-            ? '渠道推荐已经写进左侧「文档」。Directory（产品目录提交）是固定能力，不用勾选——稍后我会引导你去提交。请先在卡片里选择本轮要做的渠道。'
-            : 'Recommendations are in Documents. Directory publishing is always on—I’ll guide you to submit later. Pick channels for this round in the card below.',
+            ? '渠道推荐已经写进左侧「文档」。点击下方卡片可查看完整诊断与优先级；Directory（产品目录提交）是固定能力，不用勾选——稍后我会引导你去提交。请先在选项卡里选择本轮要做的渠道。'
+            : 'Recommendations are in Documents—tap the card below for the full diagnosis and priorities. Directory publishing is always on—I’ll guide you to submit later. Pick channels for this round in the options card.',
+          card: {
+            kind: 'channel_recommendations',
+            title: isZh ? '渠道推荐' : 'Channel recommendations',
+          },
         });
         await publishDirectorMessage({
           role: 'assistant',
@@ -599,157 +656,354 @@ export function useDirector(defaultViewContext?: ViewContext) {
   );
 
   const runGenerateChannelPlans = useCallback(
-    async (channelIds: string[]) => {
+    async (channelIds: string[], force = false) => {
       if (channelIds.length === 0) return;
       const isZh = locale !== 'en';
       const taskId = `channel-plans-${Date.now()}`;
       setBackgroundTasks((t) => [...t, taskId]);
-      const launch = storeRef.current.launch;
-      const brief = launch?.brief;
-      const existingOverview =
-        storeRef.current.strategy?.overviewMarkdown ||
-        (brief
-          ? [
-              `# ${isZh ? 'Campaign 主线' : 'Campaign spine'}`,
-              brief.positioning.statement,
-              brief.audience.primary,
-              ...brief.positioning.sellingPoints.map((d) => `- ${d}`),
-            ].join('\n\n')
-          : '');
 
-      const cardMsg = await publishDirectorMessage({
-        role: 'assistant',
-        content: '',
-        card: {
-          kind: 'agent-task',
-          label: isZh
-            ? `渠道专员正在编写计划（0/${channelIds.length}）…`
-            : `Writing channel plans (0/${channelIds.length})…`,
-          status: 'running',
-        },
-      });
-
-      let finished = 0;
-      await Promise.allSettled(
-        channelIds.map(async (channelId) => {
-          try {
-            const res = await callStrategist({
-              channelIds: [channelId],
-              store: storeRef.current,
-              locale,
-              phase: 'channel',
-              existingOverview,
-            });
-            const generated =
-              res.channels.find((item) => item.channelId === channelId) ??
-              res.channels[0];
-            if (!generated) {
-              throw new Error(isZh ? '渠道策略为空' : 'Empty channel strategy');
-            }
-            freshStrategiesRef.current[channelId] = {
-              markdown: generated.markdown,
-              name: generated.channelName,
-            };
-            gtm.upsertChannelStrategy({
-              channelId: generated.channelId,
-              channelName: generated.channelName,
-              positioning: generated.positioning,
-              direction: generated.direction,
-              contentPillars: generated.contentPillars,
-              markdown: generated.markdown,
-              updatedAt: Date.now(),
-            });
-            const currentLaunch = storeRef.current.launch;
-            if (currentLaunch) {
-              const nextPlans = applyStrategyToChannelPlans(
-                currentLaunch,
-                { goal: res.goal, overviewMarkdown: res.overviewMarkdown, channels: [generated] },
-                isZh
-              );
-              gtm.update({
-                launch: {
-                  ...currentLaunch,
-                  channelPlans: {
-                    ...currentLaunch.channelPlans,
-                    [channelId]: {
-                      ...nextPlans[channelId],
-                      status: 'ready',
-                    },
-                  },
-                  project: {
-                    ...currentLaunch.project,
-                    updatedAt: Date.now(),
-                  },
+      const finishTodosPrompt = async () => {
+        await publishDirectorMessage({
+          role: 'assistant',
+          content: isZh
+            ? '渠道计划已全部返回。可在左侧「文档」查看详情。Directory 是固定能力，记得稍后去提交。需要我为这些渠道生成 Todo 吗？'
+            : 'All channel plans are back—open Documents for details. Directory is always on; I’ll remind you to submit. Generate todos for these channels?',
+        });
+        await publishDirectorMessage({
+          role: 'assistant',
+          content: isZh ? '是否生成 Todo？' : 'Generate todos?',
+          card: {
+            kind: 'options',
+            card: {
+              question: isZh ? '是否生成 Todo？' : 'Generate todos?',
+              multi: false,
+              options: [
+                {
+                  id: 'generate_todos_yes',
+                  label: isZh
+                    ? '生成全部渠道的 Todo'
+                    : 'Generate todos for all channels',
                 },
-              });
+                {
+                  id: 'generate_todos_later',
+                  label: isZh ? '稍后再说' : 'Not yet',
+                },
+              ],
+            },
+          },
+        });
+      };
+
+      try {
+        const syncRemote = async () => {
+          try {
+            const response = await fetch('/api/gtm/state', { cache: 'no-store' });
+            if (!response.ok) return;
+            const payload = (await response.json()) as {
+              store?: GtmStore;
+              revision?: string;
+            };
+            if (payload.store) {
+              gtm.adoptRemoteStore(payload.store, payload.revision);
             }
-            await publishDirectorMessage({
-              role: 'assistant',
-              content: '',
-              card: {
-                kind: 'channel_plan',
-                channelId: generated.channelId,
-                channelName: generated.channelName,
+          } catch {
+            // Polling can continue on the job endpoint alone.
+          }
+        };
+
+        const pollUntilSettled = async (jobId: string) => {
+          await withPollLock(async () => {
+            for (;;) {
+              if (!mountedRef.current) return;
+              const { job } = await pollChannelPlans(jobId);
+              await syncRemote();
+              if (!job || job.status === 'completed') {
+                releaseServerJobPointer(jobId);
+                return;
+              }
+              if (job.status === 'failed' || job.status === 'cancelled') {
+                // The pointer stays so "continue channel plans" can resume it.
+                throw new Error(
+                  job.last_error ||
+                    (isZh ? '渠道计划任务失败' : 'Channel-plan job failed')
+                );
+              }
+              await wait(2500);
+            }
+          });
+        };
+
+        // Resume an in-flight server job after refresh / remount.
+        const active = storeRef.current.launch?.channelPlanJob;
+        if (active?.jobId) {
+          await pollUntilSettled(active.jobId);
+          await syncRemote();
+          const stillActive = storeRef.current.launch?.channelPlanJob;
+          if (!stillActive) return;
+          // Job row may be gone while chat already has the todos prompt.
+          return;
+        }
+
+        const pendingIds = resolvePendingChannelPlanIds(
+          storeRef.current,
+          channelIds,
+          { force }
+        );
+        if (pendingIds.length === 0) {
+          await publishDirectorMessage({
+            role: 'assistant',
+            content: isZh
+              ? '这些渠道的计划都已经写好了，无需再跑一遍。可以直接生成 Todo，或告诉我要重做哪几个渠道。'
+              : 'Those channel plans are already ready—no need to run them again. Generate todos next, or tell me which channels to regenerate.',
+          });
+          await finishTodosPrompt();
+          return;
+        }
+
+        const cardMsg = await publishDirectorMessage({
+          role: 'assistant',
+          content: '',
+          card: {
+            kind: 'agent-task',
+            label: isZh
+              ? `渠道专员正在编写计划（0/${pendingIds.length}）…`
+              : `Writing channel plans (0/${pendingIds.length})…`,
+            status: 'running',
+          },
+        });
+
+        // Keep a local pointer so refresh can reattach before the first PUT lands.
+        const launch = storeRef.current.launch;
+        if (launch) {
+          gtm.update({
+            launch: {
+              ...launch,
+              channelPlanJob: {
+                jobId: '',
+                taskMessageId: cardMsg.id,
+                channelIds: pendingIds,
+                completedCount: 0,
+                totalCount: pendingIds.length,
+                force,
+                updatedAt: Date.now(),
               },
-            });
-          } catch (err) {
-            await publishDirectorMessage({
-              role: 'assistant',
-              content: isZh
-                ? `${channelId} 计划生成失败：${err instanceof Error ? err.message : '未知错误'}`
-                : `${channelId} plan failed: ${err instanceof Error ? err.message : 'unknown error'}`,
-            });
-          } finally {
-            finished += 1;
-            gtm.patchDirectorMessage(cardMsg.id, {
-              card: {
-                kind: 'agent-task',
-                label: isZh
-                  ? `渠道专员正在编写计划（${finished}/${channelIds.length}）…`
-                  : `Writing channel plans (${finished}/${channelIds.length})…`,
-                status: finished === channelIds.length ? 'done' : 'running',
+              project: { ...launch.project, updatedAt: Date.now() },
+            },
+          });
+        }
+
+        let enqueued;
+        try {
+          enqueued = await enqueueChannelPlans({
+            channelIds: pendingIds,
+            store: storeRef.current,
+            locale,
+            taskMessageId: cardMsg.id,
+            force,
+          });
+        } catch (err) {
+          // Local demo / unpaid sessions: keep a filtered browser fallback.
+          const message = err instanceof Error ? err.message : '';
+          if (!/unauthorized|401|403/i.test(message)) throw err;
+
+          const existingOverview =
+            storeRef.current.strategy?.overviewMarkdown ||
+            (launch?.brief
+              ? [
+                  `# ${isZh ? 'Campaign 主线' : 'Campaign spine'}`,
+                  launch.brief.positioning.statement,
+                  launch.brief.audience.primary,
+                  ...launch.brief.positioning.sellingPoints.map((d) => `- ${d}`),
+                ].join('\n\n')
+              : '');
+          let finished = 0;
+          await Promise.allSettled(
+            pendingIds.map(async (channelId) => {
+              try {
+                const res = await callStrategist({
+                  channelIds: [channelId],
+                  store: storeRef.current,
+                  locale,
+                  phase: 'channel',
+                  existingOverview,
+                });
+                const generated =
+                  res.channels.find((item) => item.channelId === channelId) ??
+                  res.channels[0];
+                if (!generated) {
+                  throw new Error(
+                    isZh ? '渠道策略为空' : 'Empty channel strategy'
+                  );
+                }
+                freshStrategiesRef.current[channelId] = {
+                  markdown: generated.markdown,
+                  name: generated.channelName,
+                };
+                gtm.upsertChannelStrategy({
+                  channelId: generated.channelId,
+                  channelName: generated.channelName,
+                  positioning: generated.positioning,
+                  direction: generated.direction,
+                  contentPillars: generated.contentPillars,
+                  markdown: generated.markdown,
+                  updatedAt: Date.now(),
+                });
+                const currentLaunch = storeRef.current.launch;
+                if (currentLaunch) {
+                  const nextPlans = applyStrategyToChannelPlans(
+                    currentLaunch,
+                    {
+                      goal: res.goal,
+                      overviewMarkdown: res.overviewMarkdown,
+                      channels: [generated],
+                    },
+                    isZh
+                  );
+                  gtm.update({
+                    launch: {
+                      ...currentLaunch,
+                      channelPlans: {
+                        ...currentLaunch.channelPlans,
+                        [channelId]: {
+                          ...nextPlans[channelId],
+                          status: 'ready',
+                        },
+                      },
+                      channelPlanJob: undefined,
+                      project: {
+                        ...currentLaunch.project,
+                        updatedAt: Date.now(),
+                      },
+                    },
+                  });
+                }
+                await publishDirectorMessage({
+                  role: 'assistant',
+                  content: '',
+                  card: {
+                    kind: 'channel_plan',
+                    channelId: generated.channelId,
+                    channelName: generated.channelName,
+                  },
+                });
+              } catch (channelErr) {
+                await publishDirectorMessage({
+                  role: 'assistant',
+                  content: isZh
+                    ? `${channelId} 计划生成失败：${
+                        channelErr instanceof Error
+                          ? channelErr.message
+                          : '未知错误'
+                      }`
+                    : `${channelId} plan failed: ${
+                        channelErr instanceof Error
+                          ? channelErr.message
+                          : 'unknown error'
+                      }`,
+                });
+              } finally {
+                finished += 1;
+                gtm.patchDirectorMessage(cardMsg.id, {
+                  card: {
+                    kind: 'agent-task',
+                    label: isZh
+                      ? `渠道专员正在编写计划（${finished}/${pendingIds.length}）…`
+                      : `Writing channel plans (${finished}/${pendingIds.length})…`,
+                    status:
+                      finished === pendingIds.length ? 'done' : 'running',
+                  },
+                });
+              }
+            })
+          );
+          await finishTodosPrompt();
+          return;
+        }
+
+        if (enqueued.skipped || !enqueued.job) {
+          gtm.patchDirectorMessage(cardMsg.id, {
+            card: {
+              kind: 'agent-task',
+              label: isZh
+                ? '渠道计划已全部就绪'
+                : 'All channel plans are ready',
+              status: 'done',
+            },
+          });
+          const currentLaunch = storeRef.current.launch;
+          if (currentLaunch) {
+            gtm.update({
+              launch: {
+                ...currentLaunch,
+                channelPlanJob: undefined,
+                project: { ...currentLaunch.project, updatedAt: Date.now() },
               },
             });
           }
-        })
-      );
-      setBackgroundTasks((t) => t.filter((id) => id !== taskId));
-      await publishDirectorMessage({
-        role: 'assistant',
-        content: isZh
-          ? '渠道计划已全部返回。可在左侧「文档」查看详情。Directory 是固定能力，记得稍后去提交。需要我为这些渠道生成 Todo 吗？'
-          : 'All channel plans are back—open Documents for details. Directory is always on; I’ll remind you to submit. Generate todos for these channels?',
-      });
-      await publishDirectorMessage({
-        role: 'assistant',
-        content: isZh ? '是否生成 Todo？' : 'Generate todos?',
-        card: {
-          kind: 'options',
-          card: {
-            question: isZh ? '是否生成 Todo？' : 'Generate todos?',
-            multi: false,
-            options: [
-              {
-                id: 'generate_todos_yes',
-                label: isZh ? '生成全部渠道的 Todo' : 'Generate todos for all channels',
+          await finishTodosPrompt();
+          return;
+        }
+
+        {
+          const currentLaunch = storeRef.current.launch;
+          if (currentLaunch?.channelPlanJob) {
+            gtm.update({
+              launch: {
+                ...currentLaunch,
+                channelPlanJob: {
+                  ...currentLaunch.channelPlanJob,
+                  jobId: enqueued.job.id,
+                  channelIds: enqueued.channelIds ?? pendingIds,
+                  totalCount:
+                    enqueued.channelIds?.length ??
+                    currentLaunch.channelPlanJob.totalCount,
+                  updatedAt: Date.now(),
+                },
+                project: { ...currentLaunch.project, updatedAt: Date.now() },
               },
-              {
-                id: 'generate_todos_later',
-                label: isZh ? '稍后再说' : 'Not yet',
-              },
-            ],
-          },
-        },
-      });
+            });
+          }
+        }
+
+        await pollUntilSettled(enqueued.job.id);
+        await syncRemote();
+      } catch (err) {
+        await publishDirectorMessage({
+          role: 'assistant',
+          content: isZh
+            ? `渠道计划任务没有完成：${
+                err instanceof Error ? err.message : '未知错误'
+              }。你可以再说一次「继续跑完渠道计划」。`
+            : `Channel-plan job did not finish: ${
+                err instanceof Error ? err.message : 'unknown error'
+              }. Say “continue channel plans” to resume.`,
+        });
+        const currentLaunch = storeRef.current.launch;
+        const taskMessageId = currentLaunch?.channelPlanJob?.taskMessageId;
+        if (taskMessageId) {
+          gtm.patchDirectorMessage(taskMessageId, {
+            card: {
+              kind: 'agent-task',
+              label: isZh
+                ? '渠道计划生成中断，可继续'
+                : 'Channel-plan generation interrupted — you can continue',
+              status: 'error',
+            },
+          });
+        }
+      } finally {
+        setBackgroundTasks((t) => t.filter((id) => id !== taskId));
+      }
     },
-    [gtm, locale, publishDirectorMessage]
+    [gtm, locale, publishDirectorMessage, releaseServerJobPointer, withPollLock]
   );
 
   const runGenerateTodos = useCallback(
     async (
-      channelIds: string[],
+      requestedChannelIds: string[],
       options?: { preservePublished?: boolean; storeOverride?: GtmStore }
     ) => {
+      const channelIds = filterCalendarChannelIds(requestedChannelIds);
       if (channelIds.length === 0) return;
       const isZh = locale !== 'en';
       const contentLocale =
@@ -1977,7 +2231,10 @@ export function useDirector(defaultViewContext?: ViewContext) {
         } else if (action.type === 'select_channels') {
           await runSelectChannels(action.channelIds);
         } else if (action.type === 'generate_channel_plans') {
-          await runGenerateChannelPlans(action.channelIds);
+          await runGenerateChannelPlans(
+            action.channelIds,
+            action.force === true
+          );
         } else if (action.type === 'generate_strategy') {
           await runGenerateStrategy(action.channelIds, action.feedback);
         } else if (action.type === 'generate_todos') {
@@ -2112,6 +2369,139 @@ export function useDirector(defaultViewContext?: ViewContext) {
         .then(async () => {
           const execute = async () => {
             gtm.updateAgentActionJob(jobId, { status: 'running' });
+
+            const syncRemote = async () => {
+              try {
+                const response = await fetch('/api/gtm/state', {
+                  cache: 'no-store',
+                });
+                if (!response.ok) return;
+                const payload = (await response.json()) as {
+                  store?: GtmStore;
+                  revision?: string;
+                };
+                if (payload.store) {
+                  gtm.adoptRemoteStore(payload.store, payload.revision);
+                }
+              } catch {
+                // Keep polling the work endpoint even if state sync fails.
+              }
+            };
+
+            const pollServerJob = async (serverJobId: string) => {
+              await withPollLock(async () => {
+                for (;;) {
+                  if (!mountedRef.current) return;
+                  const { job } = await pollAgentWork(serverJobId);
+                  await syncRemote();
+                  if (!job || job.status === 'completed') {
+                    releaseServerJobPointer(serverJobId);
+                    return;
+                  }
+                  if (job.status === 'failed' || job.status === 'cancelled') {
+                    // The pointer stays so the user can resume the same job.
+                    throw new Error(
+                      job.last_error ||
+                        (locale !== 'en'
+                          ? '后台任务失败'
+                          : 'Background job failed')
+                    );
+                  }
+                  await wait(2500);
+                }
+              });
+            };
+
+            // Prefer durable server execution so tab sleep / refresh / offline
+            // cron can keep draining the same queue.
+            const activeServerJob =
+              storeRef.current.launch?.activeAgentWorkJob?.jobId ||
+              storeRef.current.launch?.channelPlanJob?.jobId;
+            if (activeServerJob) {
+              await pollServerJob(activeServerJob);
+              await syncRemote();
+              return;
+            }
+
+            const isZh = locale !== 'en';
+            const label = defaultWorkLabel(actions, isZh);
+            const cardMsg = await publishDirectorMessage({
+              role: 'assistant',
+              lane: 'background',
+              agentJobId: jobId,
+              content: '',
+              card: {
+                kind: 'agent-task',
+                label,
+                status: 'running',
+              },
+            });
+
+            try {
+              const enqueued = await enqueueAgentWork({
+                actions,
+                store: storeRef.current,
+                locale,
+                taskMessageId: cardMsg.id,
+                label,
+                buildKey: `work:${jobId}`,
+              });
+              if (enqueued.skipped || !enqueued.job) {
+                gtm.patchDirectorMessage(cardMsg.id, {
+                  card: {
+                    kind: 'agent-task',
+                    label: isZh ? '后台任务已完成' : 'Background work done',
+                    status: 'done',
+                  },
+                });
+                return;
+              }
+              const launch = storeRef.current.launch;
+              if (launch) {
+                gtm.update({
+                  launch: {
+                    ...launch,
+                    activeAgentWorkJob: {
+                      jobId: enqueued.job.id,
+                      taskMessageId: cardMsg.id,
+                      label,
+                      completedCount: enqueued.job.progress_completed,
+                      totalCount: enqueued.job.progress_total,
+                      updatedAt: Date.now(),
+                    },
+                    project: { ...launch.project, updatedAt: Date.now() },
+                  },
+                });
+              }
+              await pollServerJob(enqueued.job.id);
+              await syncRemote();
+              return;
+            } catch (error) {
+              const message = error instanceof Error ? error.message : '';
+              // Local demo / unpaid: keep the previous in-browser workers.
+              if (!/unauthorized|401|403/i.test(message)) {
+                gtm.patchDirectorMessage(cardMsg.id, {
+                  card: {
+                    kind: 'agent-task',
+                    label: isZh
+                      ? `后台任务失败：${message || '未知错误'}`
+                      : `Background job failed: ${message || 'unknown error'}`,
+                    status: 'error',
+                  },
+                });
+                throw error;
+              }
+              gtm.patchDirectorMessage(cardMsg.id, {
+                card: {
+                  kind: 'agent-task',
+                  label: isZh
+                    ? '改用本地执行…'
+                    : 'Falling back to local execution…',
+                  status: 'running',
+                },
+              });
+            }
+
             await runActions(actions, jobId, sourceMessageIds);
           };
           if (
@@ -2171,7 +2561,14 @@ export function useDirector(defaultViewContext?: ViewContext) {
       void scheduled;
       return jobId;
     },
-    [gtm, locale, publishDirectorMessage, runActions]
+    [
+      gtm,
+      locale,
+      publishDirectorMessage,
+      releaseServerJobPointer,
+      runActions,
+      withPollLock,
+    ]
   );
 
   // Resume Worker commands that were already accepted before a refresh.
@@ -2181,6 +2578,40 @@ export function useDirector(defaultViewContext?: ViewContext) {
       scheduleActions(job.actions, job.sourceMessageIds, job.id);
     }
   }, [gtm.hydrated, gtm.store.agentActionJobs, scheduleActions]);
+
+  // Reattach when only the durable server pointer survived.
+  useEffect(() => {
+    if (!gtm.hydrated) return;
+    const serverJob =
+      gtm.store.launch?.activeAgentWorkJob?.jobId ||
+      gtm.store.launch?.channelPlanJob?.jobId;
+    if (!serverJob) {
+      channelPlanResumeRef.current = null;
+      return;
+    }
+    if (channelPlanResumeRef.current === serverJob) return;
+    channelPlanResumeRef.current = serverJob;
+    scheduleActions(
+      gtm.store.agentActionJobs[0]?.actions ?? [
+        {
+          type: 'generate_channel_plans',
+          channelIds:
+            gtm.store.launch?.channelPlanJob?.channelIds ??
+            gtm.store.channels,
+        },
+      ],
+      gtm.store.agentActionJobs[0]?.sourceMessageIds ?? [],
+      gtm.store.agentActionJobs[0]?.id
+    );
+  }, [
+    gtm.hydrated,
+    gtm.store.agentActionJobs,
+    gtm.store.channels,
+    gtm.store.launch?.activeAgentWorkJob?.jobId,
+    gtm.store.launch?.channelPlanJob?.jobId,
+    gtm.store.launch?.channelPlanJob?.channelIds,
+    scheduleActions,
+  ]);
 
   /**
    * Clear work that has not started yet and abort the current director request
@@ -2584,7 +3015,9 @@ export function useDirector(defaultViewContext?: ViewContext) {
       processing ||
       pendingCount > 0 ||
       backgroundTasks.length > 0 ||
-      gtm.store.agentActionJobs.length > 0,
+      gtm.store.agentActionJobs.length > 0 ||
+      Boolean(gtm.store.launch?.channelPlanJob?.jobId) ||
+      Boolean(gtm.store.launch?.activeAgentWorkJob?.jobId),
     cancelPending,
     stop: cancelPending,
     backgroundTasks,

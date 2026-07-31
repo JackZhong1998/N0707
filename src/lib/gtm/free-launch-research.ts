@@ -6,7 +6,7 @@ import {
   createMatchedDirectoryPipeline,
   storePatchForNewLaunch,
 } from '@/lib/gtm/launch';
-import type { LaunchState } from '@/lib/gtm/types';
+import type { LaunchState, MessageCard } from '@/lib/gtm/types';
 import type { ProductResearchResult } from '@/lib/agents/researcher';
 
 /** Typical wall-clock time for the free product research API call. */
@@ -18,6 +18,7 @@ type GtmWriter = {
   addDirectorMessage: (message: {
     role: 'user' | 'assistant';
     content: string;
+    card?: MessageCard;
     contextRef?: LaunchState['project'] extends never ? never : {
       view: string;
       entityType: string;
@@ -240,16 +241,18 @@ async function executeFreeLaunchResearch(input: {
   gtm.addDirectorMessage({
     role: 'assistant',
     content: isZh
-      ? '项目文档已经准备好，可在左侧「文档」列表中打开查看。哪里不准确，直接在右侧告诉我（最多可免费修改 20 次）。确认无误后，打开项目文档详情并点击「组建我的 30 天推广团队」。'
-      : 'Your project document is ready — open it from Documents on the left. Tell me on the right what to correct (up to 20 free edits). When ready, open the project document and tap “Assemble my 30-day Agent Team”.',
+      ? '产品研究已经完成，项目文档可在左侧「文档」打开查看。哪里不准，直接告诉我（最多免费修改 20 次）。\n\n要继续生成完整 30 天计划、渠道内容和执行任务，需要先**召集团队**——解锁后 Agent Team 才会接手后续工作。'
+      : 'Product research is done. Open the project document from Documents on the left and tell me what to correct (up to 20 free edits).\n\nTo go further—full 30-day plan, channel content, and execution—you need to **assemble the team** first. Agent Team unlocks the rest.',
+    card: {
+      kind: 'paywall_cta',
+      label: isZh
+        ? '组建我的 30 天推广团队 →'
+        : 'Assemble my 30-day Agent Team →',
+    },
   });
-  gtm.addAgentNotification({
-    title: isZh ? '项目文档已就绪' : 'Project document is ready',
-    summary: isZh
-      ? '产品分析已经完成。在文档列表中打开项目文档确认并修正后，即可开启完整的 30 天执行团队。'
-      : 'Product analysis is done. Open the project document from the list, correct it, then unlock the full 30-day execution team.',
-    priority: 'important',
-  });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('nowbuild:open-paywall'));
+  }
 
   return launch;
 }

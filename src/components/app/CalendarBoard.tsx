@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * 行动日历 — 支持日 / 周 / 月视图切换的 To-Do 日历
- * - 渠道用品牌 Logo 标识
- * - 每条 To-Do 带可点击的完成圆球
- * - 日 / 周 / 月视图：纵向列表，左侧日期、右侧 To-Do；周 / 月视图焦点日（默认当天）展示完整内容
+ * 行动日历 — 纵向列表展示全部 To-Do
+ * - 默认展示全部日期（从最早到最晚），不再按日 / 周 / 月截断
+ * - 「今天」按钮滚动并聚焦到本日
+ * - 付费墙预览仍锁定为周视图
  */
 
 import { forwardRef, memo, useEffect, useMemo, useRef, useState, type Ref } from 'react';
@@ -13,17 +13,13 @@ import { useRouter } from '@/i18n/navigation';
 import type { Todo } from '@/lib/gtm/types';
 import {
   addDays,
-  daysInMonth,
   formatShort,
   parseDateStr,
-  startOfMonth,
   startOfWeek,
   todayStr,
   WEEKDAY_LABELS_EN,
   WEEKDAY_LABELS_ZH,
 } from '@/lib/gtm/dates';
-
-type ViewMode = 'day' | 'week' | 'month';
 
 /** 可点击的完成圆球 */
 function DoneBall({
@@ -37,15 +33,15 @@ function DoneBall({
 }) {
   const dim = size === 'lg' ? 'h-5 w-5' : 'h-4 w-4';
   const ball = done ? (
-    <span className={`flex ${dim} shrink-0 items-center justify-center rounded-full bg-ink`}>
-      <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+    <span className={`flex ${dim} shrink-0 items-center justify-center rounded-full bg-white text-black`}>
+      <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
       </svg>
     </span>
   ) : (
     <span
-      className={`block ${dim} shrink-0 rounded-full border-2 border-zinc-300 bg-white transition-colors ${
-        onToggle ? 'hover:border-ink' : ''
+      className={`block ${dim} shrink-0 rounded-full border-2 border-white/20 bg-transparent transition-colors ${
+        onToggle ? 'hover:border-white/50' : ''
       }`}
     />
   );
@@ -85,7 +81,7 @@ const TodoCard = memo(function TodoCard({
 }: {
   todo: Todo;
   interactive: boolean;
-  /** 紧凑模式（周视图非焦点日）：隐藏副标题与市场标签 */
+  /** 紧凑模式（非焦点日）：隐藏副标题与市场标签 */
   compact?: boolean;
   onOpen: (id: string) => void;
   onPrefetch?: (id: string) => void;
@@ -100,15 +96,17 @@ const TodoCard = memo(function TodoCard({
       onKeyDown={(e) => {
         if (interactive && e.key === 'Enter') onOpen(todo.id);
       }}
-      className={`block w-full rounded-xl bg-paper-dim/50 p-3 text-left transition-colors ${
-        interactive ? 'cursor-pointer hover:bg-paper-dim hover:shadow-[0_2px_10px_rgba(0,0,0,0.06)]' : 'cursor-default'
+      className={`block w-full rounded-xl border border-white/[0.08] bg-white/[0.025] p-3 text-left transition-colors ${
+        interactive
+          ? 'cursor-pointer hover:border-white/20 hover:bg-white/[0.045]'
+          : 'cursor-default'
       } ${todo.status === 'done' ? 'opacity-55' : ''}`}
     >
       <div className="flex items-center justify-between gap-1.5">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-[10px] font-medium tracking-wide text-zinc-500">{todo.channelName}</span>
           {todo.launchStatus && (
-            <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[8px] uppercase text-zinc-500">
+            <span className="shrink-0 rounded-full border border-white/10 px-1.5 py-0.5 text-[8px] uppercase text-zinc-500">
               {todo.launchStatus.replace('_', ' ')}
             </span>
           )}
@@ -124,8 +122,8 @@ const TodoCard = memo(function TodoCard({
         </span>
       </div>
       <p
-        className={`mt-2 text-[13px] font-semibold leading-snug text-ink ${
-          todo.status === 'done' ? 'line-through' : ''
+        className={`mt-2 text-[13px] font-semibold leading-snug text-white ${
+          todo.status === 'done' ? 'line-through text-zinc-500' : ''
         }`}
       >
         {todo.title}
@@ -145,10 +143,20 @@ const TodoCard = memo(function TodoCard({
   );
 });
 
+function datesInRange(start: string, end: string): string[] {
+  if (start > end) return [];
+  const out: string[] = [];
+  let cursor = start;
+  while (cursor <= end) {
+    out.push(cursor);
+    cursor = addDays(cursor, 1);
+  }
+  return out;
+}
+
 export default function CalendarBoard({
   todos,
   interactive,
-  initialView = 'week',
   initialDate,
   initialChannelFilter = 'all',
   previewMode = false,
@@ -157,7 +165,6 @@ export default function CalendarBoard({
 }: {
   todos: Todo[];
   interactive: boolean;
-  initialView?: ViewMode;
   /** 打开日历时定位到该日期（YYYY-MM-DD） */
   initialDate?: string;
   /** Deep-link channel tab from Partner todo cards */
@@ -166,7 +173,7 @@ export default function CalendarBoard({
   previewMode?: boolean;
   onToggleStatus?: (id: string) => void;
   onViewStateChange?: (state: {
-    mode: ViewMode;
+    mode: 'all' | 'week';
     date?: string;
     rangeStart?: string;
     rangeEnd?: string;
@@ -178,16 +185,14 @@ export default function CalendarBoard({
   const previewAnchor = todos[0]?.date ? startOfWeek(todos[0].date) : todayStr();
   const resolvedInitialDate =
     initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) ? initialDate : todayStr();
-  const [view, setView] = useState<ViewMode>(previewMode ? 'week' : initialView);
-  const [anchor, setAnchor] = useState<string>(
-    previewMode ? previewAnchor : initialView === 'day' ? resolvedInitialDate : todayStr()
+  const [focusDate, setFocusDate] = useState<string | null>(
+    previewMode ? null : resolvedInitialDate
   );
-  const [focusDate, setFocusDate] = useState<string | null>(null);
   const [channelFilter, setChannelFilter] = useState<string>(
     initialChannelFilter || 'all'
   );
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const todayRowRef = useRef<HTMLDivElement>(null);
+  const [scrollNonce, setScrollNonce] = useState(0);
 
   useEffect(() => {
     if (previewMode || !initialChannelFilter) return;
@@ -195,17 +200,10 @@ export default function CalendarBoard({
   }, [initialChannelFilter, previewMode]);
 
   useEffect(() => {
-    if (!previewMode) return;
-    setView('week');
-    setAnchor(previewAnchor);
-  }, [previewMode, previewAnchor]);
-
-  useEffect(() => {
-    if (previewMode || initialView !== 'day' || !initialDate) return;
+    if (previewMode || !initialDate) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(initialDate)) return;
-    setAnchor(initialDate);
-    setView('day');
-  }, [initialDate, initialView, previewMode]);
+    setFocusDate(initialDate);
+  }, [initialDate, previewMode]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, Todo[]>();
@@ -239,166 +237,130 @@ export default function CalendarBoard({
     });
 
   const weekDates = useMemo(() => {
-    const ws = startOfWeek(anchor);
+    const ws = startOfWeek(previewAnchor);
     const all = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
-    // 选中具体渠道时，只保留有 Todo 的日期
     if (channelFilter === 'all') return all;
     return all.filter((date) => (byDate.get(date)?.length ?? 0) > 0);
-  }, [anchor, byDate, channelFilter]);
+  }, [previewAnchor, byDate, channelFilter]);
 
-  const monthDates = useMemo(() => {
-    const first = startOfMonth(anchor);
-    const total = daysInMonth(anchor);
-    const all = Array.from({ length: total }, (_, i) => addDays(first, i));
-    if (channelFilter === 'all') return all;
-    return all.filter((date) => (byDate.get(date)?.length ?? 0) > 0);
-  }, [anchor, byDate, channelFilter]);
+  const allDates = useMemo(() => {
+    const dates = [...byDate.keys()].sort();
+    if (dates.length === 0) return [];
+    // 选中具体渠道时，只保留有 Todo 的日期；全部渠道则补齐连续区间
+    if (channelFilter !== 'all') return dates;
+    return datesInRange(dates[0]!, dates[dates.length - 1]!);
+  }, [byDate, channelFilter]);
+
+  const displayDates = previewMode ? weekDates : allDates;
 
   const weekdayLabel = (date: string) => {
     const idx = (parseDateStr(date).getDay() + 6) % 7;
     return weekdays[idx];
   };
 
-  // 周视图焦点日：默认当天（当天在本周时），点表头可切换
-  const weekFocus =
-    focusDate && weekDates.includes(focusDate)
+  const focus =
+    focusDate && displayDates.includes(focusDate)
       ? focusDate
-      : weekDates.includes(today)
+      : displayDates.includes(today)
         ? today
-        : weekDates[0];
+        : displayDates[0];
 
-  const monthFocus =
-    focusDate && monthDates.includes(focusDate)
+  const scrollTargetDate =
+    focusDate && displayDates.includes(focusDate)
       ? focusDate
-      : monthDates.includes(today)
+      : displayDates.includes(today)
         ? today
-        : monthDates[0];
+        : displayDates[0];
 
-  const scrollTargetDate = view === 'month' ? monthFocus : weekFocus;
+  const jumpToToday = () => {
+    setFocusDate(today);
+    setScrollNonce((n) => n + 1);
+  };
 
-  // 周 / 月视图打开后自动滚动到今天（或焦点日）
+  // 打开后 / 点「今天」或聚焦某天后，将该日顶部对齐列表顶部
   useEffect(() => {
-    if (view === 'day') return;
+    if (!scrollTargetDate) return;
     const timer = window.setTimeout(() => {
-      todayRowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      todayRowRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }, 80);
     return () => window.clearTimeout(timer);
-  }, [view, anchor, scrollTargetDate]);
-
-  const openDayView = (date: string) => {
-    setAnchor(date);
-    setView('day');
-    setFocusDate(date);
-  };
+  }, [scrollTargetDate, channelFilter, scrollNonce]);
 
   useEffect(() => {
     if (!onViewStateChange) return;
-    if (view === 'day') {
-      onViewStateChange({ mode: view, date: anchor });
-      return;
-    }
-    if (view === 'week') {
-      const ws = startOfWeek(anchor);
+    if (previewMode) {
+      const ws = startOfWeek(previewAnchor);
       onViewStateChange({
-        mode: view,
-        date: weekFocus,
+        mode: 'week',
+        date: focus,
         rangeStart: ws,
         rangeEnd: addDays(ws, 6),
       });
       return;
     }
-    const first = startOfMonth(anchor);
     onViewStateChange({
-      mode: view,
-      date: monthFocus,
-      rangeStart: first,
-      rangeEnd: addDays(first, daysInMonth(anchor) - 1),
+      mode: 'all',
+      date: focus,
+      rangeStart: allDates[0],
+      rangeEnd: allDates[allDates.length - 1],
     });
-    // weekDates/monthDates are derived; depend on primitives to avoid array-identity loops
-  }, [anchor, monthFocus, onViewStateChange, view, weekFocus]);
-
-  const shift = (dir: 1 | -1) => {
-    if (view === 'day') setAnchor(addDays(anchor, dir));
-    else if (view === 'week') setAnchor(addDays(anchor, dir * 7));
-    else {
-      const d = parseDateStr(startOfMonth(anchor));
-      d.setMonth(d.getMonth() + dir);
-      setAnchor(
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-      );
-    }
-  };
+  }, [allDates, focus, onViewStateChange, previewAnchor, previewMode]);
 
   const periodLabel = useMemo(() => {
-    const d = parseDateStr(anchor);
-    if (view === 'month') {
-      return d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', {
-        year: 'numeric',
-        month: 'long',
-      });
-    }
-    if (view === 'week') {
-      const ws = startOfWeek(anchor);
+    if (previewMode) {
+      const ws = startOfWeek(previewAnchor);
       return `${formatShort(ws, locale)} – ${formatShort(addDays(ws, 6), locale)}`;
     }
-    return d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', {
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
-    });
-  }, [anchor, view, isZh, locale]);
+    if (allDates.length === 0) {
+      return isZh ? '全部任务' : 'All tasks';
+    }
+    if (allDates.length === 1) {
+      return formatShort(allDates[0]!, locale);
+    }
+    return `${formatShort(allDates[0]!, locale)} – ${formatShort(allDates[allDates.length - 1]!, locale)}`;
+  }, [allDates, isZh, locale, previewAnchor, previewMode]);
+
+  const emptyLabel = previewMode
+    ? isZh
+      ? '本周该渠道没有安排任务。'
+      : 'No tasks for this channel this week.'
+    : isZh
+      ? '该渠道没有安排任务。'
+      : 'No tasks for this channel.';
 
   return (
     <div className="flex h-full flex-col">
-      {/* 头部：标题 + 视图切换（预览模式精简） */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-4">
-          <h1 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-ink">
+      {/* 头部：标题 + 今天 */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 sm:px-6">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="text-base font-bold tracking-tight text-white sm:text-lg">
             Launch Calendar
           </h1>
-          <span className="hidden text-sm text-zinc-400 sm:inline">{periodLabel}</span>
+          <span className="hidden text-xs text-zinc-500 sm:inline">{periodLabel}</span>
         </div>
 
         {!previewMode && (
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-full bg-paper-dim p-0.5">
-              {(['day', 'week', 'month'] as ViewMode[]).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    view === v ? 'bg-ink text-white' : 'text-ink-muted hover:text-ink'
-                  }`}
-                >
-                  {v === 'day' ? (isZh ? '日' : 'Day') : v === 'week' ? (isZh ? '周' : 'Week') : isZh ? '月' : 'Month'}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center rounded-full bg-paper-dim p-0.5">
-              <button onClick={() => shift(-1)} className="rounded-full px-2.5 py-1.5 text-ink-muted hover:text-ink" aria-label="prev">
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-              </button>
-              <button
-                onClick={() => setAnchor(todayStr())}
-                className="rounded-full px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink"
-              >
-                {isZh ? '今天' : 'Today'}
-              </button>
-              <button onClick={() => shift(1)} className="rounded-full px-2.5 py-1.5 text-ink-muted hover:text-ink" aria-label="next">
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={jumpToToday}
+            className="rounded-full border border-white/[0.08] bg-white/[0.025] px-2.5 py-1 text-[11px] font-medium text-zinc-400 transition-colors hover:border-white/20 hover:bg-white/[0.045] hover:text-white"
+          >
+            {isZh ? '今天' : 'Today'}
+          </button>
         )}
       </div>
 
-      {!previewMode && <p className="px-4 pt-1 text-xs text-zinc-400 sm:hidden">{periodLabel}</p>}
+      {!previewMode && <p className="px-4 pt-2 text-[11px] text-zinc-500 sm:hidden sm:px-6">{periodLabel}</p>}
 
       {channels.length > 0 && (
-        <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 pb-2 sm:px-6">
+        <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 pb-1.5 pt-2 sm:px-6">
           <button
             onClick={() => setChannelFilter('all')}
-            className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-medium ${channelFilter === 'all' ? 'bg-ink text-white' : 'bg-paper-dim text-zinc-500'}`}
+            className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-colors ${
+              channelFilter === 'all'
+                ? 'border-white/20 bg-white text-black'
+                : 'border-white/[0.08] bg-white/[0.025] text-zinc-500 hover:border-white/20 hover:text-zinc-300'
+            }`}
           >
             {isZh ? '全部渠道' : 'All channels'}
           </button>
@@ -406,7 +368,11 @@ export default function CalendarBoard({
             <button
               key={id}
               onClick={() => setChannelFilter(id)}
-              className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-medium ${channelFilter === id ? 'bg-ink text-white' : 'bg-paper-dim text-zinc-500'}`}
+              className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-colors ${
+                channelFilter === id
+                  ? 'border-white/20 bg-white text-black'
+                  : 'border-white/[0.08] bg-white/[0.025] text-zinc-500 hover:border-white/20 hover:text-zinc-300'
+              }`}
             >
               {name}
             </button>
@@ -415,156 +381,43 @@ export default function CalendarBoard({
       )}
 
       {/* 视图主体 */}
-      <div
-        ref={scrollContainerRef}
-        className="min-h-0 flex-1 overflow-auto p-4 pt-2 sm:p-6 sm:pt-2"
-      >
-        {(previewMode || view === 'week') && (
-          <div className="mx-auto flex max-w-4xl flex-col gap-3">
-            {weekDates.length === 0 ? (
-              <p className="py-16 text-center text-sm text-zinc-400">
-                {isZh ? '本周该渠道没有安排任务。' : 'No tasks for this channel this week.'}
-              </p>
-            ) : (
-              weekDates.map((date) => {
-                const dayTodos = byDate.get(date) ?? [];
-                const isToday = date === today;
-                const isFocus = date === weekFocus;
-                const shouldScrollHere = date === scrollTargetDate;
-                return (
-                  <DayRow
-                    key={date}
-                    ref={shouldScrollHere ? todayRowRef : undefined}
-                    date={date}
-                    weekday={weekdayLabel(date)}
-                    dayLabel={formatDayLabel(date)}
-                    isToday={isToday}
-                    isFocus={isFocus}
-                    todos={dayTodos}
-                    interactive={interactive}
-                    compact={!previewMode && !isFocus}
-                    previewMode={previewMode}
-                    isZh={isZh}
-                    onFocus={() => !previewMode && setFocusDate(date)}
-                    onOpen={openTask}
-                    onPrefetch={prefetchTask}
-                    onToggleStatus={onToggleStatus}
-                  />
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {!previewMode && view === 'day' && (
-          <div className="mx-auto max-w-4xl">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 rounded-2xl bg-paper-dim/60 px-4 py-3">
-              <div>
-                <p className="index-label">{weekdayLabel(anchor)}</p>
-                <p className="text-lg font-bold text-ink">
-                  {formatDayLabel(anchor)}
-                  {anchor === today && (
-                    <span className="ml-2 text-xs font-medium text-zinc-500">
-                      {isZh ? '今天' : 'Today'}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-            {(byDate.get(anchor) ?? []).length === 0 ? (
-              <p className="py-16 text-center text-sm text-zinc-400">
-                {isZh ? '这一天没有安排任务 — 休息也是策略的一部分。' : 'Nothing scheduled — rest is part of the strategy.'}
-              </p>
-            ) : (
-              <div className="space-y-2.5">
-                {(byDate.get(anchor) ?? []).map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-paper-dim/50"
-                  >
-                    <div className="flex w-16 shrink-0 items-center justify-center bg-paper-dim font-mono text-xs text-zinc-500">
-                      {t.time ?? '—'}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => interactive && openTask(t.id)}
-                      onMouseEnter={() => interactive && prefetchTask(t.id)}
-                      className={`flex min-w-0 flex-1 items-center gap-3 p-4 text-left ${interactive ? 'hover:bg-paper-dim' : 'cursor-default'}`}
-                    >
-                      <DoneBall
-                        done={t.status === 'done'}
-                        size="lg"
-                        onToggle={
-                          interactive && onToggleStatus
-                            ? () => onToggleStatus(t.id)
-                            : undefined
-                        }
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={`text-[15px] font-semibold text-ink ${
-                            t.status === 'done' ? 'line-through opacity-55' : ''
-                          }`}
-                        >
-                          {t.title}
-                        </p>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-zinc-400">
-                          {t.purpose || t.brief}
-                        </p>
-                        {(t.market || t.audience) && (
-                          <p className="mt-1 text-[11px] text-zinc-400">
-                            {[t.market, t.audience].filter(Boolean).join(' · ')}
-                          </p>
-                        )}
-                      </div>
-                      <span className="hidden shrink-0 text-[11px] font-medium text-zinc-500 sm:inline">
-                        {t.channelName}
-                      </span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {!previewMode && view === 'month' && (
-          <div className="mx-auto flex max-w-4xl flex-col gap-3">
-            {monthDates.length === 0 ? (
-              <p className="py-16 text-center text-sm text-zinc-400">
-                {isZh ? '本月该渠道没有安排任务。' : 'No tasks for this channel this month.'}
-              </p>
-            ) : (
-              monthDates.map((date) => {
-                const dayTodos = byDate.get(date) ?? [];
-                const isToday = date === today;
-                const isFocus = date === monthFocus;
-                const shouldScrollHere = date === scrollTargetDate;
-                return (
-                  <DayRow
-                    key={date}
-                    ref={shouldScrollHere ? todayRowRef : undefined}
-                    date={date}
-                    weekday={weekdayLabel(date)}
-                    dayLabel={formatDayLabel(date)}
-                    isToday={isToday}
-                    isFocus={isFocus}
-                    todos={dayTodos}
-                    interactive={interactive}
-                    compact={!isFocus}
-                    previewMode={false}
-                    isZh={isZh}
-                    onFocus={() => setFocusDate(date)}
-                    onOpenDay={() => openDayView(date)}
-                    onOpen={openTask}
-                    onPrefetch={prefetchTask}
-                    onToggleStatus={onToggleStatus}
-                  />
-                );
-              })
-            )}
-          </div>
-        )}
+      <div className="min-h-0 flex-1 overflow-auto p-4 pt-2 sm:p-6 sm:pt-2">
+        <div className="mx-auto flex max-w-3xl flex-col gap-2">
+          {displayDates.length === 0 ? (
+            <p className="py-16 text-center text-sm text-zinc-500">{emptyLabel}</p>
+          ) : (
+            displayDates.map((date) => {
+              const dayTodos = byDate.get(date) ?? [];
+              const isToday = date === today;
+              const isFocus = date === focus;
+              const shouldScrollHere = date === scrollTargetDate;
+              return (
+                <DayRow
+                  key={date}
+                  ref={shouldScrollHere ? todayRowRef : undefined}
+                  date={date}
+                  weekday={weekdayLabel(date)}
+                  dayLabel={formatDayLabel(date)}
+                  isToday={isToday}
+                  isFocus={isFocus}
+                  todos={dayTodos}
+                  interactive={interactive}
+                  compact={!previewMode && !isFocus}
+                  previewMode={previewMode}
+                  isZh={isZh}
+                  onFocus={() => {
+                    if (previewMode) return;
+                    setFocusDate(date);
+                    setScrollNonce((n) => n + 1);
+                  }}
+                  onOpen={openTask}
+                  onPrefetch={prefetchTask}
+                  onToggleStatus={onToggleStatus}
+                />
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
@@ -583,7 +436,6 @@ const DayRow = forwardRef(function DayRow(
     previewMode,
     isZh,
     onFocus,
-    onOpenDay,
     onOpen,
     onPrefetch,
     onToggleStatus,
@@ -599,7 +451,6 @@ const DayRow = forwardRef(function DayRow(
     previewMode: boolean;
     isZh: boolean;
     onFocus?: () => void;
-    onOpenDay?: () => void;
     onOpen: (id: string) => void;
     onPrefetch?: (id: string) => void;
     onToggleStatus?: (id: string) => void;
@@ -611,45 +462,38 @@ const DayRow = forwardRef(function DayRow(
   return (
     <div
       ref={ref}
-      className={`flex gap-3 overflow-hidden rounded-2xl sm:gap-4 ${
-        isFocus ? 'bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]' : 'bg-white/80'
+      className={`flex gap-3 overflow-hidden rounded-2xl border transition-colors sm:gap-4 ${
+        isFocus
+          ? 'border-white/20 bg-white/[0.045]'
+          : 'border-white/[0.08] bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.045]'
       }`}
     >
       <button
         type="button"
-        onClick={() => {
-          if (onOpenDay) onOpenDay();
-          else onFocus?.();
-        }}
-        disabled={previewMode && !onFocus && !onOpenDay}
-        className={`flex w-[72px] shrink-0 flex-col items-center justify-start rounded-l-2xl px-2 py-4 text-center transition-colors sm:w-24 ${
+        onClick={() => onFocus?.()}
+        disabled={previewMode && !onFocus}
+        className={`flex w-[72px] shrink-0 flex-col items-center justify-start border-r px-2 py-4 text-center transition-colors sm:w-24 ${
           isToday
-            ? 'bg-ink text-white'
-            : isFocus
-              ? 'bg-paper-dim'
-              : 'bg-paper-dim/60 hover:bg-paper-dim'
+            ? 'border-brand-300/25 bg-black/55 text-white shadow-[inset_0_0_24px_rgba(213,250,123,0.12),0_0_18px_rgba(213,250,123,0.14)]'
+            : 'border-white/[0.06] text-zinc-400 hover:text-white'
         } ${previewMode ? 'cursor-default' : 'cursor-pointer'}`}
         title={
-          onOpenDay
+          onFocus
             ? isZh
-              ? '点击查看当天任务'
-              : 'Open day view'
-            : onFocus
-              ? isZh
-                ? '点击展开这一天'
-                : 'Click to expand this day'
-              : undefined
+              ? '点击展开这一天'
+              : 'Click to expand this day'
+            : undefined
         }
       >
-        <span className={`index-label ${isToday ? '!text-zinc-300' : ''}`}>{weekday}</span>
-        <span className={`mt-1 text-2xl font-bold leading-none sm:text-3xl ${isToday ? 'text-white' : 'text-ink'}`}>
+        <span className={`index-label ${isToday ? '!text-brand-300/70' : ''}`}>{weekday}</span>
+        <span className="mt-1 text-2xl font-bold leading-none text-white sm:text-3xl">
           {dayNum}
         </span>
-        <span className={`mt-1 text-[10px] font-medium ${isToday ? 'text-zinc-300' : 'text-zinc-400'}`}>
+        <span className={`mt-1 text-[10px] font-medium ${isToday ? 'text-zinc-400' : 'text-zinc-500'}`}>
           {dayLabel}
         </span>
         {isToday && (
-          <span className={`mt-2 text-[9px] font-semibold uppercase tracking-wider ${isToday ? 'text-brand-300' : ''}`}>
+          <span className="mt-2 text-[9px] font-semibold uppercase tracking-wider text-brand-300/80">
             {isZh ? '今天' : 'Today'}
           </span>
         )}
@@ -657,7 +501,7 @@ const DayRow = forwardRef(function DayRow(
 
       <div className="min-w-0 flex-1 py-3 pr-3 sm:py-4 sm:pr-4">
         {todos.length === 0 ? (
-          <p className="flex h-full min-h-[72px] items-center text-sm text-zinc-400">
+          <p className="flex h-full min-h-[72px] items-center text-sm text-zinc-500">
             {isZh ? '暂无任务' : 'No tasks'}
           </p>
         ) : (

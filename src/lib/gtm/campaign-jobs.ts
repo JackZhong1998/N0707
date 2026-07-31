@@ -24,12 +24,16 @@ export type CampaignStepStatus =
   | 'failed'
   | 'skipped';
 
+export type CampaignJobKind = 'full_campaign' | 'channel_plans';
+
 export interface CampaignJobRecord {
   id: string;
   project_id: string;
   clerk_user_id: string;
   build_key: string;
   locale: 'en' | 'zh';
+  /** Absent on pre-migration rows; treat missing as full_campaign. */
+  job_kind?: CampaignJobKind | null;
   status: CampaignJobStatus;
   current_step: string | null;
   progress_completed: number;
@@ -49,6 +53,13 @@ export interface CampaignJobRecord {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export function isChannelPlansJob(job: Pick<CampaignJobRecord, 'job_kind' | 'build_key'>): boolean {
+  return (
+    job.job_kind === 'channel_plans' ||
+    job.build_key.startsWith('channel-plans:')
+  );
 }
 
 export interface CampaignJobStepRecord {
@@ -104,6 +115,35 @@ export async function enqueueCampaignJob(input: {
   }
   const job = await getCampaignJob(input.clerkUserId, jobId);
   if (!job) throw new Error('Campaign job was not found after enqueue');
+  return job;
+}
+
+export async function enqueueChannelPlanJob(input: {
+  clerkUserId: string;
+  buildKey: string;
+  locale: string;
+  store: GtmStore;
+  channelIds: string[];
+}): Promise<CampaignJobRecord> {
+  const { project } = await ensureDefaultProject(input.clerkUserId);
+  const supabase = getServiceSupabase();
+  const { data: jobId, error: enqueueError } = await supabase.rpc(
+    'enqueue_channel_plan_job',
+    {
+      p_project_id: project.id,
+      p_clerk_user_id: input.clerkUserId,
+      p_build_key: input.buildKey,
+      p_locale: input.locale === 'zh' ? 'zh' : 'en',
+      p_input_snapshot: input.store,
+      p_channel_ids: input.channelIds,
+    }
+  );
+  throwDatabaseError('Failed to enqueue channel-plan job', enqueueError);
+  if (typeof jobId !== 'string') {
+    throw new Error('Failed to enqueue channel-plan job: no job id returned');
+  }
+  const job = await getCampaignJob(input.clerkUserId, jobId);
+  if (!job) throw new Error('Channel-plan job was not found after enqueue');
   return job;
 }
 

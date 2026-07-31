@@ -6,12 +6,14 @@ import {
   completeCampaignJob,
   completeCampaignJobStep,
   failCampaignJobStep,
+  isChannelPlansJob,
   listCampaignJobSteps,
   releaseCampaignJob,
   type CampaignJobRecord,
   type CampaignJobStepRecord,
 } from './campaign-jobs';
-import { saveGtmStoreWithConflictRetry } from './database';
+import { loadGtmStore, saveGtmStoreWithConflictRetry } from './database';
+import { channelHasCalendarTodos } from './channel-capabilities';
 import {
   buildLaunchBlueprint,
   createCampaignBuildSteps,
@@ -24,6 +26,7 @@ import { runStrategist } from '@/lib/agents/strategist';
 import { runChannelTodos } from '@/lib/agents/specialist';
 import type {
   ChannelStrategyDoc,
+  ChatMessage,
   GtmStore,
   LaunchBlueprint,
   StrategyResponse,
@@ -208,12 +211,237 @@ function materializeStore(
   return store;
 }
 
+function channelPlanProgressLabel(
+  finished: number,
+  total: number,
+  isZh: boolean
+): string {
+  return isZh
+    ? `渠道专员正在编写计划（${finished}/${total}）…`
+    : `Writing channel plans (${finished}/${total})…`;
+}
+
+function patchDirectorTaskMessage(
+  store: GtmStore,
+  taskMessageId: string | undefined,
+  label: string,
+  status: 'running' | 'done' | 'error',
+  agentJobId?: string
+): GtmStore {
+  if (!taskMessageId) return store;
+  let found = false;
+  const directorChat = store.directorChat.map((message) => {
+    if (message.id !== taskMessageId) return message;
+    found = true;
+    return {
+      ...message,
+      ...(agentJobId ? { agentJobId } : {}),
+      card: {
+        kind: 'agent-task' as const,
+        label,
+        status,
+      },
+    };
+  });
+  if (!found) return store;
+  return { ...store, directorChat, updatedAt: Date.now() };
+}
+
+function hasChannelPlanCard(store: GtmStore, channelId: string): boolean {
+  return store.directorChat.some(
+    (message) =>
+      message.card?.kind === 'channel_plan' &&
+      message.card.channelId === channelId
+  );
+}
+
+function appendDirectorMessage(
+  store: GtmStore,
+  message: Omit<ChatMessage, 'id' | 'createdAt'> & { id?: string }
+): GtmStore {
+  const next: ChatMessage = {
+    id: message.id ?? crypto.randomUUID(),
+    createdAt: Date.now(),
+    role: message.role,
+    content: message.content,
+    ...(message.card ? { card: message.card } : {}),
+    ...(message.lane ? { lane: message.lane } : {}),
+    ...(message.agentJobId ? { agentJobId: message.agentJobId } : {}),
+    ...(message.replyToMessageIds
+      ? { replyToMessageIds: message.replyToMessageIds }
+      : {}),
+  };
+  return {
+    ...store,
+    directorChat: [...store.directorChat, next],
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Merge completed channel-strategy steps into the latest durable store.
+ * Unlike full campaign materialization, this never rewrites todos or phase.
+ */
+async function materializeChannelPlansStore(
+  job: CampaignJobRecord,
+  steps: CampaignJobStepRecord[]
+): Promise<GtmStore> {
+  const { store: latest } = await loadGtmStore(job.clerk_user_id);
+  const store: GtmStore = structuredClone(latest);
+  const launch = store.launch;
+  if (!launch) throw new Error('Channel-plan job is missing Launch state');
+  const isZh = job.locale === 'zh';
+  const strategySteps = steps.filter(
+    (step) =>
+      step.step_type === 'channel_strategy' && step.channel_id
+  );
+  const completedStrategies = strategySteps.filter(
+    (step) => step.status === 'completed'
+  );
+  const total = strategySteps.length;
+  const finished = completedStrategies.length;
+  const taskMessageId = launch.channelPlanJob?.taskMessageId;
+
+  for (const step of completedStrategies) {
+    const result = step.result_snapshot as ChannelStrategyResult | null;
+    const channel = result?.channel;
+    if (!channel || !step.channel_id) continue;
+    store.channelStrategies[step.channel_id] = {
+      channelId: channel.channelId,
+      channelName: channel.channelName,
+      positioning: channel.positioning,
+      direction: channel.direction,
+      contentPillars: channel.contentPillars,
+      markdown: channel.markdown,
+      updatedAt: Date.now(),
+    };
+    const plan = launch.channelPlans[step.channel_id];
+    if (plan) {
+      launch.channelPlans[step.channel_id] = {
+        ...plan,
+        mission: channel.positioning || plan.mission,
+        whyItMatters: channel.direction || plan.whyItMatters,
+        pillars: channel.contentPillars.length
+          ? channel.contentPillars
+          : plan.pillars,
+        status: 'ready',
+        updatedAt: Date.now(),
+      };
+    }
+    if (!hasChannelPlanCard(store, step.channel_id)) {
+      const withCard = appendDirectorMessage(store, {
+        role: 'assistant',
+        content: '',
+        lane: 'background',
+        agentJobId: job.id,
+        card: {
+          kind: 'channel_plan',
+          channelId: channel.channelId,
+          channelName: channel.channelName,
+        },
+      });
+      store.directorChat = withCard.directorChat;
+      store.updatedAt = withCard.updatedAt;
+    }
+  }
+
+  const finalizeDone = steps.some(
+    (step) => step.step_key === 'finalize' && step.status === 'completed'
+  );
+  const failed = steps.some((step) => step.status === 'failed');
+  let next = patchDirectorTaskMessage(
+    store,
+    taskMessageId,
+    channelPlanProgressLabel(finished, total || finished, isZh),
+    finalizeDone ? 'done' : failed ? 'error' : 'running',
+    job.id
+  );
+
+  if (finalizeDone) {
+    const hasCompletion = next.directorChat.some(
+      (message) =>
+        message.agentJobId === job.id &&
+        message.card?.kind === 'options' &&
+        (message.card.card.options.some((option) =>
+          option.id.startsWith('generate_todos')
+        ) ||
+          message.content.includes('Generate todos') ||
+          message.content.includes('生成 Todo'))
+    );
+    if (!hasCompletion) {
+      next = appendDirectorMessage(next, {
+        role: 'assistant',
+        lane: 'background',
+        agentJobId: job.id,
+        content: isZh
+          ? '渠道计划已全部返回。可在左侧「文档」查看详情。Directory 是固定能力，记得稍后去提交。需要我为这些渠道生成 Todo 吗？'
+          : 'All channel plans are back—open Documents for details. Directory is always on; I’ll remind you to submit. Generate todos for these channels?',
+      });
+      next = appendDirectorMessage(next, {
+        role: 'assistant',
+        lane: 'background',
+        agentJobId: job.id,
+        content: isZh ? '是否生成 Todo？' : 'Generate todos?',
+        card: {
+          kind: 'options',
+          card: {
+            question: isZh ? '是否生成 Todo？' : 'Generate todos?',
+            multi: false,
+            options: [
+              {
+                id: 'generate_todos_yes',
+                label: isZh
+                  ? '生成全部渠道的 Todo'
+                  : 'Generate todos for all channels',
+              },
+              {
+                id: 'generate_todos_later',
+                label: isZh ? '稍后再说' : 'Not yet',
+              },
+            ],
+          },
+        },
+      });
+    }
+    if (next.launch) {
+      next = {
+        ...next,
+        launch: {
+          ...next.launch,
+          channelPlanJob: undefined,
+          project: { ...next.launch.project, updatedAt: Date.now() },
+        },
+      };
+    }
+  } else if (next.launch?.channelPlanJob) {
+    next = {
+      ...next,
+      launch: {
+        ...next.launch,
+        channelPlanJob: {
+          ...next.launch.channelPlanJob,
+          jobId: job.id,
+          completedCount: finished,
+          totalCount: total || next.launch.channelPlanJob.totalCount,
+        },
+        project: { ...next.launch.project, updatedAt: Date.now() },
+      },
+    };
+  }
+
+  next.updatedAt = Date.now();
+  return next;
+}
+
 async function executeStep(
   job: CampaignJobRecord,
   step: CampaignJobStepRecord,
   steps: CampaignJobStepRecord[]
 ): Promise<unknown> {
-  const store = materializeStore(job, steps);
+  const channelPlansOnly = isChannelPlansJob(job);
+  const store = channelPlansOnly
+    ? (await loadGtmStore(job.clerk_user_id)).store
+    : materializeStore(job, steps);
   const launch = store.launch;
   if (!launch?.brief) throw new Error('Campaign job is missing Launch Brief');
   const channelIds = SUPPORTED_LAUNCH_CHANNELS.map(
@@ -221,6 +449,9 @@ async function executeStep(
   );
 
   if (step.step_type === 'blueprint') {
+    if (channelPlansOnly) {
+      throw new Error('Channel-plan jobs do not run blueprint steps');
+    }
     const spine = await runStrategist({
       channelIds,
       userProfileDoc: store.userProfileDoc,
@@ -271,7 +502,14 @@ async function executeStep(
   }
 
   if (step.step_type === 'channel_calendar') {
+    if (channelPlansOnly) {
+      throw new Error('Channel-plan jobs do not run calendar steps');
+    }
     if (!step.channel_id) throw new Error('Channel calendar is missing channel id');
+    // Directory ships through the submission pipeline, so it owns no calendar days.
+    if (!channelHasCalendarTodos(step.channel_id)) {
+      return { todos: [] } satisfies ChannelCalendarResult;
+    }
     const definition = SUPPORTED_LAUNCH_CHANNELS.find(
       (channel) => channel.channelId === step.channel_id
     );
@@ -315,6 +553,13 @@ async function executeStep(
       throw new Error(`Empty calendar for ${step.channel_id}`);
     }
     return { todos } satisfies ChannelCalendarResult;
+  }
+
+  if (channelPlansOnly) {
+    return {
+      kind: 'channel_plans_done',
+      completedAt: new Date().toISOString(),
+    };
   }
 
   return {
@@ -362,13 +607,16 @@ export async function processNextCampaignJob(
     if (!recorded) throw new Error('Campaign step lease was lost');
     stepRecorded = true;
     const stepsAfter = await listCampaignJobSteps(job.clerk_user_id, job.id);
-    const store = materializeStore(job, stepsAfter);
+    const store = isChannelPlansJob(job)
+      ? await materializeChannelPlansStore(job, stepsAfter)
+      : materializeStore(job, stepsAfter);
     await saveGtmStoreWithConflictRetry(job.clerk_user_id, store);
 
     if (step.step_type === 'finalize') {
       await completeCampaignJob(job.id, workerId, {
         todoCount: store.todos.length,
         completedAt: new Date().toISOString(),
+        ...(isChannelPlansJob(job) ? { kind: 'channel_plans' } : {}),
       });
       return {
         outcome: 'job_completed',

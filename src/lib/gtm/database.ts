@@ -483,6 +483,14 @@ async function deleteStaleRows(
     .map((row) => String(row[idColumn]))
     .filter((id) => !desiredIds.has(id));
   if (!stale.length) return;
+  // A client that saves before it finished hydrating sends empty collections.
+  // Mirroring that would erase everything, so a wholesale wipe is never synced.
+  if (desiredIds.size === 0) {
+    console.warn(
+      `[gtm/state] refused to delete all ${stale.length} ${table} rows for project ${projectId}: incoming store had none`
+    );
+    return;
+  }
   const deleteRes = await supabase.from(table).delete().eq('project_id', projectId).in(idColumn, stale);
   if (optionalWhenMissing && isMissingSchema(deleteRes.error, [table])) return;
   fail(`Failed to remove stale ${table}`, deleteRes.error);
@@ -653,8 +661,20 @@ export async function saveGtmStore(
     );
     fail('Failed to save market strategy', strategyRes.error);
   } else {
-    const { error } = await supabase.from('market_strategies').delete().eq('project_id', projectId);
-    fail('Failed to clear market strategy', error);
+    // Same reasoning as deleteStaleRows: an incoming store without a strategy is
+    // far more likely to be a client that has not hydrated than a deliberate
+    // clear, so the stored strategy is kept rather than dropped.
+    const existing = await supabase
+      .from('market_strategies')
+      .select('project_id')
+      .eq('project_id', projectId)
+      .maybeSingle();
+    fail('Failed to inspect market strategy', existing.error);
+    if (existing.data) {
+      console.warn(
+        `[gtm/state] kept stored market strategy for project ${projectId}: incoming store had none`
+      );
+    }
   }
 
   const channelDocs = Object.values(store.channelStrategies ?? {});
@@ -908,7 +928,13 @@ export async function saveGtmStore(
   const staleConversationIds = (existingTodoConversations ?? [])
     .filter((item) => !expectedTodoTopics.has(item.topic_key))
     .map((item) => item.id);
-  if (staleConversationIds.length) {
+  if (staleConversationIds.length && expectedTodoTopics.size === 0) {
+    // Deleting every specialist conversation cascades to its messages, so an
+    // empty todoChats map is treated as "not loaded yet" rather than "cleared".
+    console.warn(
+      `[gtm/state] refused to delete all ${staleConversationIds.length} todo conversations for project ${projectId}: incoming store had none`
+    );
+  } else if (staleConversationIds.length) {
     const { error } = await supabase
       .from('conversations')
       .delete()
@@ -935,6 +961,52 @@ export async function saveGtmStore(
 }
 
 /**
+ * Conversations are append-only, but a background writer holds its snapshot for
+ * as long as an agent step runs (minutes for an LLM call) and then commits it
+ * wholesale. Anything the browser appended in the meantime — progress cards,
+ * user replies, option answers — would silently disappear from the canonical
+ * snapshot. Fold those rows back in before committing.
+ */
+async function withConcurrentChatMessages(
+  clerkUserId: string,
+  store: GtmStore
+): Promise<GtmStore> {
+  let latest: GtmStore;
+  try {
+    const loaded = await loadGtmStore(clerkUserId);
+    if (!loaded.hasRemoteData) return store;
+    latest = loaded.store;
+  } catch {
+    // A read failure must not block the write it was only meant to protect.
+    return store;
+  }
+
+  // The writer's own copy wins for messages it may have just patched; rows it
+  // has never seen are additions from the browser and are kept.
+  const mergeChat = (
+    pending: ChatMessage[],
+    concurrent: ChatMessage[]
+  ): ChatMessage[] => {
+    const byId = new Map(concurrent.map((message) => [message.id, message]));
+    for (const message of pending) byId.set(message.id, message);
+    return [...byId.values()]
+      .sort((left, right) => left.createdAt - right.createdAt)
+      .slice(-600);
+  };
+
+  const todoChats = { ...latest.todoChats };
+  for (const [todoId, messages] of Object.entries(store.todoChats)) {
+    todoChats[todoId] = mergeChat(messages, latest.todoChats[todoId] ?? []);
+  }
+
+  return {
+    ...store,
+    directorChat: mergeChat(store.directorChat, latest.directorChat),
+    todoChats,
+  };
+}
+
+/**
  * Server writers (Campaign enqueue / worker) race the browser's debounced
  * PUT /api/gtm/state. Re-read + CAS without an expectedRevision on each try.
  */
@@ -946,7 +1018,10 @@ export async function saveGtmStoreWithConflictRetry(
   let lastError: unknown;
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
-      return await saveGtmStore(clerkUserId, store);
+      return await saveGtmStore(
+        clerkUserId,
+        await withConcurrentChatMessages(clerkUserId, store)
+      );
     } catch (error) {
       lastError = error;
       if (!(error instanceof GtmStateConflictError) || attempt === attempts - 1) {

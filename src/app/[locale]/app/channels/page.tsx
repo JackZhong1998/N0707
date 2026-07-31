@@ -8,6 +8,7 @@ import { useViewContext } from '@/lib/gtm/view-context-provider';
 import ChannelLogo from '@/components/ChannelLogo';
 import {
   capabilityLabels,
+  channelHasCalendarTodos,
   getChannelCapability,
 } from '@/lib/gtm/channel-capabilities';
 
@@ -62,10 +63,9 @@ export default function ChannelAgentsPage() {
         {plans.map((plan) => {
           const role = roles.find((item) => item.channelId === plan.channelId);
           const capability = getChannelCapability(plan.channelId);
-          const href =
-            plan.channelId === 'directory'
-              ? '/app/directories'
-              : `/app/channels/${plan.channelId}`;
+          const href = channelHasCalendarTodos(plan.channelId)
+            ? `/app/channels/${plan.channelId}`
+            : '/app/directories';
           return (
             <Link
               key={plan.channelId}

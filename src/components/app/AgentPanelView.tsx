@@ -1,15 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import KickoffCardView from '@/components/app/chat/KickoffCardView';
 import OptionCardView from '@/components/app/chat/OptionCardView';
 import { Markdown } from '@/lib/gtm/markdown';
-import ArtifactLibraryDrawer, {
-  ArtifactLibraryTrigger,
-} from '@/components/app/ArtifactLibraryDrawer';
 import type {
-  AgentArtifact,
   KickoffCard,
   MessageCard,
   OptionCard,
@@ -29,6 +25,15 @@ export type AgentPanelMessage = {
   };
 };
 
+function messageTailKey(message: AgentPanelMessage | undefined): string {
+  if (!message) return '';
+  const cardKey = message.card ? JSON.stringify(message.card) : '';
+  const artifactKey = message.artifact
+    ? `${message.artifact.label}:${message.artifact.href ?? ''}:${message.artifact.status ?? ''}`
+    : '';
+  return `${message.id}:${message.content}:${cardKey}:${artifactKey}`;
+}
+
 export type AgentPanelNotification = {
   id: string;
   title: string;
@@ -39,7 +44,6 @@ export type AgentPanelNotification = {
 
 export type AgentPanelViewProps = {
   messages: readonly AgentPanelMessage[];
-  artifacts?: readonly AgentArtifact[];
   notifications?: readonly AgentPanelNotification[];
   input: string;
   onInput: (value: string) => void;
@@ -151,12 +155,24 @@ function InteractiveMessageCard({
       />
     );
   }
+  if (card.kind === 'paywall_cta') {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          window.dispatchEvent(new Event('nowbuild:open-paywall'));
+        }}
+        className="mt-2 w-full rounded-xl bg-white px-3.5 py-2.5 text-left text-[12px] font-semibold text-black transition-colors hover:bg-zinc-200"
+      >
+        {card.label}
+      </button>
+    );
+  }
   return null;
 }
 
 export default function AgentPanelView({
   messages,
-  artifacts = [],
   notifications = [],
   input,
   onInput,
@@ -175,39 +191,60 @@ export default function AgentPanelView({
   isZh = true,
   className = '',
 }: AgentPanelViewProps) {
+  const router = useRouter();
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const previousMessageCountRef = useRef(0);
+  const previousTailKeyRef = useRef('');
   const [unseenCount, setUnseenCount] = useState(0);
-  const [artifactDrawerOpen, setArtifactDrawerOpen] = useState(false);
 
+  // Only scroll when the conversation actually grows or the latest bubble
+  // changes. Progress patches on older agent-task cards must not keep calling
+  // smooth scrollIntoView — that moves hit targets and cancels clicks.
   useEffect(() => {
     const latest = messages.at(-1);
+    const nextCount = messages.length;
+    const nextTailKey = messageTailKey(latest);
     const newMessageCount = Math.max(
       0,
-      messages.length - previousMessageCountRef.current
+      nextCount - previousMessageCountRef.current
     );
-    const userJustSent =
-      newMessageCount > 0 && latest?.role === 'user';
-    if (stickToBottomRef.current || userJustSent) {
-      bottomRef.current?.scrollIntoView({
-        behavior:
-          previousMessageCountRef.current === 0 ? 'auto' : 'smooth',
-        block: 'end',
-      });
-      stickToBottomRef.current = true;
-      setUnseenCount(0);
-    } else if (newMessageCount > 0) {
-      setUnseenCount((count) => count + newMessageCount);
+    const tailChanged = nextTailKey !== previousTailKeyRef.current;
+    const shouldConsiderScroll = newMessageCount > 0 || tailChanged;
+
+    if (shouldConsiderScroll) {
+      const userJustSent =
+        newMessageCount > 0 && latest?.role === 'user';
+      if (stickToBottomRef.current || userJustSent) {
+        // Instant stick-to-bottom: smooth scroll moves hit targets mid-click
+        // while channel-plan cards are still arriving.
+        bottomRef.current?.scrollIntoView({
+          behavior: 'auto',
+          block: 'end',
+        });
+        stickToBottomRef.current = true;
+        setUnseenCount(0);
+      } else if (newMessageCount > 0) {
+        setUnseenCount((count) => count + newMessageCount);
+      }
     }
-    previousMessageCountRef.current = messages.length;
+
+    previousMessageCountRef.current = nextCount;
+    previousTailKeyRef.current = nextTailKey;
   }, [messages]);
+
+  useEffect(() => {
+    for (const message of messages) {
+      const href = message.artifact?.href;
+      if (href) router.prefetch(href);
+    }
+  }, [messages, router]);
 
   if (collapsed) {
     return (
       <aside
-        className={`flex h-full w-14 shrink-0 flex-col items-center rounded-2xl border border-white/[0.08] bg-night-panel/95 py-3 text-white shadow-2xl backdrop-blur-xl ${className}`}
+        className={`flex h-full w-14 shrink-0 flex-col items-center rounded-2xl border border-white/[0.08] bg-black/55 py-3 text-white shadow-2xl backdrop-blur-xl ${className}`}
         aria-label={isZh ? '冷启动合伙人（已收起）' : 'Launch Partner (collapsed)'}
       >
         <button
@@ -249,7 +286,7 @@ export default function AgentPanelView({
 
   return (
     <aside
-      className={`relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-night-panel/95 text-white shadow-2xl backdrop-blur-xl ${className}`}
+      className={`relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-black/55 text-white shadow-2xl backdrop-blur-xl ${className}`}
       aria-label={isZh ? '冷启动合伙人' : 'Launch Partner'}
     >
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.08] px-3.5">
@@ -284,10 +321,6 @@ export default function AgentPanelView({
             {isZh ? `${pendingCount} 条待处理` : `${pendingCount} queued`}
           </span>
         )}
-        <ArtifactLibraryTrigger
-          onClick={() => setArtifactDrawerOpen(true)}
-          isZh={isZh}
-        />
         {onToggleCollapsed && (
           <button
             type="button"
@@ -301,13 +334,6 @@ export default function AgentPanelView({
           </button>
         )}
       </div>
-
-      <ArtifactLibraryDrawer
-        open={artifactDrawerOpen}
-        onClose={() => setArtifactDrawerOpen(false)}
-        artifacts={artifacts}
-        isZh={isZh}
-      />
 
       {viewContext && (
         <div className="mx-3 mt-3 flex min-w-0 shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.04] px-2.5 py-2 text-[10px]">
@@ -469,30 +495,49 @@ export default function AgentPanelView({
                 />
               )}
               {message.artifact && (
-                <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-[11px] text-zinc-300">
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      message.artifact.status === 'error'
-                        ? 'bg-red-400'
-                        : message.artifact.status === 'waiting'
-                          ? 'bg-amber-300'
-                        : message.artifact.status === 'done'
-                          ? 'bg-emerald-400'
-                      : 'animate-pulse bg-amber-300'
-                    }`}
-                  />
-                  {message.artifact.href ? (
-                    <Link
-                      href={message.artifact.href}
-                      className="flex min-w-0 flex-1 items-center gap-1.5 hover:text-white"
-                    >
-                      <span className="truncate">{message.artifact.label}</span>
-                      <span aria-hidden="true">→</span>
-                    </Link>
-                  ) : (
+                message.artifact.href ? (
+                  <Link
+                    href={message.artifact.href}
+                    onClick={(event) => {
+                      // Prefer an immediate client navigation over waiting for
+                      // the default Link path while the chat is still patching.
+                      event.preventDefault();
+                      void router.push(message.artifact!.href!);
+                    }}
+                    className="mt-1.5 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-[11px] text-zinc-300 transition-colors hover:border-white/[0.16] hover:bg-white/[0.07] hover:text-white"
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        message.artifact.status === 'error'
+                          ? 'bg-red-400'
+                          : message.artifact.status === 'waiting'
+                            ? 'bg-amber-300'
+                            : message.artifact.status === 'done'
+                              ? 'bg-emerald-400'
+                              : 'animate-pulse bg-amber-300'
+                      }`}
+                    />
+                    <span className="min-w-0 flex-1 truncate">
+                      {message.artifact.label}
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                ) : (
+                  <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-[11px] text-zinc-300">
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        message.artifact.status === 'error'
+                          ? 'bg-red-400'
+                          : message.artifact.status === 'waiting'
+                            ? 'bg-amber-300'
+                            : message.artifact.status === 'done'
+                              ? 'bg-emerald-400'
+                              : 'animate-pulse bg-amber-300'
+                      }`}
+                    />
                     <span className="truncate">{message.artifact.label}</span>
-                  )}
-                </div>
+                  </div>
+                )
               )}
             </div>
           </div>
