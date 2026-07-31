@@ -135,17 +135,17 @@ export default async function AboutPage({ params }: Props) {
               {[
                 {
                   step: '01',
-                  title: isZh ? 'Build the product.' : 'Build the product.',
+                  title: isZh ? 'Build your product.' : 'Build your product.',
                   detail: isZh ? '从真实问题出发，做出真正有人愿意使用的软件。' : 'Turn a real problem into software people can use.',
                 },
                 {
                   step: '02',
-                  title: isZh ? 'Build the market.' : 'Build the market.',
+                  title: isZh ? 'Build your market.' : 'Build your market.',
                   detail: isZh ? '持续走近用户、验证需求，捕捉最早的产品市场契合信号。' : 'Reach users, test demand, and find the earliest PMF signals.',
                 },
                 {
                   step: '03',
-                  title: isZh ? 'Build the business.' : 'Build the business.',
+                  title: isZh ? 'Build your business.' : 'Build your business.',
                   detail: isZh ? '让产品、用户反馈与商业结果彼此推动，形成可持续的循环。' : 'Turn product, market feedback, and revenue into a repeatable loop.',
                 },
               ].map((item, index) => (

@@ -3,7 +3,7 @@
 **版本：** v1.1（2026-07-30，对齐官网定位与现网产品）  
 **产品代号：** NowBuild Agent Launch Team / 30 天冷启动团队  
 **一句话：** 产品已经上线。接下来，让市场看见它——为独立开发者打造的 30 天 Agent 冷启动团队。  
-**品牌使命：** 做出产品。做出市场。做成生意。 / *Build the product. Build the market. Build the business.*
+**品牌使命：** 做出产品。做出市场。做成生意。 / *Build your product. Build your market. Build your business.*
 
 **关联文档：** [30 天冷启动产品交互 PRD](./NowBuild%2030天冷启动产品交互%20PRD.md)（交互规格唯一来源）
 

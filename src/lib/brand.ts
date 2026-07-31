@@ -1,5 +1,5 @@
 export const BRAND_MISSION =
-  'Build the product. Build the market. Build the business.';
+  'Build your product. Build your market. Build your business.';
 
 export const BRAND_MISSION_ZH =
   '做出产品。做出市场。做成生意。';
