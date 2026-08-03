@@ -28,11 +28,20 @@ import {
   type ExtensionTaskEvent,
   type PublisherAvailability,
 } from '@/lib/gtm/publisher-extension';
+import {
+  collectSiteAssetsFromServer,
+  mergeWebsiteAssets,
+  mergeWebsiteSocialLinks,
+} from '@/lib/gtm/site-assets';
+import { createDirectoryMaterialsCard } from '@/lib/directories/material-card';
 import { callDirectoryMaterialGeneration } from '@/lib/gtm/api-client';
 import {
   CONFIGURED_DIRECTORY_COUNT,
   directoryAdapterId,
 } from '@/lib/directories/automation';
+import { launchDirectories } from '@/lib/directories/data';
+import { deriveProductFitProfile } from '@/lib/directories/matching';
+import { createMatchedDirectoryPipeline } from '@/lib/gtm/launch';
 import {
   aiGeneratableKeys,
   buildDirectoryLaunchKit,
@@ -115,7 +124,10 @@ export default function DirectoryWorkspacePage() {
   const isZh = locale !== 'en';
   const updateStore = gtm.update;
   const { setViewContext, clearViewContext } = useViewContext();
-  const [filter, setFilter] = useState<DirectoryFilter>('recommended');
+  const [filter, setFilter] = useState<DirectoryFilter>(
+    gtm.store.paid ? 'recommended' : 'all'
+  );
+  const [catalogSearch, setCatalogSearch] = useState('');
   const [availability, setAvailability] =
     useState<PublisherAvailability | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -125,6 +137,9 @@ export default function DirectoryWorkspacePage() {
   // Stable empty fallbacks — `?? []` would allocate every render and retrigger
   // the view-context effect (clear → set → re-render → infinite loop).
   const directories = launch?.directories ?? EMPTY_DIRECTORIES;
+  const hasPersonalizedDirectoryMatches = directories.some(
+    (item) => Boolean(item.fitTier)
+  );
   const jobs = launch?.directoryJobs ?? EMPTY_DIRECTORY_JOBS;
   const launchId = launch?.project.id;
   const launchRef = useRef(launch);
@@ -156,6 +171,36 @@ export default function DirectoryWorkspacePage() {
     },
     [updateStore]
   );
+
+  // Personalized matching is created only after server-owned paid access is
+  // confirmed. Free users keep the neutral public catalog in Launch state.
+  useEffect(() => {
+    const current = launchRef.current;
+    if (!gtm.store.paid || !current?.brief) return;
+    if (hasPersonalizedDirectoryMatches) return;
+    const brief = current.brief;
+    const profile = deriveProductFitProfile({
+      category: brief.product.summary,
+      targetUsers: [brief.audience.primary],
+      summary: `${brief.product.summary}\n${brief.positioning.statement}`,
+      capabilities: [
+        ...brief.product.features,
+        brief.sourceMarkdown ?? '',
+      ],
+      stage: brief.product.stage,
+    });
+    persistLaunch((latest) => ({
+      ...latest,
+      directories: createMatchedDirectoryPipeline(profile, isZh),
+      project: { ...latest.project, updatedAt: Date.now() },
+    }));
+    setFilter('recommended');
+  }, [
+    gtm.store.paid,
+    hasPersonalizedDirectoryMatches,
+    isZh,
+    persistLaunch,
+  ]);
 
   const patchJob = useCallback(
     (
@@ -402,7 +447,12 @@ export default function DirectoryWorkspacePage() {
   }, [attachTaskListener, isZh, patchJob]);
 
   useEffect(() => {
-    if (initializedSelectionRef.current || !directories.length) return;
+    if (
+      initializedSelectionRef.current ||
+      !hasPersonalizedDirectoryMatches
+    ) {
+      return;
+    }
     initializedSelectionRef.current = true;
     setSelectedIds(
       new Set(
@@ -412,7 +462,7 @@ export default function DirectoryWorkspacePage() {
           .map((item) => item.id)
       )
     );
-  }, [directories]);
+  }, [directories, hasPersonalizedDirectoryMatches]);
 
   const nextQueuedJob = jobs.find((job) => job.status === 'queued');
   useEffect(() => {
@@ -503,27 +553,29 @@ export default function DirectoryWorkspacePage() {
     let kit = buildDirectoryLaunchKit(current);
     let aiUnavailable = false;
 
-    if (
-      availability?.installed &&
-      !kit.assets.some((asset) => asset.kind === 'logo') &&
-      kit.productUrl
-    ) {
+    if (!kit.assets.some((asset) => asset.kind === 'logo') && kit.productUrl) {
       try {
-        const collected = await collectSiteAssetsWithExtension(kit.productUrl);
+        const collected = await collectSiteAssetsFromServer(kit.productUrl);
         kit = {
-          ...kit,
-          assets: [
-            ...kit.assets.filter(
-              (asset) => asset.source === 'manual' || !asset.source
-            ),
-            ...collected.assets.map((asset) => ({
-              ...asset,
-              id: crypto.randomUUID(),
-            })),
-          ].slice(0, 6),
+          ...mergeWebsiteSocialLinks(kit, collected.socialLinks),
+          assets: mergeWebsiteAssets(kit.assets, collected.assets),
         };
       } catch {
-        // Missing public assets become one consolidated user request below.
+        // The browser extension below remains the fallback for blocked sites.
+      }
+      if (
+        availability?.installed &&
+        !kit.assets.some((asset) => asset.kind === 'logo')
+      ) {
+        try {
+          const collected = await collectSiteAssetsWithExtension(kit.productUrl);
+          kit = {
+            ...kit,
+            assets: mergeWebsiteAssets(kit.assets, collected.assets),
+          };
+        } catch {
+          // Missing public assets become one consolidated user request below.
+        }
       }
     }
 
@@ -649,6 +701,46 @@ export default function DirectoryWorkspacePage() {
         ? `检查完成：${readyCount} 个进入后台队列，${needsCount} 个需要补充资料。`
         : `Check complete: ${readyCount} queued, ${needsCount} need more information.`
     );
+    if (needsCount > 0) {
+      const missingChecks = newJobs.flatMap((job) =>
+        job.preflight.checks.filter((check) => check.status !== 'ready')
+      );
+      const missingKeys = [...new Set(missingChecks.map((check) => check.key))];
+      const requiredKeys = [
+        ...new Set(
+          missingChecks
+            .filter((check) => check.status === 'needs_user')
+            .map((check) => check.key)
+        ),
+      ];
+      const openCard = gtm.store.directorChat.find(
+        (message) =>
+          message.card?.kind === 'directory_materials' &&
+          !message.card.card.savedAt
+      );
+      const materialCard = createDirectoryMaterialsCard(
+        kit,
+        isZh,
+        missingKeys,
+        requiredKeys
+      );
+      if (openCard) {
+        gtm.patchDirectorMessage(openCard.id, {
+          card: { kind: 'directory_materials', card: materialCard },
+        });
+      } else {
+        gtm.addDirectorMessage({
+          role: 'assistant',
+          content: isZh
+            ? `这批 Directory 还有 ${needsCount} 个平台缺少提交资料。我已经整理成一张补全卡片，填写后会直接保存到资料库。`
+            : `${needsCount} directories still need submission details. Complete this card and I will save everything directly to the material library.`,
+          card: {
+            kind: 'directory_materials',
+            card: materialCard,
+          },
+        });
+      }
+    }
     setPreparing(false);
   };
 
@@ -728,6 +820,69 @@ export default function DirectoryWorkspacePage() {
         <Link href="/app" className="text-sm text-zinc-400">
           {isZh ? '先建立冷启动 →' : 'Build your launch first →'}
         </Link>
+      </div>
+    );
+  }
+
+  if (!gtm.store.paid) {
+    const query = catalogSearch.trim().toLowerCase();
+    const publicDirectories = launchDirectories.filter((item) =>
+      query
+        ? [item.name, item.domain, ...item.tags]
+            .join(' ')
+            .toLowerCase()
+            .includes(query)
+        : true
+    );
+    return (
+      <div className="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-7">
+        <div className="mx-auto max-w-7xl pb-16">
+          <header className="flex flex-wrap items-end justify-between gap-5 border-b border-white/[0.08] pb-6">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+                {isZh ? 'Directory · 初始化状态' : 'Directory · Initial state'}
+              </p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
+                {isZh ? '通用 Directory 列表' : 'General directory catalog'}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+                {isZh
+                  ? `免费阶段可以浏览全部 ${launchDirectories.length} 个公开候选平台，但不会显示针对你的匹配分、推荐理由或提交顺序。组建 Agent Team 后才会解锁最适合这个产品的平台。`
+                  : `Browse all ${launchDirectories.length} public candidates for free. Product-specific fit scores, rationale, and submission order appear only after you assemble Agent Team.`}
+              </p>
+            </div>
+            <button type="button" onClick={() => window.dispatchEvent(new Event('nowbuild:open-paywall'))} className="rounded-full bg-white px-5 py-2.5 text-xs font-bold text-black hover:bg-zinc-200">
+              {isZh ? '付费构建我的 Launch Agent Team →' : 'Build My Launch Agent Team →'}
+            </button>
+          </header>
+
+          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4">
+            <svg className="h-4 w-4 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg>
+            <input value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder={isZh ? '搜索平台、域名或标签' : 'Search platform, domain, or tag'} className="h-12 min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-zinc-700" />
+            <span className="text-[10px] text-zinc-600">{publicDirectories.length}</span>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {publicDirectories.map((directory) => (
+              <a key={directory.domain} href={directory.url} target="_blank" rel="noreferrer" className="group rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 transition hover:border-white/[0.15] hover:bg-white/[0.045]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="truncate text-sm font-semibold text-zinc-200 group-hover:text-white">{directory.name}</h2>
+                    <p className="mt-1 truncate text-[10px] text-zinc-600">{directory.domain}</p>
+                  </div>
+                  <span className="rounded-full bg-white/[0.05] px-2 py-1 text-[9px] text-zinc-500">DR {directory.dr || '—'}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {directory.tags.slice(0, 3).map((tag) => <span key={tag} className="rounded-full border border-white/[0.06] px-2 py-0.5 text-[9px] text-zinc-600">{tag}</span>)}
+                </div>
+                <div className="mt-4 flex items-center justify-between text-[10px] text-zinc-600">
+                  <span>{directory.pricing}</span>
+                  <span className="opacity-0 transition group-hover:opacity-100">{isZh ? '查看平台 ↗' : 'Visit ↗'}</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

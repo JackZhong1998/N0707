@@ -15,15 +15,15 @@ export default async function ClosingCta() {
         </h2>
         <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
           {isZh
-            ? '先免费生成一份冷启动简报，看看团队如何理解你的产品、市场和优先渠道。方向对了，再开启完整的 30 天计划。'
-            : 'Start with a free Launch Brief to see how the team understands your product, market, and priority channels. Activate the full 30 days when you are ready.'}
+            ? '先免费获得完整的 30 天市场策略报告：产品启动判断、推荐渠道、发布排期与 Directory 提交计划。看完报告，再决定是否组建执行团队。'
+            : 'Get the complete 30-day Market Strategy Report free: launch diagnosis, recommended channels, publishing schedule, and directory submission plan. Assemble the execution team only after you read it.'}
         </p>
         <div className="mt-10 flex justify-center">
           <Link
-            href="/sign-up"
+            href="/sign-in"
             className="inline-flex h-13 items-center rounded-full bg-white px-9 text-[15px] font-semibold text-black transition-colors hover:bg-zinc-200"
           >
-            {isZh ? '免费开始规划' : 'Build My Launch Team'}
+            {isZh ? '免费获取市场策略报告' : 'Get My Free Strategy Report'}
           </Link>
         </div>
       </div>

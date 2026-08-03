@@ -32,6 +32,19 @@ export async function POST(request: Request) {
       userProfileDoc: text(body.userProfileDoc, 8_000),
       projectProfileDoc: text(body.projectProfileDoc, 24_000),
       campaignContext: text(body.campaignContext, 60_000),
+      targetMarkets: (Array.isArray(body.targetMarkets) ? body.targetMarkets : [])
+        .slice(0, 12)
+        .flatMap((item) => {
+          if (!item || typeof item !== 'object') return [];
+          const market = item as Record<string, unknown>;
+          const id = text(market.id, 160);
+          const name = text(market.name, 300);
+          const region = text(market.region, 300);
+          const language = text(market.language, 160);
+          const locale = text(market.locale, 40);
+          if (!id || !name || !region || !language || !locale) return [];
+          return [{ id, name, region, language, locale, audience: text(market.audience, 500) || undefined, isDefault: market.isDefault === true }];
+        }),
       locale: body.locale === 'en' ? 'en' : 'zh',
     });
     return NextResponse.json(result);

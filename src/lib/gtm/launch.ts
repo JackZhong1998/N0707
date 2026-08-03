@@ -55,21 +55,6 @@ export function resolveLaunchChannelIds(store: {
   return [...new Set([...base, ...FIXED_LAUNCH_CHANNEL_IDS])];
 }
 
-const DIRECTORY_SEEDS: Array<Pick<DirectorySubmission, 'name' | 'url'>> = [
-  { name: 'Product Hunt', url: 'https://www.producthunt.com' },
-  { name: 'BetaList', url: 'https://betalist.com' },
-  { name: 'AlternativeTo', url: 'https://alternativeto.net' },
-  { name: 'SaaSHub', url: 'https://www.saashub.com' },
-  { name: 'There is an AI for That', url: 'https://theresanaiforthat.com' },
-  { name: 'Futurepedia', url: 'https://www.futurepedia.io' },
-  { name: 'Toolify', url: 'https://www.toolify.ai' },
-  { name: 'Indie Hackers Products', url: 'https://www.indiehackers.com/products' },
-  { name: 'Uneed', url: 'https://www.uneed.best' },
-  { name: 'Startup Stash', url: 'https://startupstash.com' },
-  { name: 'Launching Next', url: 'https://www.launchingnext.com' },
-  { name: 'Microlaunch', url: 'https://microlaunch.net' },
-];
-
 function normalizeUrl(raw: string): string {
   const value = /^https?:\/\//i.test(raw.trim()) ? raw.trim() : `https://${raw.trim()}`;
   const url = new URL(value);
@@ -102,6 +87,7 @@ export function createBriefResearchSteps(isZh: boolean): ResearchProgressStep[] 
     { id: 'competitors', label: isZh ? '寻找竞品与替代方案' : 'Finding competitors', status: 'pending' },
     { id: 'audience', label: isZh ? '识别目标用户' : 'Mapping target audiences', status: 'pending' },
     { id: 'brief', label: isZh ? '准备项目文档' : 'Preparing your project document', status: 'pending' },
+    { id: 'report', label: isZh ? '生成 30 天市场策略报告' : 'Building your 30-day market strategy report', status: 'pending' },
   ];
 }
 
@@ -131,6 +117,7 @@ export function createLaunchSkeleton(productUrl: string, isZh: boolean): LaunchS
       status: 'building',
       createdAt: now,
       updatedAt: now,
+      source: 'website',
     },
     researchProgress: createBriefResearchSteps(isZh),
     researchConfidence: 'medium',
@@ -146,6 +133,151 @@ export function createLaunchSkeleton(productUrl: string, isZh: boolean): LaunchS
     revisions: [],
     briefEditUsed: 0,
   };
+}
+
+function importedDocumentValue(markdown: string, labels: string[]): string {
+  const lines = markdown.split(/\r?\n/);
+  for (const label of labels) {
+    const inline = new RegExp(`^(?:#{1,6}\\s*)?(?:[-*]\\s*)?${label}\\s*[:：-]\\s*(.+)$`, 'i');
+    for (let index = 0; index < lines.length; index += 1) {
+      const match = lines[index]!.trim().match(inline);
+      if (match?.[1]?.trim()) return match[1].trim().slice(0, 600);
+      const heading = lines[index]!.replace(/^#{1,6}\s*/, '').trim();
+      if (heading.toLowerCase() === label.toLowerCase()) {
+        const next = lines.slice(index + 1).find((line) => {
+          const value = line.trim();
+          return value && !value.startsWith('#');
+        });
+        if (next) return next.replace(/^[-*]\s*/, '').trim().slice(0, 600);
+      }
+    }
+  }
+  return '';
+}
+
+function importedDocumentUrl(markdown: string): string {
+  const explicit = importedDocumentValue(markdown, [
+    '产品域名',
+    '产品链接',
+    '官网',
+    'domain',
+    'product url',
+    'website',
+  ]);
+  const raw = explicit.match(/https?:\/\/[^\s<>()]+/i)?.[0]
+    ?? markdown.match(/https?:\/\/[^\s<>()]+/i)?.[0]
+    ?? '';
+  if (!raw) return '';
+  try {
+    return normalizeUrl(raw.replace(/[),.;，。]+$/, ''));
+  } catch {
+    return '';
+  }
+}
+
+/** Create the free Launch workspace directly from a document generated in Codex/Claude/etc. */
+export function createLaunchFromDocument(
+  markdown: string,
+  isZh: boolean,
+  productUrlOverride?: string
+): LaunchState {
+  const now = Date.now();
+  const startDate = todayStr();
+  const productUrl = productUrlOverride
+    ? normalizeUrl(productUrlOverride)
+    : importedDocumentUrl(markdown);
+  const explicitName = importedDocumentValue(markdown, [
+    '产品名',
+    '产品名称',
+    'product name',
+    'name',
+  ]);
+  const firstHeading = markdown
+    .split(/\r?\n/)
+    .map((line) => line.match(/^#\s+(.+)$/)?.[1]?.trim())
+    .find(Boolean);
+  const productName = (explicitName || firstHeading || (productUrl ? productNameFromUrl(productUrl) : '') || (isZh ? '我的产品' : 'My product')).slice(0, 120);
+  const summary = importedDocumentValue(markdown, [
+    '一句话定位',
+    '产品定位',
+    '产品概述',
+    'positioning',
+    'summary',
+  ]) || markdown.replace(/^#+\s*/gm, '').split(/\n\s*\n/).map((part) => part.trim()).find((part) => part.length > 40)?.slice(0, 600) || (isZh ? '详见导入的项目文档。' : 'See the imported project document.');
+  const audience = importedDocumentValue(markdown, [
+    '目标用户',
+    '目标人群',
+    'target audience',
+    'users',
+  ]) || (isZh ? '以导入文档中的用户定义为准' : 'Defined in the imported project document');
+  const problem = importedDocumentValue(markdown, [
+    '用户痛点',
+    '核心痛点',
+    '解决的问题',
+    'pain points',
+    'problem',
+  ]) || summary;
+  const sourceLabel = isZh ? '用户从 AI / Coding 平台导入的项目文档' : 'Project document imported from an AI/coding platform';
+  const launch: LaunchState = {
+    project: {
+      id: makeId('launch'),
+      productUrl,
+      productName,
+      startDate,
+      endDate: addDays(startDate, 29),
+      currentDay: 1,
+      phase: 'researching',
+      status: 'building',
+      createdAt: now,
+      updatedAt: now,
+      source: 'ai_document',
+    },
+    researchProgress: createBriefResearchSteps(isZh).map((step) => ({
+      ...step,
+      status: step.id === 'report' ? 'running' : 'done',
+      ...(step.id === 'website' ? { detail: sourceLabel } : {}),
+    })),
+    researchConfidence: 'high',
+    researchSources: [],
+    brief: {
+      product: {
+        summary,
+        problem,
+        features: [],
+        stage: importedDocumentValue(markdown, ['产品阶段', 'stage']) || (isZh ? '以导入文档为准' : 'See imported document'),
+        pricing: importedDocumentValue(markdown, ['定价', 'pricing']) || (isZh ? '以导入文档为准' : 'See imported document'),
+      },
+      audience: {
+        primary: audience,
+        currentAlternative: importedDocumentValue(markdown, ['当前替代方案', 'alternatives']) || (isZh ? '以导入文档为准' : 'See imported document'),
+        scenarios: [],
+        motivations: [],
+      },
+      competitors: [],
+      positioning: {
+        statement: summary,
+        sellingPoints: [],
+        painPoints: problem ? [problem] : [],
+        voice: isZh ? '清晰、可信、以用户价值为先' : 'Clear, credible, and user-value first',
+        nonGoals: [],
+      },
+      evidence: [{ label: sourceLabel, confidence: 'confirmed' }],
+      sourceMarkdown: markdown,
+      revision: 1,
+      updatedAt: now,
+    },
+    channelPlans: Object.fromEntries(
+      SUPPORTED_LAUNCH_CHANNELS.map((channel) => [
+        channel.channelId,
+        createChannelPlan(channel.channelId, channel.name, productName, isZh),
+      ])
+    ),
+    directories: createDirectoryPipeline(productName, isZh),
+    weeklyReviews: createWeeklyReviews(isZh),
+    revisions: [],
+    briefEditUsed: 0,
+  };
+  return launch;
 }
 
 /** Reset campaign artifacts when a user starts a fresh product URL. */
@@ -444,13 +576,20 @@ export function createFallbackLaunchTasks(launch: LaunchState, isZh: boolean): T
   return tasks.sort((a, b) => a.dayIndex - b.dayIndex || (a.time ?? '').localeCompare(b.time ?? ''));
 }
 
-function createDirectoryPipeline(productName: string, isZh: boolean): DirectorySubmission[] {
-  return DIRECTORY_SEEDS.map((directory, index) => ({
-    id: `directory-${index + 1}`,
+export function createDirectoryPipeline(productName: string, isZh: boolean): DirectorySubmission[] {
+  return launchDirectories.map((directory, index) => ({
+    id: `directory-${index + 1}-${directory.domain.replace(/[^a-z0-9]+/gi, '-')}`,
     name: directory.name,
     url: directory.url,
-    matchReason: isZh ? `${directory.name} 是 ${productName} 的候选发现入口；适配性、费用和提交要求尚待核实。` : `${directory.name} is a candidate discovery surface for ${productName}; fit, pricing, and submission requirements still need verification.`,
-    pricing: 'unknown',
+    matchReason: isZh ? `${directory.name} 收录在通用 Directory 数据库中。组建 Agent Team 后才会计算它与 ${productName} 的个性化匹配度。` : `${directory.name} is in the general directory catalog. Personalized fit for ${productName} is calculated only after assembling Agent Team.`,
+    pricing:
+      directory.pricing === 'Free'
+        ? 'free'
+        : directory.pricing === 'Paid'
+          ? 'paid'
+          : directory.pricing === 'Free + Paid'
+            ? 'freemium'
+            : 'unknown',
     requiredAssets: [isZh ? '待核实' : 'Needs verification'],
     automationLevel: 'manual',
     lastVerified: '',

@@ -47,7 +47,7 @@ function AuthButtons({
         <Link href="/sign-in" className={ghost}>
           {signInLabel}
         </Link>
-        <Link href="/sign-up" className={solid}>
+        <Link href="/sign-in" className={solid}>
           {getStartedLabel}
         </Link>
       </SignedOut>

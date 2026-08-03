@@ -63,8 +63,8 @@ export default function AgentBootstrap() {
     addDirectorMessage({
       role: 'assistant',
       content: isZh
-        ? '你好，我是你的**冷启动合伙人**。左侧是我和渠道团队交付的工作成果，这里是你唯一需要使用的修改入口。\n\n先在左侧粘贴产品链接。我会读取网站、研究竞品，并自动建立完整的 30 天全渠道冷启动。缺失的信息，我只会在确实影响执行时再问你。'
-        : "Hi, I'm your **Launch Partner**. The left side holds the work produced by your channel team; this is the one place to explain, question, or change any of it.\n\nPaste your product URL on the left. I'll study the site and competitors, then build the complete 30-day launch across every supported channel. I'll only ask for missing details when they truly block execution.",
+        ? '你好，我是你的**冷启动合伙人**。左侧是我和渠道团队交付的工作成果，这里是你唯一需要使用的修改入口。\n\n推荐先复制左侧 Prompt，让你常用的 Coding / AI 平台生成项目文档，再粘贴回来。我会免费生成完整的 30 天市场策略报告；没有项目文档时，也可以选择分析产品链接。'
+        : "Hi, I'm your **Launch Partner**. The left side holds the work produced by your channel team; this is the one place to explain, question, or change any of it.\n\nStart by copying the prompt on the left into your coding/AI platform, then paste the generated project document back. I'll build the complete 30-day Market Strategy Report for free. You can also choose website analysis if you do not have a document.",
     });
   }, [
     addDirectorMessage,

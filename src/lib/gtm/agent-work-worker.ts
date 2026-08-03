@@ -1,9 +1,11 @@
 import 'server-only';
 
 import { runChannelRecommender } from '@/lib/agents/channel-recommender';
+import { runArtifactWriter, runResearchQuery } from '@/lib/agents/general-work';
 import { runProductResearch } from '@/lib/agents/researcher';
 import { runWeeklyReflection } from '@/lib/agents/reflection';
 import { runChannelTodos, runChannelWrite } from '@/lib/agents/specialist';
+import { defaultTargetMarket, resolveTodoMarket } from './target-markets';
 import { runStrategist } from '@/lib/agents/strategist';
 import { runTopicPlanner } from '@/lib/agents/topic-planner';
 import { buildAgentContextEnvelope } from './agent-context';
@@ -19,8 +21,12 @@ import {
   type AgentWorkStepRecord,
 } from './agent-work-jobs';
 import { loadGtmStore, saveGtmStoreWithConflictRetry } from './database';
-import { addDays } from './dates';
+import { addDays, parseDateStr, todayStr } from './dates';
 import { channelHasCalendarTodos } from './channel-capabilities';
+import {
+  chooseTopicScheduleDay,
+  chooseTopicScheduleTime,
+} from './topic-scheduling';
 import {
   applyStrategyToChannelPlans,
   buildLaunchBrief,
@@ -38,6 +44,7 @@ import type {
   LaunchChannelPlan,
   Todo,
 } from './types';
+import { channelName } from '@/lib/agents/catalog';
 
 function conversationDigest(store: GtmStore): string {
   return store.directorChat
@@ -390,8 +397,8 @@ async function executeStep(
   if (step.step_type === 'channel_plans_finalize') {
     const hasTodosPrompt = store.directorChat.some(
       (message) =>
-        message.agentJobId === job.id &&
         message.card?.kind === 'options' &&
+        !message.card.card.answered?.length &&
         message.card.card.options.some((option) =>
           option.id.startsWith('generate_todos')
         )
@@ -409,7 +416,8 @@ async function executeStep(
         role: 'assistant',
         lane: 'background',
         agentJobId: job.id,
-        content: isZh ? '是否生成 Todo？' : 'Generate todos?',
+        // The card owns the visible question; do not repeat it as a bubble.
+        content: '',
         card: {
           kind: 'options',
           card: {
@@ -463,6 +471,7 @@ async function executeStep(
       userProfileDoc: store.userProfileDoc,
       projectProfileDoc: store.projectProfileDoc,
       campaignContext: buildAgentContextEnvelope(store, { channelId }),
+      targetMarkets: store.targetMarkets ?? [],
       locale: job.locale,
     });
     const startDate =
@@ -489,8 +498,7 @@ async function executeStep(
       pillar: todo.pillar ?? todo.phase,
       taskType: todo.taskType ?? 'content',
       phase: todo.phase,
-      market: todo.market,
-      audience: todo.audience,
+      ...resolveTodoMarket(todo, store.targetMarkets),
       status: 'pending',
       launchStatus:
         todo.launchStatus ?? (todo.dayIndex <= 7 ? 'draft' : 'planned'),
@@ -523,17 +531,196 @@ async function executeStep(
     return { result: { todoCount: generated.length }, store };
   }
 
+  if (step.step_type === 'create_todo') {
+    const channelId =
+      step.channel_id || (typeof payload.channelId === 'string' ? payload.channelId : '');
+    const title = typeof payload.title === 'string' ? payload.title.trim().slice(0, 300) : '';
+    const brief = typeof payload.brief === 'string' ? payload.brief.trim().slice(0, 4_000) : title;
+    const date =
+      typeof payload.date === 'string' &&
+      /^\d{4}-\d{2}-\d{2}$/.test(payload.date) &&
+      !Number.isNaN(new Date(`${payload.date}T00:00:00Z`).getTime()) &&
+      new Date(`${payload.date}T00:00:00Z`).toISOString().slice(0, 10) === payload.date
+        ? payload.date
+        : todayStr();
+    const time =
+      typeof payload.time === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(payload.time)
+        ? payload.time
+        : undefined;
+    if (!channelId || !channelHasCalendarTodos(channelId)) {
+      throw new Error(isZh ? '该渠道不支持日历 Todo' : 'This channel does not support calendar todos');
+    }
+    if (!title || !brief) throw new Error(isZh ? 'Todo 缺少标题或 brief' : 'Todo title or brief is missing');
+    const startDate = store.startDate ?? store.launch?.project.startDate ?? date;
+    const dayIndex = Math.max(
+      1,
+      Math.floor(
+        (parseDateStr(date).getTime() - parseDateStr(startDate).getTime()) / 86_400_000
+      ) + 1
+    );
+    let todo: Todo = {
+      id: crypto.randomUUID(),
+      channelId,
+      channelName: channelName(channelId, job.locale),
+      dayIndex,
+      date,
+      ...(time ? { time } : {}),
+      title,
+      brief,
+      purpose: brief,
+      taskType: 'content',
+      status: 'pending',
+      launchStatus: payload.writeNow === true ? 'generating' : 'planned',
+      contentStatus: payload.writeNow === true ? 'writing' : 'none',
+      revision: 1,
+      ...(() => {
+        const market = defaultTargetMarket(store.targetMarkets);
+        return market
+          ? { market: market.name, targetMarketId: market.id, outputLocale: market.locale, audience: market.audience }
+          : {};
+      })(),
+    };
+    if (payload.writeNow === true) {
+      const written = await runChannelWrite({
+        todo,
+        channelStrategyMarkdown: store.channelStrategies[channelId]?.markdown ?? '',
+        userProfileDoc: store.userProfileDoc,
+        projectProfileDoc: store.projectProfileDoc,
+        campaignContext: buildAgentContextEnvelope(store, { channelId }),
+        locale: todo.outputLocale ?? job.locale,
+      });
+      todo = {
+        ...todo,
+        content: { title: written.title, body: written.body, research: written.research },
+        contentStatus: 'ready',
+        launchStatus: 'ready',
+        contentRevision: 1,
+      };
+    }
+    store = {
+      ...store,
+      startDate: store.startDate ?? startDate,
+      planReady: true,
+      todos: [...store.todos, todo].sort(
+        (left, right) => left.date.localeCompare(right.date) ||
+          (left.time ?? '99:99').localeCompare(right.time ?? '99:99')
+      ),
+      updatedAt: Date.now(),
+    };
+    store = appendDirectorMessage(store, {
+      role: 'assistant',
+      lane: 'background',
+      agentJobId: job.id,
+      content: isZh
+        ? `已新增 Todo「${title}」，安排在 ${date}${time ? ` ${time}` : ''}${payload.writeNow === true ? '，可发布初稿也已写好' : ''}。`
+        : `Created “${title}” for ${date}${time ? ` at ${time}` : ''}${payload.writeNow === true ? ' and prepared the publish-ready draft' : ''}.`,
+      card: { kind: 'calendar', title: isZh ? '新 Todo 已进入日历' : 'New todo added to the calendar' },
+    });
+    return { result: { todoId: todo.id, contentReady: todo.contentStatus === 'ready' }, store };
+  }
+
+  if (step.step_type === 'write_artifact') {
+    const instruction = typeof payload.instruction === 'string' ? payload.instruction.trim().slice(0, 8_000) : '';
+    if (!instruction) throw new Error('write_artifact missing instruction');
+    const artifactType = ['report', 'email', 'script', 'post', 'document', 'other'].includes(String(payload.artifactType))
+      ? payload.artifactType as 'report' | 'email' | 'script' | 'post' | 'document' | 'other'
+      : 'document';
+    const written = await runArtifactWriter({
+      instruction,
+      title: typeof payload.title === 'string' ? payload.title.slice(0, 300) : undefined,
+      artifactType,
+      userProfileDoc: store.userProfileDoc,
+      projectProfileDoc: store.projectProfileDoc,
+      campaignContext: buildAgentContextEnvelope(store),
+      locale: job.locale,
+    });
+    const now = Date.now();
+    const artifact = {
+      id: crypto.randomUUID(),
+      kind: 'general' as const,
+      title: written.title,
+      summary: written.summary,
+      markdown: written.markdown,
+      status: 'draft' as const,
+      version: 1,
+      metadata: { artifactType, instruction, agentJobId: job.id },
+      createdAt: now,
+      updatedAt: now,
+    };
+    store = { ...store, artifacts: [artifact, ...store.artifacts].slice(0, 20), updatedAt: now };
+    store = appendDirectorMessage(store, {
+      role: 'assistant',
+      lane: 'background',
+      agentJobId: job.id,
+      content: isZh ? `「${artifact.title}」已写好并保存到文档。` : `“${artifact.title}” is written and saved in Documents.`,
+      card: { kind: 'artifact', artifactId: artifact.id, title: artifact.title, summary: artifact.summary, status: artifact.status },
+    });
+    return { result: { artifactId: artifact.id }, store };
+  }
+
+  if (step.step_type === 'research_query') {
+    const query = typeof payload.query === 'string' ? payload.query.trim().slice(0, 2_000) : '';
+    if (!query) throw new Error('research_query missing query');
+    const research = await runResearchQuery({
+      query,
+      title: typeof payload.title === 'string' ? payload.title.slice(0, 300) : undefined,
+      maxSources: typeof payload.maxSources === 'number' ? Math.max(3, Math.min(10, Math.round(payload.maxSources))) : 8,
+      userProfileDoc: store.userProfileDoc,
+      projectProfileDoc: store.projectProfileDoc,
+      campaignContext: buildAgentContextEnvelope(store),
+      locale: job.locale,
+    });
+    const artifact = {
+      id: crypto.randomUUID(),
+      kind: 'research_report' as const,
+      title: research.title,
+      summary: research.summary,
+      markdown: research.markdown,
+      status: 'draft' as const,
+      version: 1,
+      metadata: {
+        query,
+        sources: research.sources,
+        searchedAt: research.searchedAt,
+        agentJobId: job.id,
+      },
+      createdAt: research.searchedAt,
+      updatedAt: research.searchedAt,
+    };
+    store = { ...store, artifacts: [artifact, ...store.artifacts].slice(0, 20), updatedAt: Date.now() };
+    store = appendDirectorMessage(store, {
+      role: 'assistant',
+      lane: 'background',
+      agentJobId: job.id,
+      content: isZh
+        ? `调研已完成，报告引用了 ${research.sources.length} 个实际检索来源。`
+        : `Research complete with ${research.sources.length} retrieved sources.`,
+      card: { kind: 'artifact', artifactId: artifact.id, title: artifact.title, summary: artifact.summary, status: artifact.status },
+    });
+    return { result: { artifactId: artifact.id, sourceCount: research.sources.length }, store };
+  }
+
   if (step.step_type === 'generate_topics') {
-    const channelIds = Array.isArray(payload.channelIds)
+    const channelIds = (Array.isArray(payload.channelIds)
       ? payload.channelIds.filter((id): id is string => typeof id === 'string')
-      : store.channels;
+      : store.channels
+    ).filter(channelHasCalendarTodos);
     const count =
       typeof payload.count === 'number' && Number.isFinite(payload.count)
         ? Math.max(1, Math.min(30, Math.round(payload.count)))
         : 7;
+    const brief =
+      typeof payload.brief === 'string' ? payload.brief.trim().slice(0, 4_000) : undefined;
+    const scheduleTodos = payload.scheduleTodos === true && Boolean(brief);
+    if (channelIds.length === 0) {
+      throw new Error(
+        isZh ? '没有可排入 Todo 的内容渠道' : 'No calendar-capable content channels'
+      );
+    }
     const result = await runTopicPlanner({
       channelIds,
       count,
+      brief,
       userProfileDoc: store.userProfileDoc,
       projectProfileDoc: store.projectProfileDoc,
       strategyMarkdown: store.strategy?.overviewMarkdown ?? '',
@@ -544,7 +731,11 @@ async function executeStep(
       campaignContext: buildAgentContextEnvelope(store),
       locale: job.locale,
     });
+    if (result.topics.length === 0) {
+      throw new Error(isZh ? '选题规划未返回可用内容' : 'Topic planning returned no usable topics');
+    }
     const now = Date.now();
+    const scheduleDay = scheduleTodos ? chooseTopicScheduleDay(store) : null;
     const topics = result.topics.map((planned) => ({
       id: crypto.randomUUID(),
       title: planned.title,
@@ -553,7 +744,7 @@ async function executeStep(
       painPoint: planned.painPoint,
       corePoint: planned.corePoint,
       priority: planned.priority,
-      status: planned.status,
+      status: scheduleDay ? ('scheduled' as const) : planned.status,
       createdAt: now,
       updatedAt: now,
     }));
@@ -569,15 +760,49 @@ async function executeStep(
         angle: variant.angle,
         format: variant.format,
         cta: variant.cta,
-        status: variant.status,
+        status: scheduleDay ? ('scheduled' as const) : variant.status,
         createdAt: now,
         updatedAt: now,
       }));
     });
+    const addedTodos: Todo[] = scheduleDay
+      ? topicVariants.map((variant) => {
+          const topic = topics.find((candidate) => candidate.id === variant.topicId)!;
+          return {
+            id: crypto.randomUUID(),
+            topicVariantId: variant.id,
+            channelId: variant.channelId,
+            channelName: variant.channelName,
+            dayIndex: scheduleDay.dayIndex,
+            date: scheduleDay.date,
+            time: chooseTopicScheduleTime(store, variant.channelId, scheduleDay.date),
+            title: topic.title,
+            brief: [
+              `Hook：${variant.hook}`,
+              `角度：${variant.angle}`,
+              variant.format ? `形式：${variant.format}` : '',
+              variant.cta ? `CTA：${variant.cta}` : '',
+            ].filter(Boolean).join('\n'),
+            purpose: topic.corePoint,
+            taskType: 'content',
+            audience: topic.targetAudience,
+            status: 'pending' as const,
+            launchStatus: 'draft' as const,
+            contentStatus: 'none' as const,
+            revision: 1,
+          };
+        })
+      : [];
     store = {
       ...store,
       topics: [...store.topics, ...topics],
       topicVariants: [...store.topicVariants, ...topicVariants],
+      todos: [...store.todos, ...addedTodos].sort(
+        (left, right) =>
+          left.date.localeCompare(right.date) ||
+          (left.time ?? '').localeCompare(right.time ?? '')
+      ),
+      planReady: store.planReady || addedTodos.length > 0,
       artifacts: [
         ...store.artifacts,
         {
@@ -593,16 +818,34 @@ async function executeStep(
           metadata: {
             channelIds,
             topicCount: topics.length,
+            scheduledTodoCount: addedTodos.length,
+            brief,
             agentJobId: job.id,
           },
         },
       ],
       updatedAt: now,
     };
+    if (scheduleDay) {
+      const topicTitle = topics[0]?.title ?? brief ?? (isZh ? '新选题' : 'New topic');
+      store = appendDirectorMessage(store, {
+        role: 'assistant',
+        lane: 'background',
+        agentJobId: job.id,
+        content: isZh
+          ? `已把「${topicTitle}」拆成 ${addedTodos.length} 个渠道版本，并追加到 ${scheduleDay.date} 的 Todo。原有日历没有被覆盖。`
+          : `Added “${topicTitle}” as ${addedTodos.length} channel-specific todos on ${scheduleDay.date}. The existing calendar was preserved.`,
+        card: {
+          kind: 'calendar',
+          title: isZh ? '新选题已进入行动日历' : 'New topic added to the action calendar',
+        },
+      });
+    }
     return {
       result: {
         topicCount: topics.length,
         variantCount: topicVariants.length,
+        scheduledTodoCount: addedTodos.length,
       },
       store,
     };
@@ -729,6 +972,8 @@ async function executeStep(
         dayIndex: todo.dayIndex,
         phase: todo.phase,
         market: todo.market,
+        targetMarketId: todo.targetMarketId,
+        outputLocale: todo.outputLocale,
         audience: todo.audience,
         purpose: todo.purpose,
         pillar: todo.pillar,

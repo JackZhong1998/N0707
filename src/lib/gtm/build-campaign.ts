@@ -10,6 +10,7 @@ import {
   callStrategist,
 } from '@/lib/gtm/api-client';
 import { addDays } from '@/lib/gtm/dates';
+import { resolveTodoMarket } from '@/lib/gtm/target-markets';
 import type {
   GtmStore,
   LaunchChannelPlan,
@@ -369,8 +370,7 @@ export async function buildCampaignFromBrief(input: {
             pillar: todo.pillar ?? todo.phase,
             taskType: todo.taskType ?? 'content',
             phase: todo.phase,
-            market: todo.market,
-            audience: todo.audience,
+            ...resolveTodoMarket(todo, executionStore.targetMarkets),
             status: 'pending',
             launchStatus:
               todo.launchStatus ?? (todo.dayIndex <= 7 ? 'draft' : 'planned'),

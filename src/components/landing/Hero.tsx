@@ -53,16 +53,16 @@ export default async function Hero() {
           </p>
 
           <Link
-            href="/sign-up"
+            href="/sign-in"
             className="animate-fade-in-up delay-300 mt-7 inline-flex h-14 items-center justify-center rounded-full bg-white px-10 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:bg-brand-300 motion-reduce:animate-none sm:mt-10 sm:text-base"
           >
-            {isZh ? '免费组建推广团队' : 'Build My Launch Team'}
+            {isZh ? '免费获取 30 天市场策略报告' : 'Get My Free 30-Day Strategy Report'}
           </Link>
 
           <p className="animate-fade-in-up delay-400 mx-auto mt-4 max-w-2xl text-xs leading-6 text-zinc-400 motion-reduce:animate-none sm:mt-5 sm:text-sm">
             {isZh
-              ? '优先自然增长 · 不靠广告预算 · 专为独立开发者和一人公司打造'
-              : 'Organic-first · No ad budget or agency required · Built for solo founders and indie makers'}
+              ? '含产品启动判断、渠道推荐、发布排期与 Directory 计划 · 无需信用卡'
+              : 'Launch diagnosis, channel recommendations, publishing schedule, and directory plan · No credit card'}
           </p>
         </div>
 

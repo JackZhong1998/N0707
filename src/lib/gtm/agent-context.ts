@@ -50,6 +50,8 @@ export function buildAgentContextEnvelope(
       status: todo.launchStatus ?? todo.status,
       publishedUrl: todo.publishedUrl,
       revision: todo.revision ?? 1,
+      targetMarketId: todo.targetMarketId,
+      outputLocale: todo.outputLocale,
     }));
 
   const envelope = {
@@ -57,6 +59,7 @@ export function buildAgentContextEnvelope(
     authority: 'user-confirmed > sourced website fact > current campaign artifact > skill > inference',
     currentView: options.viewContext,
     project: launch?.project,
+    targetMarkets: store.targetMarkets ?? [],
     brief: launch?.brief
       ? {
           product: launch.brief.product,

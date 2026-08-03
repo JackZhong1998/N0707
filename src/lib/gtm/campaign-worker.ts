@@ -24,6 +24,7 @@ import { buildAgentContextEnvelope } from './agent-context';
 import { buildPerformanceContext } from './post-metrics';
 import { runStrategist } from '@/lib/agents/strategist';
 import { runChannelTodos } from '@/lib/agents/specialist';
+import { resolveTodoMarket } from './target-markets';
 import type {
   ChannelStrategyDoc,
   ChatMessage,
@@ -360,8 +361,8 @@ async function materializeChannelPlansStore(
   if (finalizeDone) {
     const hasCompletion = next.directorChat.some(
       (message) =>
-        message.agentJobId === job.id &&
         message.card?.kind === 'options' &&
+        !message.card.card.answered?.length &&
         (message.card.card.options.some((option) =>
           option.id.startsWith('generate_todos')
         ) ||
@@ -381,7 +382,9 @@ async function materializeChannelPlansStore(
         role: 'assistant',
         lane: 'background',
         agentJobId: job.id,
-        content: isZh ? '是否生成 Todo？' : 'Generate todos?',
+        // The question is already rendered by the options card. Keeping it in
+        // `content` creates a second, identical chat bubble above the card.
+        content: '',
         card: {
           kind: 'options',
           card: {
@@ -523,6 +526,7 @@ async function executeStep(
       campaignContext: buildAgentContextEnvelope(store, {
         channelId: step.channel_id,
       }),
+      targetMarkets: store.targetMarkets ?? [],
       locale: job.locale,
     });
     const todos = result.todos.map(
@@ -540,8 +544,7 @@ async function executeStep(
         pillar: todo.pillar ?? todo.phase,
         taskType: todo.taskType ?? 'content',
         phase: todo.phase,
-        market: todo.market,
-        audience: todo.audience,
+        ...resolveTodoMarket(todo, store.targetMarkets),
         status: 'pending',
         launchStatus:
           todo.launchStatus ?? (todo.dayIndex <= 7 ? 'draft' : 'planned'),

@@ -101,7 +101,7 @@ export default async function HomePage({ params }: Props) {
       '100+ matched directory opportunities and automated submission to 76 supported directories',
     ],
     offers: [
-      { '@type': 'Offer', price: '0', priceCurrency: 'USD', name: 'Free Launch Brief' },
+      { '@type': 'Offer', price: '0', priceCurrency: 'USD', name: 'Free 30-Day Market Strategy Report' },
       { '@type': 'Offer', price: '49', priceCurrency: 'USD', name: '30-Day Agent Launch Team', priceSpecification: { '@type': 'UnitPriceSpecification', price: '49', priceCurrency: 'USD', billingDuration: 'P1M' } },
     ],
   };

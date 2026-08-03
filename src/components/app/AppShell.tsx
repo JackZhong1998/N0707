@@ -160,9 +160,7 @@ function getActiveKey(pathname: string): NavigationKey {
   if (
     pathname.includes('/app/documents') ||
     pathname.includes('/app/artifacts') ||
-    pathname.includes('/app/brief') ||
     pathname.includes('/app/blueprint') ||
-    pathname.includes('/app/channel-recommendations') ||
     pathname.includes('/app/channels')
   ) {
     return 'documents';
@@ -202,13 +200,6 @@ function getRouteViewContext(
       title: isZh ? 'Directory' : 'Directory',
     };
   }
-  if (pathname.includes('/app/brief')) {
-    return {
-      view: 'launch_brief',
-      entityType: 'launch_brief',
-      title: isZh ? '项目文档' : 'Project document',
-    };
-  }
   if (pathname.includes('/app/documents/')) {
     const docMatch = pathname.match(/\/app\/documents\/([^/?]+)/);
     const docId = docMatch ? decodeURIComponent(docMatch[1]) : undefined;
@@ -232,13 +223,6 @@ function getRouteViewContext(
       view: 'documents',
       entityType: 'document_collection',
       title: isZh ? '文档' : 'Documents',
-    };
-  }
-  if (pathname.includes('/app/channel-recommendations')) {
-    return {
-      view: 'channel_recommendations',
-      entityType: 'channel_recommendations',
-      title: isZh ? '渠道推荐' : 'Channel Recommendations',
     };
   }
   if (pathname.includes('/app/blueprint')) {
@@ -285,11 +269,9 @@ function mapMessageArtifact(
     };
   }
   if (card.kind === 'channel_recommendations') {
-    return {
-      label: card.title,
-      status: 'done',
-      href: '/app/documents/recommendations',
-    };
+    // Channel cards render inline. The preceding strategy card owns the
+    // explicit link to the complete report, so do not duplicate it here.
+    return undefined;
   }
   if (card.kind === 'channel_plan') {
     const href = channelHasCalendarTodos(card.channelId)
@@ -353,6 +335,38 @@ function toPanelMessage(
     card: message.card,
     artifact: mapMessageArtifact(message.card, isZh),
   };
+}
+
+function isRetiredFlowMessage(message: ChatMessage): boolean {
+  return (
+    message.card?.kind === 'channel_recommendations' ||
+    (message.card?.kind === 'kickoff' &&
+      (message.card.card.title.includes('用户档案') ||
+        message.card.card.title.includes('Quick profile')))
+  );
+}
+
+/**
+ * A resumed worker and its original browser session can both retain the same
+ * terminal progress marker under different message ids. Keep the transcript
+ * durable, but collapse adjacent identical completion markers in the panel.
+ */
+function dedupeRepeatedWorkMarkers(messages: ChatMessage[]): ChatMessage[] {
+  return messages.filter((message, index) => {
+    if (
+      message.card?.kind !== 'agent-task' ||
+      message.card.status !== 'done'
+    ) {
+      return true;
+    }
+    const previous = messages[index - 1];
+    return !(
+      previous?.role === message.role &&
+      previous.card?.kind === 'agent-task' &&
+      previous.card.status === 'done' &&
+      previous.card.label === message.card.label
+    );
+  });
 }
 
 function ShellInner({ children }: { children: React.ReactNode }) {
@@ -505,6 +519,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     pendingCount,
     submitOptions,
     submitKickoff,
+    submitDirectoryMaterials,
     enqueueActions,
   } = useDirector(resolvedViewContext);
 
@@ -530,6 +545,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       );
     }
     return (
+      active?.detail ||
       active?.label ||
       (isZh ? `正在分析 · ${done}/${total}` : `Analyzing · ${done}/${total}`)
     );
@@ -538,7 +554,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const panelBusy = busy || Boolean(workspaceStatus);
 
   const panelMessages = useMemo<AgentPanelMessage[]>(
-    () => store.directorChat.map((message) => toPanelMessage(message, isZh)),
+    () =>
+      dedupeRepeatedWorkMarkers(
+        store.directorChat.filter((message) => !isRetiredFlowMessage(message))
+      )
+        .map((message) => toPanelMessage(message, isZh)),
     [store.directorChat, isZh]
   );
   const panelNotifications = useMemo(
@@ -605,7 +625,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       window.removeEventListener('nowbuild:write-todo', writeTodo);
   }, [enqueueActions]);
 
-  // Free tier may stay on onboarding, research progress, project docs, and brief.
+  // Free tier stays through the complete Market Strategy Report and can browse
+  // the generic Directory catalog. Paid execution surfaces remain locked.
   // Paid-only destinations keep the paywall; do not force unpaid users to calendar.
   // Users who already have todos land on calendar (handled by /app index).
   useEffect(() => {
@@ -614,11 +635,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     const phase = store.launch.project.phase;
     const freePath =
       /\/app\/?$/.test(pathname) ||
-      pathname.includes('/app/brief') ||
-      pathname.includes('/app/documents');
+      pathname.includes('/app/documents') ||
+      pathname.includes('/app/directories');
     if (
       phase === 'brief_ready' &&
-      !pathname.includes('/app/brief') &&
       !pathname.includes('/app/documents')
     ) {
       router.replace('/app/documents/project');
@@ -638,6 +658,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     }
     if (!freePath && phase === 'brief_ready') {
       router.replace('/app/documents/project');
+    }
+    if (
+      phase === 'strategy_report_ready' &&
+      !freePath &&
+      !pathname.includes('/app/calendar')
+    ) {
+      router.replace('/app/documents/recommendations');
     }
   }, [
     accessStatus,
@@ -724,15 +751,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     });
   }, [resolvedViewContext, setViewContext]);
 
-  // Free workspace: onboarding URL form, research progress, and Launch Brief.
-  // Paywall only locks paid execution surfaces (calendar, tasks, blueprint, etc.).
+  // Free workspace: onboarding, project docs, Market Strategy Report, channel
+  // cards, and the generic Directory catalog.
   const onboarding = hydrated && !store.launch;
   const freeUnpaidWorkspace =
     accessStatus === 'unpaid' &&
     (onboarding ||
       /\/app\/?$/.test(pathname) ||
-      pathname.includes('/app/brief') ||
-      pathname.includes('/app/documents'));
+      pathname.includes('/app/documents') ||
+      pathname.includes('/app/directories'));
   const locked = accessStatus === 'unpaid' && !freeUnpaidWorkspace;
   const restrictedUnpaidView = locked && !isCalendarIndex;
 
@@ -943,6 +970,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           onSend={handleSend}
           onSubmitOptions={submitOptions}
           onSubmitKickoff={submitKickoff}
+          onSubmitDirectoryMaterials={submitDirectoryMaterials}
           onReadNotification={markAgentNotificationRead}
           sending={sending}
           busy={panelBusy}
@@ -972,6 +1000,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             onSend={handleSend}
             onSubmitOptions={submitOptions}
             onSubmitKickoff={submitKickoff}
+            onSubmitDirectoryMaterials={submitDirectoryMaterials}
             onReadNotification={markAgentNotificationRead}
             sending={sending}
             busy={panelBusy}

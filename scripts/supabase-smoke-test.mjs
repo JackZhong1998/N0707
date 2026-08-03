@@ -55,6 +55,7 @@ let conversationId;
 const result = {
   connection: false,
   normalizedWriteRead: false,
+  marketReportSingleWrite: false,
   updateTriggers: false,
   aiSpendRpc: false,
   anonymousIsolation: false,
@@ -126,6 +127,56 @@ try {
     goal: 'Validate persistence',
   });
   assertNoError('insert market strategy', strategyInsert.error);
+
+  const marketReport = {
+    reportMarkdown: '# Complete report\n\nAll sections uploaded together.',
+    summaryMarkdown: 'Smoke test report',
+    diagnosis: {
+      productType: 'b2b_saas',
+      growthStage: 'cold-start',
+      primaryMarket: 'global',
+      bottleneck: 'distribution',
+    },
+    recommendations: [],
+    launchPlan: [],
+    directoryPlan: { strategy: 'Batch submissions', priorityCriteria: [], schedule: [] },
+    specialistSkillsUsed: [],
+    updatedAt: Date.now(),
+  };
+  const reportInsert = await admin.from('market_strategy_reports').insert({
+    project_id: projectId,
+    launch_id: `launch-${runId}`,
+    locale: 'en',
+    product_name: 'Smoke Product',
+    report_markdown: marketReport.reportMarkdown,
+    report: marketReport,
+  });
+  assertNoError('insert complete market strategy report', reportInsert.error);
+  const duplicateReport = await admin.from('market_strategy_reports').insert({
+    project_id: projectId,
+    launch_id: `launch-${runId}`,
+    locale: 'en',
+    product_name: 'Duplicate',
+    report_markdown: '# Duplicate',
+    report: { ...marketReport, reportMarkdown: '# Duplicate' },
+  });
+  assert(
+    duplicateReport.error?.code === '23505',
+    'market strategy report accepted a duplicate launch upload'
+  );
+  const reportRead = await admin
+    .from('market_strategy_reports')
+    .select('report_markdown, report')
+    .eq('project_id', projectId)
+    .eq('launch_id', `launch-${runId}`)
+    .single();
+  assertNoError('read complete market strategy report', reportRead.error);
+  assert(
+    reportRead.data.report_markdown === marketReport.reportMarkdown &&
+      reportRead.data.report?.reportMarkdown === marketReport.reportMarkdown,
+    'market strategy report was not stored as one complete payload'
+  );
+  result.marketReportSingleWrite = true;
 
   const channelStrategyInsert = await admin.from('channel_strategies').insert({
     project_id: projectId,

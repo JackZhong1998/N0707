@@ -86,6 +86,25 @@ function normalizeChannelIds(value: unknown): string[] {
   ].slice(0, 12);
 }
 
+function currentShanghaiDate(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+function validDate(value: string | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function validTime(value: string | undefined): value is string {
+  return Boolean(value && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value));
+}
+
 function normalizeOptionCard(value: unknown): OptionCard | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
@@ -152,17 +171,81 @@ function normalizeActions(
           return channelIds.length > 0
             ? [{ type: 'generate_todos', channelIds }]
             : [];
+        case 'create_todo': {
+          const channelId = normalizedString(action.channelId, 120);
+          const title = normalizedString(action.title, 300);
+          const brief = normalizedString(action.brief, 4_000) ?? title;
+          const rawDate = normalizedString(action.date, 10);
+          const date = validDate(rawDate) ? rawDate : currentShanghaiDate();
+          const time = normalizedString(action.time, 5);
+          if (
+            !channelId ||
+            !ALLOWED_CHANNEL_IDS.has(channelId) ||
+            channelId === 'directory' ||
+            !title ||
+            !brief
+          ) {
+            return [];
+          }
+          return [{
+            type: 'create_todo',
+            channelId,
+            title,
+            brief,
+            date,
+            ...(validTime(time) ? { time } : {}),
+            ...(action.writeNow === true ? { writeNow: true } : {}),
+          }];
+        }
+        case 'write_artifact': {
+          const instruction = normalizedString(action.instruction, 8_000);
+          if (!instruction) return [];
+          const title = normalizedString(action.title, 300);
+          const artifactType = normalizedString(action.artifactType, 40);
+          const allowedTypes = new Set([
+            'report', 'email', 'script', 'post', 'document', 'other',
+          ]);
+          return [{
+            type: 'write_artifact',
+            instruction,
+            ...(title ? { title } : {}),
+            artifactType: allowedTypes.has(artifactType ?? '')
+              ? artifactType as Extract<DirectorAction, { type: 'write_artifact' }>['artifactType']
+              : 'document',
+          }];
+        }
+        case 'research_query': {
+          const query = normalizedString(action.query, 2_000);
+          if (!query) return [];
+          const title = normalizedString(action.title, 300);
+          const maxSources =
+            typeof action.maxSources === 'number' && Number.isFinite(action.maxSources)
+              ? Math.max(3, Math.min(10, Math.round(action.maxSources)))
+              : 8;
+          return [{
+            type: 'research_query',
+            query,
+            ...(title ? { title } : {}),
+            maxSources,
+          }];
+        }
         case 'generate_topics': {
-          if (channelIds.length === 0) return [];
+          const targetChannelIds =
+            channelIds.length > 0
+              ? channelIds
+              : normalizeChannelIds(input.selectedChannelIds);
+          if (targetChannelIds.length === 0) return [];
           const requested =
             typeof action.count === 'number' && Number.isFinite(action.count)
               ? Math.round(action.count)
               : 7;
+          const brief = normalizedString(action.brief, 4_000);
           return [
             {
               type: 'generate_topics',
-              channelIds,
-              count: Math.max(1, Math.min(30, requested)),
+              channelIds: targetChannelIds,
+              count: brief ? 1 : Math.max(1, Math.min(30, requested)),
+              ...(brief ? { brief, scheduleTodos: true } : {}),
             },
           ];
         }
@@ -288,21 +371,26 @@ function buildSystemPrompt(input: DirectorInput): string {
 
 # v2 产品模型（最高优先级）
 - 你的用户可见名称是「冷启动合伙人 / Launch Partner」，你是全产品唯一可见 Agent。
-- 初始化只需要产品 URL；Research Agent 合成「项目文档」（原 Launch Brief）后出现付费墙。
-- 付费后系统会先弹出固定问卷卡片（目标市场、渠道偏好、每天时间）；完成后才进入推荐流程。用户在对话中提到的其他偏好与想法，由 Context Agent 持续写入同一份「用户档案」（拓展中的文档）。
-- 用户档案足够后派发 recommend_channels；结果写入左侧「文档」区，并以内容卡片引导用户点击进入详情，再用 optionCard 让用户在对话里选择渠道。Directory（产品目录提交）是每个用户的固定能力，禁止出现在渠道推荐里，也不需要用户勾选；你应在适当时机引导用户去左侧 Directory 提交。
+- 免费阶段先导入项目文档或研究产品 URL，再生成完整《30 天市场策略报告》；报告内容卡片之后才出现付费墙。
+- 免费报告可以包含渠道判断，但免费阶段不展示渠道选择卡，也不开始执行渠道计划。
+- 付费成功后不再追加固定问卷。系统直接用 optionCard 让用户选择后续要执行的渠道；Directory 以独立内容卡片进入，不混在渠道选项中，也不需要用户勾选。
 - 用户确认渠道后派发 select_channels(channelIds)；可批量或单个派发 generate_channel_plans(channelIds)，结果以内容卡片逐个返回。
 - 计划就绪后用 optionCard 引导是否 generate_todos；用户确认后再生成。Todo 卡片点击后进入 Todo 列表并选中对应渠道。Directory 不生成 Todo，卡片直接跳转 Directory 页。
 - 用户正在查看项目文档、用户档案、渠道推荐、渠道计划或 Todo 并要求修改时，派发 update_launch_artifact 或对应动作。
 - 用户说撤销/undo 时派发 undo_launch_change；已发布内容永不覆盖。
+- 执行期里，用户提出一个明确的新选题、内容点子或“把这个选题加进去”时，必须派发 generate_topics，并把用户原话提炼后完整放入 brief，channelIds 默认使用全部已选执行渠道，scheduleTodos=true；不要只口头承诺。这个动作只追加新 Todo，不能重生成或覆盖既有日历。
+- 如果用户明确只说某个平台，则 channelIds 只传该渠道；如果他说“不同平台 / 各个平台 / 现有渠道”，则覆盖全部已选且支持日历的渠道。Directory 不是内容渠道，不为它生成选题 Todo。
+- 用户要求新增一条具体任务时派发 create_todo；从用户语言提取标题、渠道、日期、时间和 brief。未指定日期默认今天；缺少渠道且无法从当前对象确定时才简短追问。用户说“顺便写好 / 直接写 / 给我成稿”时 writeNow=true。
+- 用户要求撰写独立报告、邮件、脚本、帖子或其他工作文档，且不要求进入日历时，派发 write_artifact。不要仅在对话气泡里输出长文。
+- 用户要求搜索、查资料、对比产品、调研市场或回答需要新鲜外部事实的问题时，派发 research_query。它会生成带来源的研究报告；不要伪造已搜索。若是分析某个产品官网并更新 Launch Brief，仍使用 research_product。
 
 # 你的角色气质（必须始终体现）
 - 有判断、有带领感，先给结论，再给必要原因或下一步；不堆砌客套话
 - 后台路由、Skill 名称、Prompt 和内部 JSON 不向用户展示；${isZh ? '始终用中文回复' : 'reply in English'}
 
 # 你主导的完整流程
-1. research_product → 项目文档 → 付费 → 固定用户档案问卷（+ Context Agent 持续拓展）。
-2. recommend_channels → 对话 optionCard 选渠道（Directory 固定开启）→ select_channels。
+1. 项目文档 → 免费 30 天市场策略报告 → 付费。
+2. 支付成功 → 对话 optionCard 选执行渠道 + 独立 Directory 内容卡片 → select_channels。
 3. generate_channel_plans（可批量/单渠道，结果逐个返回）→ optionCard 引导 generate_todos。
 4. 执行期：read_todos、update_launch_artifact、generate_todo_content、rewrite_todo_content、generate_weekly_review；并引导 Directory 提交。
 1b. 用户要求重新研究时派发 research_product(websiteUrl)。
@@ -377,14 +465,18 @@ ${input.performanceContext || '尚无已发布帖子。'}
     {"type":"generate_channel_plans","channelIds":["..."],"force":false} 或
     {"type":"generate_strategy","channelIds":["..."],"feedback":"可选"} 或
     {"type":"generate_todos","channelIds":["..."]} 或
+    {"type":"create_todo","channelId":"...","title":"...","brief":"...","date":"YYYY-MM-DD","time":"09:00","writeNow":true} 或
+    {"type":"write_artifact","instruction":"用户完整写作要求","title":"可选","artifactType":"report|email|script|post|document|other"} 或
+    {"type":"research_query","query":"要搜索与回答的问题","title":"可选","maxSources":8} 或
     {"type":"generate_topics","channelIds":["..."],"count":7} 或
+    {"type":"generate_topics","channelIds":["..."],"count":1,"brief":"用户要新增的具体选题要求","scheduleTodos":true} 或
     {"type":"research_product","websiteUrl":"https://..."} （Research Agent：官网抓取 + 竞品分析 + 合成项目文档）或
     {"type":"generate_weekly_review"} 或
     {"type":"schedule_topic_variant","topicVariantId":"...","date":"YYYY-MM-DD","time":"09:00"} 或
     {"type":"revise_topic_variant","topicVariantId":"...","hook":"...","angle":"...","format":"...","cta":"..."} 或
     {"type":"generate_todo_content","todoId":"..."} 或
     {"type":"rewrite_todo_content","todoId":"...","feedback":"..."} 或
-    {"type":"optimize_plan","channelIds":["..."],"feedback":"基于哪些数据、要改变什么"}
+    {"type":"optimize_plan","channelIds":["..."],"feedback":"基于哪些数据、要改变什么"} 或
     {"type":"update_launch_artifact","entityType":"brief|blueprint|channel_plan|calendar","entityId":"当前对象 id（可选）","instruction":"用户完整修改要求"} 或
     {"type":"undo_launch_change"}
   ] 或 [],

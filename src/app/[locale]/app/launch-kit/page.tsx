@@ -5,14 +5,23 @@ import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import { collectSiteAssetsWithExtension } from '@/lib/gtm/publisher-extension';
+import {
+  collectSiteAssetsFromServer,
+  mergeWebsiteAssets,
+  mergeWebsiteSocialLinks,
+} from '@/lib/gtm/site-assets';
 import type { DirectoryLaunchKit } from '@/lib/gtm/types';
 
 const emptyContact = {
   founderName: '',
+  founderBio: '',
   founderEmail: '',
   founderUrl: '',
   twitterUrl: '',
   linkedinUrl: '',
+  githubUrl: '',
+  discordUrl: '',
+  youtubeUrl: '',
   demoUrl: '',
 };
 
@@ -131,25 +140,38 @@ export default function LaunchKitPage() {
     setCollectingAssets(true);
     setMessage(isZh ? '正在读取官网公开素材…' : 'Reading public website assets…');
     try {
-      const result = await collectSiteAssetsWithExtension(kit.productUrl);
+      const serverResult = await collectSiteAssetsFromServer(kit.productUrl);
+      let incoming = serverResult.assets;
+      try {
+        const extensionResult = await collectSiteAssetsWithExtension(kit.productUrl);
+        incoming = [...incoming, ...extensionResult.assets];
+      } catch {
+        // The extension is optional; server-collected public assets are enough.
+      }
       setKit((current) => current ? {
-        ...current,
-        assets: [
-          ...current.assets.filter((asset) => asset.source === 'manual' || !asset.source),
-          ...result.assets.map((asset) => ({ ...asset, id: crypto.randomUUID() })),
-        ].slice(0, 6),
+        ...mergeWebsiteSocialLinks(current, serverResult.socialLinks),
+        assets: mergeWebsiteAssets(current.assets, incoming),
       } : current);
       setMessage(
         isZh
-          ? `已采集 ${result.assets.length} 张素材，请确认后保存。`
-          : `Collected ${result.assets.length} assets. Review and save them.`
+          ? `已采集 ${incoming.length} 张素材，请确认后保存。`
+          : `Collected ${incoming.length} assets. Review and save them.`
       );
     } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : isZh ? '官网素材采集失败，请手动上传。' : 'Asset collection failed; upload manually.'
-      );
+      try {
+        const extensionResult = await collectSiteAssetsWithExtension(kit.productUrl);
+        setKit((current) => current ? {
+          ...current,
+          assets: mergeWebsiteAssets(current.assets, extensionResult.assets),
+        } : current);
+        setMessage(isZh ? `已通过浏览器采集 ${extensionResult.assets.length} 张素材。` : `Collected ${extensionResult.assets.length} assets through the browser.`);
+      } catch {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : isZh ? '官网素材采集失败，请手动上传。' : 'Asset collection failed; upload manually.'
+        );
+      }
     } finally {
       setCollectingAssets(false);
     }
@@ -162,10 +184,14 @@ export default function LaunchKitPage() {
     ['shortDescription', isZh ? '简短介绍' : 'Short description', 'text'],
     ['pricing', isZh ? '定价方式' : 'Pricing', 'text'],
     ['founderName', isZh ? '创始人姓名' : 'Founder name', 'text'],
+    ['founderBio', isZh ? '创始人简介' : 'Founder bio', 'text'],
     ['founderEmail', isZh ? '联系邮箱' : 'Contact email', 'email'],
     ['founderUrl', isZh ? '创始人主页' : 'Founder URL', 'url'],
     ['twitterUrl', 'X / Twitter URL', 'url'],
     ['linkedinUrl', 'LinkedIn URL', 'url'],
+    ['githubUrl', 'GitHub URL', 'url'],
+    ['discordUrl', 'Discord URL', 'url'],
+    ['youtubeUrl', 'YouTube URL', 'url'],
     ['demoUrl', isZh ? '演示网址' : 'Demo URL', 'url'],
     ['launchDate', isZh ? '发布日期' : 'Launch date', 'date'],
   ];

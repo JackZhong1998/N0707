@@ -7,15 +7,15 @@ export default async function FlowSteps() {
 
   const steps = isZh
     ? [
-        { n: '1', t: '输入产品网址', d: 'Agent 读取官网并建立产品档案，再向你确认目标用户、市场、语气和 30 天目标。' },
-        { n: '2', t: '免费查看冷启动方向', d: '先看到产品理解、推荐渠道、Campaign 阶段、前 7 天日历、10 个目录和 1 篇完整内容。' },
-        { n: '3', t: '启动完整 30 天 Campaign', d: '确认 Agent 真正理解产品后再付费。适合的渠道团队会共享同一份产品记忆和策略。' },
+        { n: '1', t: '导入项目文档', d: '把 Prompt 交给常用 Coding / AI 平台，再将生成的项目文档粘贴回来；也可以选择分析产品网址。' },
+        { n: '2', t: '免费获得完整策略报告', d: '查看产品启动判断、推荐渠道与理由、Day 1–30 发布排期和 Directory 提交计划。' },
+        { n: '3', t: '组建 Launch Agent Team', d: '看完报告再付费。团队会把策略拆成逐日内容、Todo、发布材料和个性化 Directory 提交。' },
         { n: '4', t: '每天执行，每周调整', d: 'Agent 准备内容与发布资料；你审核外部操作。每周再用公开表现和执行结果调整后续工作。' },
       ]
     : [
-        { n: '1', t: 'Enter the product URL', d: 'Agents read the site, build a product profile, and confirm only what is missing: audience, market, voice, and the 30-day goal.' },
-        { n: '2', t: 'Preview the launch direction free', d: 'See the product understanding, recommended channels, campaign phases, first 7 days, 10 directories, and one complete draft.' },
-        { n: '3', t: 'Start the full 30-day campaign', d: 'Pay only after the team demonstrates that it understands the product. The selected agents share one memory and strategy.' },
+        { n: '1', t: 'Import a project document', d: 'Run our prompt in your coding/AI platform and paste the document back—or choose public website analysis.' },
+        { n: '2', t: 'Get the complete strategy report free', d: 'See the launch diagnosis, channel rationale, Day 1–30 publishing schedule, and directory submission plan.' },
+        { n: '3', t: 'Assemble Launch Agent Team', d: 'Pay only after reading the report. The team turns strategy into daily content, tasks, publishing assets, and personalized directory submissions.' },
         { n: '4', t: 'Execute daily and adjust weekly', d: 'Agents prepare content and publishing materials; you approve external actions. Weekly reviews update what comes next.' },
       ];
 
@@ -25,7 +25,7 @@ export default async function FlowSteps() {
         <div className="max-w-3xl">
           <p className="index-label">{isZh ? '先证明理解，再为完整执行付费' : 'See understanding before paying for execution'}</p>
           <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold tracking-[-0.045em] text-ink sm:text-5xl">
-            {isZh ? '从一个网址，到一套每天都能推进的 Campaign。' : 'From one URL to a campaign that moves every day.'}
+            {isZh ? '从项目文档，到一套每天都能推进的 Campaign。' : 'From a project document to a campaign that moves every day.'}
           </h2>
         </div>
 

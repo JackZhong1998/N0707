@@ -7,7 +7,6 @@
 import type {
   AgentArtifactKind,
   GtmStore,
-  LaunchBrief,
   ChannelRecommendationResponse,
 } from '@/lib/gtm/types';
 import ChannelLogo from '@/components/ChannelLogo';
@@ -60,9 +59,18 @@ export function buildDocumentList(store: GtmStore, isZh: boolean): DocListItem[]
       id: 'project',
       href: '/app/documents/project',
       label: isZh ? '项目文档' : 'Project document',
-      ready: Boolean(brief),
+      ready: Boolean(store.projectProfileDoc.trim() || brief),
       summary:
-        brief?.positioning.statement?.slice(0, 120) ||
+        store.projectProfileDoc
+          .replace(/^#+\s*/gm, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 120) ||
+        brief?.sourceMarkdown
+          ?.replace(/^#+\s*/gm, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 120) ||
         (isZh ? 'Research 生成的产品事实基础' : 'Product facts from research'),
       kind: 'project',
       version: brief?.revision,
@@ -73,20 +81,20 @@ export function buildDocumentList(store: GtmStore, isZh: boolean): DocListItem[]
       label: isZh ? '用户档案' : 'User profile',
       ready: Boolean(store.userProfileDoc.trim()),
       summary: isZh
-        ? '固定问卷 + 对话中持续拓展的偏好与想法'
-        : 'Fixed questionnaire + expanding preferences from chat',
+        ? '对话中持续积累的偏好、约束与想法'
+        : 'Preferences, constraints, and ideas accumulated from chat',
       kind: 'user',
     },
     {
       id: 'recommendations',
       href: '/app/documents/recommendations',
-      label: isZh ? '渠道推荐' : 'Channel recommendations',
+      label: isZh ? '30 天市场策略报告' : '30-Day Market Strategy Report',
       ready: Boolean(recommendations),
       summary:
         recommendations?.diagnosis.primaryMarket ||
         (isZh
-          ? '按产品与用户档案的优先级'
-          : 'Priorities from product × profile fit'),
+          ? '产品启动判断、渠道排期与 Directory 提交计划'
+          : 'Launch diagnosis, channel schedule, and directory submission plan'),
       kind: 'recommendations',
     },
     ...strategies.map(([channelId, doc]) => ({
@@ -124,72 +132,11 @@ export function MarkdownBody({ text }: { text: string }) {
 }
 
 function ProjectDocBody({
-  brief,
-  projectProfileDoc,
-  isZh,
+  markdown,
 }: {
-  brief: LaunchBrief;
-  projectProfileDoc: string;
-  isZh: boolean;
+  markdown: string;
 }) {
-  return (
-    <div className="min-w-0 space-y-8 break-words">
-      <section>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-          {isZh ? '定位' : 'Positioning'}
-        </p>
-        <p className="mt-2 text-base leading-7 text-zinc-200">
-          {brief.positioning.statement}
-        </p>
-        <ul className="mt-3 space-y-1.5">
-          {brief.positioning.sellingPoints.map((point) => (
-            <li key={point} className="text-sm leading-6 text-zinc-400">
-              · {point}
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-          {isZh ? '产品摘要' : 'Product summary'}
-        </p>
-        <p className="mt-2 text-sm leading-7 text-zinc-300">{brief.product.summary}</p>
-        <p className="mt-3 text-sm leading-7 text-zinc-400">
-          <span className="text-zinc-200">{isZh ? '核心问题：' : 'Problem: '}</span>
-          {brief.product.problem}
-        </p>
-      </section>
-      <section>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-          {isZh ? '目标人群' : 'Audience'}
-        </p>
-        <p className="mt-2 text-sm leading-7 text-zinc-300">{brief.audience.primary}</p>
-      </section>
-      <section>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-          {isZh ? '竞品' : 'Competitors'}
-        </p>
-        <ul className="mt-2 space-y-1.5">
-          {brief.competitors.map((item) => (
-            <li key={item.name} className="text-sm leading-6 text-zinc-400">
-              <span className="text-zinc-200">{item.name}</span>
-              {item.difference ? ` — ${item.difference}` : ''}
-            </li>
-          ))}
-        </ul>
-      </section>
-      {projectProfileDoc ? (
-        <section className="min-w-0 border-t border-white/[0.06] pt-8">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            {isZh ? '拓展档案' : 'Expanded profile'}
-          </p>
-          <div className="mt-3 min-w-0">
-            <MarkdownBody text={projectProfileDoc} />
-          </div>
-        </section>
-      ) : null}
-    </div>
-  );
+  return <MarkdownBody text={markdown} />;
 }
 
 function RecommendationsBody({
@@ -201,7 +148,11 @@ function RecommendationsBody({
 }) {
   return (
     <div className="min-w-0 space-y-5 break-words">
-      <MarkdownBody text={recommendations.summaryMarkdown} />
+      <MarkdownBody
+        text={
+          recommendations.reportMarkdown || recommendations.summaryMarkdown
+        }
+      />
       <ul className="space-y-3">
         {recommendations.recommendations
           .filter((item) => item.priority !== 'skip')
@@ -223,8 +174,8 @@ function RecommendationsBody({
       </ul>
       <p className="text-xs text-zinc-500">
         {isZh
-          ? 'Directory 是固定能力，不在推荐列表中。请在左侧 Directory 提交。'
-          : 'Directory is always on and omitted from recommendations. Submit via Directory.'}
+          ? '报告中的 Directory 部分免费开放；付费后，Directory 工作区才会显示针对这个产品的具体平台排名并执行提交。'
+          : 'The directory strategy is free in this report. Exact platform ranking and submission execution unlock in the paid Directory workspace.'}
       </p>
     </div>
   );
@@ -243,20 +194,16 @@ export function DocumentDetailBody({
   const recommendations = store.launch?.channelRecommendations;
 
   if (docId === 'project') {
-    if (!brief) {
+    const importedMarkdown =
+      store.projectProfileDoc || brief?.sourceMarkdown || '';
+    if (!importedMarkdown.trim()) {
       return (
         <p className="text-sm text-zinc-500">
           {isZh ? '项目文档尚未生成。' : 'Project document not ready yet.'}
         </p>
       );
     }
-    return (
-      <ProjectDocBody
-        brief={brief}
-        projectProfileDoc={store.projectProfileDoc}
-        isZh={isZh}
-      />
-    );
+    return <ProjectDocBody markdown={importedMarkdown} />;
   }
 
   if (docId === 'user') {
@@ -265,8 +212,8 @@ export function DocumentDetailBody({
         text={
           store.userProfileDoc ||
           (isZh
-            ? '付费后完成固定问卷，之后对话中的偏好会持续补充到这里。'
-            : 'Complete the post-pay questionnaire; chat preferences keep expanding here.')
+            ? '你在对话中补充的偏好、约束与想法会持续整理到这里。'
+            : 'Preferences, constraints, and ideas you share in chat will be organized here.')
         }
       />
     );
@@ -277,8 +224,8 @@ export function DocumentDetailBody({
       return (
         <p className="text-sm text-zinc-500">
           {isZh
-            ? '完成用户档案后，合伙人会生成渠道推荐。'
-            : 'After the profile card, Partner will generate channel recommendations.'}
+            ? '市场策略报告正在生成。'
+            : 'Your market strategy report is being generated.'}
         </p>
       );
     }

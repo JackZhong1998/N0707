@@ -18,6 +18,8 @@ import {
   type ChatMessage,
   type ChannelRecommendationResponse,
   type ChannelStrategyDoc,
+  type DirectorySubmission,
+  type DirectorySubmissionJob,
   type GtmStore,
   type LaunchChannelPlan,
   type MarketStrategy,
@@ -113,6 +115,9 @@ function migrate(raw: unknown): GtmStore {
       ? parsed.topicVariants
       : fresh.topicVariants,
     todos: Array.isArray(parsed.todos) ? parsed.todos : fresh.todos,
+    targetMarkets: Array.isArray(parsed.targetMarkets)
+      ? parsed.targetMarkets
+      : fresh.targetMarkets,
     todoChats:
       parsed.todoChats && typeof parsed.todoChats === 'object'
         ? parsed.todoChats
@@ -172,6 +177,47 @@ function mergeById<T extends { id: string }>(
   const merged = new Map(older.map((item) => [item.id, item]));
   for (const item of newer) merged.set(item.id, item);
   return [...merged.values()];
+}
+
+function todoContentVersion(todo: Todo): number {
+  if (todo.contentStatus !== 'ready' || !todo.content) return 0;
+  return todo.contentRevision ?? todo.revision ?? 1;
+}
+
+/**
+ * A server worker can finish writing while this tab still has the pre-write
+ * todo in its local cache. Hydration normally lets the local write-ahead copy
+ * win, but an empty/writing todo must never erase a completed server draft.
+ */
+function preserveGeneratedTodoContent(
+  preferred: Todo,
+  fallback: Todo | undefined
+): Todo {
+  if (!fallback) return preferred;
+  // A newer Todo revision may intentionally invalidate an old draft after the
+  // user changes its market or publishing language.
+  if ((preferred.revision ?? 0) > (fallback.revision ?? 0)) return preferred;
+  const preferredVersion = todoContentVersion(preferred);
+  const fallbackVersion = todoContentVersion(fallback);
+  if (fallbackVersion <= preferredVersion) return preferred;
+  return {
+    ...preferred,
+    content: fallback.content,
+    contentStatus: 'ready',
+    contentRevision: fallback.contentRevision,
+    contentHistory: fallback.contentHistory,
+    revision: Math.max(preferred.revision ?? 0, fallback.revision ?? 0),
+  };
+}
+
+function preserveRemoteGeneratedTodoContent(
+  todos: Todo[],
+  remoteTodos: Todo[]
+): Todo[] {
+  const remoteById = new Map(remoteTodos.map((todo) => [todo.id, todo]));
+  return todos.map((todo) =>
+    preserveGeneratedTodoContent(todo, remoteById.get(todo.id))
+  );
 }
 
 /**
@@ -239,7 +285,10 @@ function mergeHydratedStores(
     ).sort((a, b) => a.createdAt - b.createdAt),
     launch,
     planReady: Boolean(localStore.planReady || remoteStore.planReady),
-    todos: mergeById(remoteStore.todos, localStore.todos).sort(
+    todos: preserveRemoteGeneratedTodoContent(
+      mergeById(remoteStore.todos, localStore.todos),
+      remoteStore.todos
+    ).sort(
       (a, b) =>
         a.dayIndex - b.dayIndex || a.channelId.localeCompare(b.channelId)
     ),
@@ -261,6 +310,10 @@ function mergeHydratedStores(
     ),
     targetMarketLocale:
       localStore.targetMarketLocale ?? remoteStore.targetMarketLocale,
+    targetMarkets:
+      (localStore.targetMarkets?.length ?? 0) > 0
+        ? localStore.targetMarkets
+        : remoteStore.targetMarkets,
     strategy: localStore.strategy ?? remoteStore.strategy,
     updatedAt: Math.max(remoteStore.updatedAt, localStore.updatedAt),
   };
@@ -344,6 +397,26 @@ function mergeChannelPlans(
   return merged;
 }
 
+function hasPersonalizedDirectories(
+  directories: DirectorySubmission[] | undefined
+): boolean {
+  return Boolean(directories?.some((item) => item.fitTier));
+}
+
+function mergeDirectoryJobs(
+  remote: DirectorySubmissionJob[] | undefined,
+  local: DirectorySubmissionJob[] | undefined
+): DirectorySubmissionJob[] | undefined {
+  if (!remote && !local) return undefined;
+  const merged = new Map<string, DirectorySubmissionJob>();
+  for (const job of local ?? []) merged.set(job.id, job);
+  for (const job of remote ?? []) {
+    const current = merged.get(job.id);
+    if (!current || job.updatedAt > current.updatedAt) merged.set(job.id, job);
+  }
+  return [...merged.values()];
+}
+
 /**
  * Agent workers write into `launch` while this tab keeps editing the same
  * object, so choosing one side wholesale drops the other's work — a
@@ -365,6 +438,18 @@ function mergeLaunchStates(
   const merged = preferFartherLaunch(sameProjectBase, remote, local) ?? local;
   const research =
     launchProgressScore(remote) >= launchProgressScore(local) ? remote : local;
+  const remoteHasPersonalizedDirectories = hasPersonalizedDirectories(
+    remote.directories
+  );
+  const localHasPersonalizedDirectories = hasPersonalizedDirectories(
+    local.directories
+  );
+  const directoryOwner =
+    remoteHasPersonalizedDirectories && !localHasPersonalizedDirectories
+      ? remote
+      : localHasPersonalizedDirectories && !remoteHasPersonalizedDirectories
+        ? local
+        : merged;
 
   return {
     ...merged,
@@ -383,6 +468,14 @@ function mergeLaunchStates(
       (recommendations) => recommendations.updatedAt
     ),
     channelPlans: mergeChannelPlans(remote.channelPlans, local.channelPlans),
+    // Paid personalized matches are derived from the product profile. A newer
+    // campaign/job snapshot may still carry the generic free catalog, but that
+    // must never downgrade an already-personalized Directory workspace.
+    directories: directoryOwner.directories,
+    directoryJobs: mergeDirectoryJobs(
+      remote.directoryJobs,
+      local.directoryJobs
+    ),
   };
 }
 
@@ -554,6 +647,11 @@ function mergeConflictingStores(
       remoteStore.targetMarketLocale,
       localStore.targetMarketLocale
     ),
+    targetMarkets: mergeThreeWayValue(
+      baseStore.targetMarkets,
+      remoteStore.targetMarkets,
+      localStore.targetMarkets
+    ),
     paid: remoteStore.paid,
     strategy: mergeThreeWayValue(
       baseStore.strategy,
@@ -617,11 +715,14 @@ function mergeConflictingStores(
       localStore.topicVariants,
       (variant) => variant.id
     ),
-    todos: mergeThreeWayByKey(
-      baseStore.todos,
-      remoteStore.todos,
-      localStore.todos,
-      (todo) => todo.id
+    todos: preserveRemoteGeneratedTodoContent(
+      mergeThreeWayByKey(
+        baseStore.todos,
+        remoteStore.todos,
+        localStore.todos,
+        (todo) => todo.id
+      ),
+      remoteStore.todos
     ),
     todoChats: mergeThreeWayTodoChats(
       baseStore.todoChats,

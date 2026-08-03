@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useRouter } from '@/i18n/navigation';
 import KickoffCardView from '@/components/app/chat/KickoffCardView';
 import OptionCardView from '@/components/app/chat/OptionCardView';
+import DirectoryMaterialsCardView from '@/components/app/chat/DirectoryMaterialsCardView';
 import { Markdown } from '@/lib/gtm/markdown';
 import type {
   KickoffCard,
+  DirectoryMaterialKey,
+  DirectoryMaterialsCard,
   MessageCard,
   OptionCard,
 } from '@/lib/gtm/types';
@@ -59,6 +62,11 @@ export type AgentPanelViewProps = {
     card: KickoffCard,
     answers: Record<string, string[]>,
     productUrl?: string
+  ) => void;
+  onSubmitDirectoryMaterials?: (
+    messageId: string,
+    card: DirectoryMaterialsCard,
+    values: Partial<Record<DirectoryMaterialKey, string>>
   ) => void;
   onReadNotification?: (notificationId: string) => void;
   sending?: boolean;
@@ -125,11 +133,15 @@ function InteractiveMessageCard({
   card,
   onSubmitOptions,
   onSubmitKickoff,
+  onSubmitDirectoryMaterials,
+  isZh,
 }: {
   messageId: string;
   card: MessageCard;
   onSubmitOptions?: AgentPanelViewProps['onSubmitOptions'];
   onSubmitKickoff?: AgentPanelViewProps['onSubmitKickoff'];
+  onSubmitDirectoryMaterials?: AgentPanelViewProps['onSubmitDirectoryMaterials'];
+  isZh: boolean;
 }) {
   if (card.kind === 'kickoff' && onSubmitKickoff) {
     const kickoffCard = card.card;
@@ -152,6 +164,15 @@ function InteractiveMessageCard({
         onSubmit={(selected, customText) =>
           onSubmitOptions(messageId, optionCard, selected, customText)
         }
+      />
+    );
+  }
+  if (card.kind === 'directory_materials' && onSubmitDirectoryMaterials) {
+    return (
+      <DirectoryMaterialsCardView
+        card={card.card}
+        isZh={isZh}
+        onSubmit={(values) => onSubmitDirectoryMaterials(messageId, card.card, values)}
       />
     );
   }
@@ -179,6 +200,7 @@ export default function AgentPanelView({
   onSend,
   onSubmitOptions,
   onSubmitKickoff,
+  onSubmitDirectoryMaterials,
   onReadNotification,
   sending = false,
   busy = false,
@@ -492,6 +514,8 @@ export default function AgentPanelView({
                   card={message.card}
                   onSubmitOptions={onSubmitOptions}
                   onSubmitKickoff={onSubmitKickoff}
+                  onSubmitDirectoryMaterials={onSubmitDirectoryMaterials}
+                  isZh={isZh}
                 />
               )}
               {message.artifact && (

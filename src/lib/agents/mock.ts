@@ -41,6 +41,47 @@ export async function mockDirector(input: {
   const channelIds = input.channels;
   const websiteUrl = msg.match(/https?:\/\/[^\s<>()]+/i)?.[0];
 
+  if (/(?:新增|添加|加).{0,12}(?:todo|待办|任务)|(?:create|add).{0,12}(?:todo|task)/i.test(msg)) {
+    const channelId = channelIds.find((id) => id !== 'directory') ?? getChannelCatalog()[0]?.channelId;
+    if (channelId) {
+      const date = new Date().toLocaleDateString('en-CA');
+      return {
+        reply: '我会把这条任务直接加到行动日历。',
+        actions: [{
+          type: 'create_todo',
+          channelId,
+          title: msg.slice(0, 120),
+          brief: msg,
+          date,
+          writeNow: /(直接写|写好|成稿|write now|draft it)/i.test(msg),
+        }],
+      };
+    }
+  }
+
+  if (/(?:搜索|调研|查资料|查一下|search|research)/i.test(msg) && !websiteUrl) {
+    return {
+      reply: '我会执行网络搜索，再把结论和来源整理成研究报告。',
+      actions: [{ type: 'research_query', query: msg, maxSources: 8 }],
+    };
+  }
+
+  if (/(?:写|起草|撰写|write|draft)/i.test(msg) && /(?:邮件|报告|脚本|帖子|文档|email|report|script|post|document)/i.test(msg)) {
+    const artifactType = /(?:邮件|email)/i.test(msg)
+      ? 'email'
+      : /(?:报告|report)/i.test(msg)
+        ? 'report'
+        : /(?:脚本|script)/i.test(msg)
+          ? 'script'
+          : /(?:帖子|post)/i.test(msg)
+            ? 'post'
+            : 'document';
+    return {
+      reply: '我会把完整成稿写好并保存到文档工作区。',
+      actions: [{ type: 'write_artifact', instruction: msg, artifactType }],
+    };
+  }
+
   if (/(推荐|渠道选择|做什么渠道)/.test(msg) || (!input.hasChannelRecommendations && /计划|渠道/.test(msg) && channelIds.length === 0)) {
     return {
       reply: '我先根据你的产品档案和用户背景做渠道推荐，结果会出现在左侧「渠道推荐」页。',
@@ -84,7 +125,7 @@ export async function mockDirector(input: {
 
   return {
     reply:
-      '链接已收到。我会先完成产品研究并生成 Launch Brief；付费后我们再聊你的目标市场和渠道偏好。',
+      '链接已收到。我会先完成产品研究，再免费生成包含渠道组合、30 天排期和 Directory 计划的市场策略报告；看完报告后再决定是否组建执行团队。',
     actions: [{ type: 'research_product', websiteUrl }],
   };
 }
@@ -311,10 +352,29 @@ export async function mockChannelRecommendations(
     (c) => c.channelId !== 'directory'
   );
 
+  const launchPlan = [
+    { days: 'Day 1–7', phase: isZh ? '定位与开张' : 'Positioning & setup', objective: isZh ? '统一产品信息并建立首批渠道阵地' : 'Align the message and establish initial channels', channelIds: primaryIds.slice(0, 3), actions: isZh ? ['校准定位和核心 CTA', '完成渠道主页', '发布首批问题认知内容'] : ['Align positioning and CTA', 'Complete channel profiles', 'Publish problem-led content'], successSignal: isZh ? '首批目标用户互动' : 'First target-user interactions' },
+    { days: 'Day 8–14', phase: isZh ? '内容验证' : 'Message validation', objective: isZh ? '找到最有反应的信息与渠道' : 'Find the message and channel with the strongest response', channelIds: primaryIds, actions: isZh ? ['持续原生内容', '定向触达', '记录异议与点击'] : ['Publish native content', 'Run targeted outreach', 'Track objections and clicks'], successSignal: isZh ? '至少一个可重复的正向信号' : 'One repeatable positive signal' },
+    { days: 'Day 15–21', phase: isZh ? '证据与蓄水' : 'Proof & buildup', objective: isZh ? '把反馈变成可信证据并准备发布' : 'Turn feedback into proof and prepare the launch', channelIds: [...primaryIds, ...secondaryIds.slice(0, 2)], actions: isZh ? ['沉淀演示或案例', '加码有效渠道', '准备发布素材'] : ['Package a demo or case study', 'Double down on effective channels', 'Prepare launch assets'], successSignal: isZh ? '形成可公开证据与支持者名单' : 'Public proof and a supporter list' },
+    { days: 'Day 22–30', phase: isZh ? '集中发布与复盘' : 'Launch & review', objective: isZh ? '完成发布并决定下一轮方向' : 'Launch and decide the next growth bet', channelIds: primaryIds, actions: isZh ? ['执行集中发布', '完成 Directory 提交批次', '复盘渠道与转化'] : ['Run the coordinated launch', 'Complete directory batches', 'Review channel and conversion signals'], successSignal: isZh ? '明确加码、调整与停止项' : 'Clear keep, change, and stop decisions' },
+  ];
+  const directoryPlan = {
+    strategy: isZh ? '先准备统一提交资料，再按目标用户匹配度、收录资格和审核速度分两批提交。最适合你的具体平台会在付费后于 Directory 工作区解锁。' : 'Prepare one shared submission kit, then submit in two batches based on audience fit, eligibility, and review speed. Exact best-fit platforms unlock in the paid Directory workspace.',
+    priorityCriteria: isZh ? ['目标用户匹配度', '收录资格', '审核速度', '成本与可追踪价值'] : ['Audience fit', 'Eligibility', 'Review speed', 'Cost and trackable value'],
+    schedule: [
+      { days: 'Day 1–3', objective: isZh ? '准备提交资料' : 'Prepare submission materials', actions: isZh ? ['产品定位与描述', 'Logo、截图、定价与创始人资料'] : ['Positioning and descriptions', 'Logo, screenshots, pricing, and founder details'] },
+      { days: 'Day 8–14', objective: isZh ? '第一批高匹配提交' : 'First high-fit batch', actions: isZh ? ['优先快速审核平台', '记录状态与补充项'] : ['Prioritize fast-review platforms', 'Track status and missing fields'] },
+      { days: 'Day 22–26', objective: isZh ? 'Launch 同步提交' : 'Launch-timed batch', actions: isZh ? ['更新发布证据', '处理人工验证'] : ['Add launch proof', 'Handle human verification'] },
+    ],
+  };
+  const summaryMarkdown = isZh
+    ? '## 执行摘要\n\n产品处于冷启动阶段。先用少量高匹配渠道验证定位与信息，再在第四周集中发布；所有动作围绕同一目标用户和同一转化路径。'
+    : '## Executive summary\n\nThe product is at cold start. Validate positioning with a small set of high-fit channels, then coordinate the launch in week four around one audience and one conversion path.';
+  const reportMarkdown = `${isZh ? '# 30 天市场策略报告' : '# 30-Day Market Strategy Report'}\n\n${summaryMarkdown}\n\n## ${isZh ? '产品与启动判断' : 'Product and launch diagnosis'}\n\n${isZh ? '先验证目标用户是否对核心问题和价值主张产生反应，再扩大内容与发布动作。当前未确认的信息应作为第一周访谈和触达中的关键假设。' : 'First validate whether the target audience responds to the core problem and value proposition, then expand content and launch activity. Treat unconfirmed inputs as week-one validation hypotheses.'}\n\n## ${isZh ? '30 天 Launch 发布计划' : '30-day launch plan'}\n\n${launchPlan.map((phase) => `### ${phase.days} · ${phase.phase}\n\n${phase.objective}\n\n${phase.actions.map((action) => `- ${action}`).join('\n')}\n\n**${isZh ? '成功信号' : 'Success signal'}：** ${phase.successSignal}`).join('\n\n')}\n\n## ${isZh ? 'Directory 提交计划' : 'Directory submission plan'}\n\n${directoryPlan.strategy}\n\n${directoryPlan.schedule.map((phase) => `### ${phase.days}\n\n${phase.objective}\n\n${phase.actions.map((action) => `- ${action}`).join('\n')}`).join('\n\n')}\n\n## ${isZh ? '立即开始' : 'Start now'}\n\n1. ${isZh ? '确认一句话定位' : 'Confirm the one-line positioning'}\n2. ${isZh ? '建立第一个主渠道主页' : 'Set up the first primary channel'}\n3. ${isZh ? '准备 Directory 统一提交资料' : 'Prepare the shared directory submission kit'}`;
+
   return {
-    summaryMarkdown: isZh
-      ? '## 渠道推荐（演示模式）\n\n基于产品档案的 Mock 推荐。正式环境会调用 Growth Finder + GTM Playbook 专家 Skill。'
-      : '## Channel recommendations (demo)\n\nMock output based on product profile.',
+    reportMarkdown,
+    summaryMarkdown,
     diagnosis: {
       productType: dev ? 'dev_tool' : 'b2b_saas',
       growthStage: 'cold-start',
@@ -335,6 +395,8 @@ export async function mockChannelRecommendations(
         .slice(-3)
         .map((c) => toItem(c.channelId, 'skip', 25)),
     ],
+    launchPlan,
+    directoryPlan,
     specialistSkillsUsed: ['gingiris-growth-finder', 'go-to-market-playbook'],
     updatedAt: Date.now(),
   };

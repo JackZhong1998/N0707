@@ -235,13 +235,42 @@ export interface KickoffCard {
   productUrl?: string;
 }
 
+export interface DirectoryMaterialCardField {
+  key: DirectoryMaterialKey;
+  label: string;
+  value: string;
+  source: 'detected' | 'ai_draft' | 'user_required';
+  input: 'text' | 'url' | 'email' | 'textarea' | 'list';
+  required?: boolean;
+  detail?: string;
+}
+
+export interface DirectoryMaterialsCard {
+  title: string;
+  description: string;
+  fields: DirectoryMaterialCardField[];
+  needsLogo?: boolean;
+  needsScreenshots?: boolean;
+  savedAt?: number;
+}
+
 /* ---------- 消息卡片 ---------- */
 
 export type MessageCard =
   | { kind: 'options'; card: OptionCard }
   | { kind: 'kickoff'; card: KickoffCard }
+  | { kind: 'directory_materials'; card: DirectoryMaterialsCard }
   | { kind: 'strategy'; title: string; channelIds: string[] }
-  | { kind: 'channel_recommendations'; title: string }
+  | {
+      kind: 'channel_recommendations';
+      title: string;
+      channels?: Array<{
+        channelId: string;
+        channelName: string;
+        rationale: string;
+        cadence: string;
+      }>;
+    }
   | { kind: 'channel_plan'; channelId: string; channelName: string }
   | { kind: 'channel_todos'; channelId: string; channelName: string; todoCount: number }
   /** Directory has no calendar todos — the card links straight to the pipeline. */
@@ -319,6 +348,21 @@ export interface TodoContentVersion {
   reason?: string;
 }
 
+/** A user-confirmed market that publishable work may target. */
+export interface TargetMarket {
+  id: string;
+  /** User-facing market name, for example "United States SaaS". */
+  name: string;
+  /** Country, region, or market cluster. */
+  region: string;
+  /** User-facing language name. */
+  language: string;
+  /** BCP-47 locale used to control generated publishable copy. */
+  locale: string;
+  audience?: string;
+  isDefault?: boolean;
+}
+
 export interface Todo {
   id: string;
   /** 可选：该执行任务所采用的渠道选题版本。 */
@@ -343,6 +387,10 @@ export interface Todo {
   phase?: string;
   /** 该 To-Do 针对的目标市场（如「中国大陆」「United States」）；决定产出内容的语言 */
   market?: string;
+  /** Structured project-market reference. `market` remains as a readable legacy label. */
+  targetMarketId?: string;
+  /** BCP-47 locale for this Todo's externally published deliverable. */
+  outputLocale?: string;
   /** 该 To-Do 针对的目标人群一句话 */
   audience?: string;
   status: TodoStatus;
@@ -372,6 +420,7 @@ export type LaunchPhase =
   | 'onboarding'
   | 'researching'
   | 'brief_ready'
+  | 'strategy_report_ready'
   | 'blueprint_ready'
   | 'building_team'
   | 'active'
@@ -412,6 +461,8 @@ export interface LaunchProject {
   status: 'building' | 'active' | 'paused' | 'completed';
   createdAt: number;
   updatedAt: number;
+  /** How the free project context entered NowBuild. */
+  source?: 'ai_document' | 'website';
 }
 
 export interface ResearchProgressStep {
@@ -518,10 +569,14 @@ export type DirectoryMaterialKey =
   | 'tags'
   | 'pricing'
   | 'founderName'
+  | 'founderBio'
   | 'founderEmail'
   | 'founderUrl'
   | 'twitterUrl'
   | 'linkedinUrl'
+  | 'githubUrl'
+  | 'discordUrl'
+  | 'youtubeUrl'
   | 'demoUrl'
   | 'launchDate'
   | 'logo'
@@ -624,10 +679,14 @@ export interface DirectoryLaunchKit {
   tags: string[];
   pricing: string;
   founderName: string;
+  founderBio: string;
   founderEmail: string;
   founderUrl: string;
   twitterUrl: string;
   linkedinUrl: string;
+  githubUrl: string;
+  discordUrl: string;
+  youtubeUrl: string;
   demoUrl: string;
   launchDate: string;
   assets: Array<{
@@ -686,6 +745,8 @@ export interface ChannelRecommendationItem {
 }
 
 export interface ChannelRecommendationResponse {
+  /** Complete free lead-magnet deliverable shown as the Market Strategy Report. */
+  reportMarkdown: string;
   summaryMarkdown: string;
   diagnosis: {
     productType: string;
@@ -694,6 +755,23 @@ export interface ChannelRecommendationResponse {
     bottleneck: string;
   };
   recommendations: ChannelRecommendationItem[];
+  launchPlan: Array<{
+    days: string;
+    phase: string;
+    objective: string;
+    channelIds: string[];
+    actions: string[];
+    successSignal: string;
+  }>;
+  directoryPlan: {
+    strategy: string;
+    priorityCriteria: string[];
+    schedule: Array<{
+      days: string;
+      objective: string;
+      actions: string[];
+    }>;
+  };
   specialistSkillsUsed: string[];
   updatedAt: number;
 }
@@ -739,7 +817,7 @@ export interface LaunchState {
     totalCount: number;
     updatedAt: number;
   };
-  /** Channel Recommender Agent output; present after recommend_channels. */
+  /** Promotion Plan Agent output; the complete free Market Strategy Report. */
   channelRecommendations?: ChannelRecommendationResponse;
   /** User-confirmed channels for this Launch (drives plan + todo generation). */
   selectedChannelIds?: string[];
@@ -753,17 +831,19 @@ export interface GtmStore {
   paid: boolean;
   /** 策略与 To-Do 已生成，真实日历解锁 */
   planReady: boolean;
-  /** 用户个人档案（固定问卷 + Context Agent 持续拓展，markdown） */
+  /** 用户个人档案（Context Agent 从对话中持续拓展，markdown） */
   userProfileDoc: string;
   /** 项目档案（上下文 Agent 维护，markdown；展示名「项目文档」） */
   projectProfileDoc: string;
-  /** 付费后固定用户档案问卷是否已完成 */
+  /** Legacy flag retained for stored-state compatibility; no questionnaire UI. */
   postPayProfileComplete?: boolean;
   /**
    * 目标市场内容语言：Todo / Directory 提交材料用此语言；
    * 对话与文档区仍跟 UI locale。
    */
   targetMarketLocale?: 'zh' | 'en';
+  /** Project-level market choices. Each Todo selects one of these independently. */
+  targetMarkets?: TargetMarket[];
   /** 近期话题与未完成承诺的滚动摘要，用于压缩无限对话。 */
   conversationSummary: string;
   /** 可检索、可修订的长期事实与偏好。 */
@@ -812,6 +892,7 @@ export function createInitialStore(): GtmStore {
     projectProfileDoc: '',
     postPayProfileComplete: false,
     targetMarketLocale: undefined,
+    targetMarkets: [],
     conversationSummary: '',
     memoryFacts: [],
     directorChat: [],
@@ -839,7 +920,36 @@ export type DirectorAction =
   | { type: 'generate_channel_plans'; channelIds: string[]; force?: boolean }
   | { type: 'generate_strategy'; channelIds: string[]; feedback?: string }
   | { type: 'generate_todos'; channelIds: string[] }
-  | { type: 'generate_topics'; channelIds: string[]; count?: number }
+  | {
+      type: 'create_todo';
+      channelId: string;
+      title: string;
+      brief: string;
+      date: string;
+      time?: string;
+      writeNow?: boolean;
+    }
+  | {
+      type: 'write_artifact';
+      instruction: string;
+      title?: string;
+      artifactType: 'report' | 'email' | 'script' | 'post' | 'document' | 'other';
+    }
+  | {
+      type: 'research_query';
+      query: string;
+      title?: string;
+      maxSources?: number;
+    }
+  | {
+      type: 'generate_topics';
+      channelIds: string[];
+      count?: number;
+      /** User-provided idea to develop, rather than an open-ended topic batch. */
+      brief?: string;
+      /** Add one Todo per generated channel variant without replacing the calendar. */
+      scheduleTodos?: boolean;
+    }
   | { type: 'research_product'; websiteUrl: string }
   | { type: 'generate_weekly_review'; silent?: boolean }
   | {
@@ -901,6 +1011,8 @@ export interface ChannelTodosResponse {
     time?: string;
     phase?: string;
     market?: string;
+    targetMarketId?: string;
+    outputLocale?: string;
     audience?: string;
     purpose?: string;
     pillar?: string;
@@ -926,6 +1038,8 @@ export interface ChannelChatResponse {
     time?: string;
     phase?: string;
     market?: string;
+    targetMarketId?: string;
+    outputLocale?: string;
     audience?: string;
     purpose?: string;
     pillar?: string;

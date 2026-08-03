@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(result);
   } catch (err) {
-    console.error('channel recommender error:', err);
+    console.error('promotion plan agent error:', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Agent failed' },
       { status: 500 }

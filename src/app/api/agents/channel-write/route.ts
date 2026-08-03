@@ -43,6 +43,8 @@ export async function POST(request: Request) {
             : 1,
         phase: text(todo.phase, 300) || undefined,
         market: text(todo.market, 300) || undefined,
+        targetMarketId: text(todo.targetMarketId, 160) || undefined,
+        outputLocale: text(todo.outputLocale, 40) || undefined,
         audience: text(todo.audience, 500) || undefined,
         purpose: text(todo.purpose, 1_000) || undefined,
         pillar: text(todo.pillar, 500) || undefined,

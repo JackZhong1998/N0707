@@ -15,6 +15,11 @@ import type {
   StrategyResponse,
   Todo,
 } from './types';
+import type {
+  ArtifactType,
+  ResearchQueryResult,
+  WrittenArtifactResult,
+} from '@/lib/agents/general-work';
 import { buildPerformanceContext } from './post-metrics';
 import type { ViewContext } from './view-context';
 import type { ProductResearchResult } from '@/lib/agents/researcher';
@@ -145,6 +150,29 @@ export function callChannelRecommender(input: {
   });
 }
 
+export function callMarketStrategyReport(input: {
+  store: GtmStore;
+  launchId: string;
+  projectName: string;
+  projectProfileDoc?: string;
+  locale: string;
+}): Promise<{ report: ChannelRecommendationResponse; reused: boolean }> {
+  const digest = input.store.directorChat
+    .slice(-10)
+    .map((message) => `${message.role}: ${message.content.slice(0, 240)}`)
+    .join('\n');
+  return post('/api/agents/market-strategy-report', {
+    launchId: input.launchId,
+    productName: input.projectName,
+    projectProfileDoc:
+      input.projectProfileDoc ?? input.store.projectProfileDoc,
+    userProfileDoc: input.store.userProfileDoc,
+    conversationDigest: digest,
+    campaignContext: buildAgentContextEnvelope(input.store),
+    locale: input.locale,
+  });
+}
+
 export function callChannelTodos(input: {
   channelId: string;
   store: GtmStore;
@@ -163,6 +191,7 @@ export function callChannelTodos(input: {
     campaignContext: buildAgentContextEnvelope(input.store, {
       channelId: input.channelId,
     }),
+    targetMarkets: input.store.targetMarkets ?? [],
     locale: input.locale,
   });
 }
@@ -180,6 +209,8 @@ export function callChannelWrite(input: {
       dayIndex: input.todo.dayIndex,
       phase: input.todo.phase,
       market: input.todo.market,
+      targetMarketId: input.todo.targetMarketId,
+      outputLocale: input.todo.outputLocale,
       audience: input.todo.audience,
       purpose: input.todo.purpose,
       pillar: input.todo.pillar,
@@ -246,6 +277,10 @@ export function callChannelChat(input: {
       brief: input.todo.brief,
       dayIndex: input.todo.dayIndex,
       phase: input.todo.phase,
+      market: input.todo.market,
+      targetMarketId: input.todo.targetMarketId,
+      outputLocale: input.todo.outputLocale,
+      audience: input.todo.audience,
     },
     currentContent: input.todo.content,
     history: input.history,
@@ -309,12 +344,14 @@ export function callLaunchPatch(input: {
 export function callTopicPlanner(input: {
   channelIds: string[];
   count: number;
+  brief?: string;
   store: GtmStore;
   locale: string;
 }): Promise<TopicPlanResponse> {
   return post('/api/agents/topics', {
     channelIds: input.channelIds,
     count: input.count,
+    brief: input.brief,
     userProfileDoc: input.store.userProfileDoc,
     projectProfileDoc: input.store.projectProfileDoc,
     strategyMarkdown: input.store.strategy?.overviewMarkdown ?? '',
@@ -325,6 +362,42 @@ export function callTopicPlanner(input: {
       ])
     ),
     performanceContext: buildPerformanceContext(input.store.todos),
+    campaignContext: buildAgentContextEnvelope(input.store),
+    locale: input.locale,
+  });
+}
+
+export function callArtifactWriter(input: {
+  instruction: string;
+  title?: string;
+  artifactType: ArtifactType;
+  store: GtmStore;
+  locale: string;
+}): Promise<WrittenArtifactResult> {
+  return post('/api/agents/write-artifact', {
+    instruction: input.instruction,
+    title: input.title,
+    artifactType: input.artifactType,
+    userProfileDoc: input.store.userProfileDoc,
+    projectProfileDoc: input.store.projectProfileDoc,
+    campaignContext: buildAgentContextEnvelope(input.store),
+    locale: input.locale,
+  });
+}
+
+export function callResearchQuery(input: {
+  query: string;
+  title?: string;
+  maxSources?: number;
+  store: GtmStore;
+  locale: string;
+}): Promise<ResearchQueryResult> {
+  return post('/api/agents/research-query', {
+    query: input.query,
+    title: input.title,
+    maxSources: input.maxSources,
+    userProfileDoc: input.store.userProfileDoc,
+    projectProfileDoc: input.store.projectProfileDoc,
     campaignContext: buildAgentContextEnvelope(input.store),
     locale: input.locale,
   });

@@ -74,6 +74,18 @@ function CalendarPageInner() {
 
   return (
     <div className="relative h-full">
+      {isPreview && (
+        <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-300/20 bg-brand-300/[0.06] px-4 py-3 sm:mx-8">
+          <p className="text-sm text-zinc-300">
+            {isZh
+              ? '这是执行日历预览。你的免费市场策略报告已经说明 30 天方向；组建 Agent Team 后，这里会生成专属的逐日内容与任务。'
+              : 'This is the execution-calendar preview. Your free report covers the 30-day direction; Agent Team generates product-specific daily content and tasks here.'}
+          </p>
+          <button type="button" className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-black">
+            {isZh ? '付费构建我的 Launch Agent Team →' : 'Build My Launch Agent Team →'}
+          </button>
+        </div>
+      )}
       {/* 已支付未生成：引导去对话 */}
       {store.paid && usingDemo && (
         <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 sm:mx-8">
@@ -94,7 +106,7 @@ function CalendarPageInner() {
         </div>
       )}
 
-      <div className={store.paid && usingDemo ? 'h-[calc(100%-64px)]' : 'h-full'}>
+      <div className={(store.paid && usingDemo) || isPreview ? 'h-[calc(100%-76px)]' : 'h-full'}>
         <CalendarBoard
           todos={todos}
           interactive={!usingDemo && (store.planReady || store.todos.length > 0)}

@@ -12,6 +12,7 @@ import { storePatchForNewLaunch } from '@/lib/gtm/launch';
 import {
   resetFreeLaunchResearch,
   runFreeLaunchResearch,
+  runFreeMarketStrategyReport,
 } from '@/lib/gtm/free-launch-research';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
 import type { LaunchBrief } from '@/lib/gtm/types';
@@ -50,6 +51,15 @@ export default function DocumentDetailPage({
     docId === 'project' &&
     store.launch?.revisions.at(-1)?.entityType === 'brief';
 
+  // Compatibility for Checkout Sessions created during the route migration:
+  // cancellation should always return to the free report, never project docs.
+  useEffect(() => {
+    const canceled = new URLSearchParams(window.location.search).get('canceled');
+    if (docId === 'project' && canceled === 'true') {
+      router.replace('/app/documents/recommendations?canceled=true');
+    }
+  }, [docId, router]);
+
   const unknown = isZh ? '官网未说明' : 'Not stated on the website';
   const looksLikeFailedResearch =
     docId === 'project' &&
@@ -58,6 +68,11 @@ export default function DocumentDetailPage({
     Boolean(brief) &&
     (brief!.product.summary === unknown || brief!.product.problem === unknown) &&
     (brief!.competitors?.length ?? 0) === 0;
+  const reportFailed =
+    !recommendations &&
+    store.launch?.researchProgress.some(
+      (step) => step.id === 'report' && step.status === 'error'
+    );
 
   const versionLabel = useMemo(() => {
     if (docId === 'project' && brief) return brief.revision;
@@ -155,6 +170,26 @@ export default function DocumentDetailPage({
     }
   };
 
+  const handleRetryReport = async () => {
+    if (retrying || !store.launch?.brief) return;
+    setRetrying(true);
+    try {
+      await runFreeMarketStrategyReport({
+        launch: store.launch,
+        locale,
+        isZh,
+        gtm,
+        projectProfileDoc:
+          store.projectProfileDoc || store.launch.brief.sourceMarkdown,
+      });
+      router.replace('/app/documents/recommendations');
+    } catch (error) {
+      console.error('Market strategy report retry failed:', error);
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   const undoBriefRevision = () => {
     const launch = store.launch;
     const revision = launch?.revisions.at(-1);
@@ -204,13 +239,13 @@ export default function DocumentDetailPage({
               {isZh ? '撤销上次修改' : 'Undo last change'}
             </button>
           ) : null}
-          {docId === 'project' && !paid && brief ? (
+          {docId === 'recommendations' && !paid && recommendations ? (
             <button
               type="button"
               onClick={openTeamPaywall}
               className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black hover:bg-zinc-200"
             >
-              {isZh ? '组建我的 30 天推广团队 →' : 'Assemble my 30-day Agent Team →'}
+              {isZh ? '付费构建我的 Launch Agent Team →' : 'Build My Launch Agent Team →'}
             </button>
           ) : null}
         </div>
@@ -240,6 +275,30 @@ export default function DocumentDetailPage({
         </div>
       ) : null}
 
+      {reportFailed ? (
+        <div className="mt-6 rounded-2xl border border-amber-300/25 bg-amber-300/[0.07] px-5 py-4">
+          <p className="text-sm leading-6 text-amber-100">
+            {isZh
+              ? '项目文档已经准备好，但市场策略报告生成中断。可以直接重试，不需要重新导入文档。'
+              : 'Your project document is ready, but report generation stopped. Retry without importing the document again.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => void handleRetryReport()}
+            disabled={retrying}
+            className="mt-3 rounded-full bg-white px-5 py-2 text-xs font-bold text-black hover:bg-zinc-200 disabled:opacity-50"
+          >
+            {retrying
+              ? isZh
+                ? '正在重新生成…'
+                : 'Retrying…'
+              : isZh
+                ? '重新生成市场策略报告'
+                : 'Retry market strategy report'}
+          </button>
+        </div>
+      ) : null}
+
       {docId === 'project' && !paid && brief ? (
         <div className="mt-6 rounded-2xl border border-brand-400/20 bg-brand-400/[0.06] px-5 py-4 text-sm leading-6 text-zinc-300">
           {isZh
@@ -251,6 +310,23 @@ export default function DocumentDetailPage({
       <article className="mt-6 min-w-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-7">
         <DocumentDetailBody docId={docId} store={store} isZh={isZh} />
       </article>
+
+      {docId === 'recommendations' && !paid && recommendations ? (
+        <section className="mt-6 rounded-3xl border border-brand-400/20 bg-brand-400/[0.07] p-6 text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-300">
+            {isZh ? '策略免费 · 执行由 Agent Team 接手' : 'Strategy is free · Agent Team executes'}
+          </p>
+          <h2 className="mt-3 text-xl font-bold text-white">
+            {isZh ? '把这份报告变成每天可完成的 Launch。' : 'Turn this report into a launch you can execute every day.'}
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-zinc-400">
+            {isZh ? '解锁逐日 Todo、渠道原生内容、发布材料、最适合你的 Directory 平台，以及每周复盘。' : 'Unlock daily tasks, channel-native content, publishing assets, your best-fit directory platforms, and weekly reviews.'}
+          </p>
+          <button type="button" onClick={openTeamPaywall} className="mt-5 rounded-full bg-white px-6 py-3 text-sm font-bold text-black hover:bg-zinc-200">
+            {isZh ? '付费构建我的 Launch Agent Team →' : 'Build My Launch Agent Team →'}
+          </button>
+        </section>
+      ) : null}
     </div>
   );
 }

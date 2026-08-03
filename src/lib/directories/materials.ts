@@ -124,10 +124,14 @@ const LABELS: Record<DirectoryMaterialKey, [string, string]> = {
   tags: ['产品标签', 'Tags'],
   pricing: ['定价方式', 'Pricing'],
   founderName: ['创始人姓名', 'Founder name'],
+  founderBio: ['创始人简介', 'Founder bio'],
   founderEmail: ['联系邮箱', 'Contact email'],
   founderUrl: ['创始人主页', 'Founder URL'],
   twitterUrl: ['X / Twitter 链接', 'X / Twitter URL'],
   linkedinUrl: ['LinkedIn 链接', 'LinkedIn URL'],
+  githubUrl: ['GitHub 链接', 'GitHub URL'],
+  discordUrl: ['Discord 链接', 'Discord URL'],
+  youtubeUrl: ['YouTube 链接', 'YouTube URL'],
   demoUrl: ['演示链接', 'Demo URL'],
   launchDate: ['发布日期', 'Launch date'],
   logo: ['Logo', 'Logo'],
@@ -191,9 +195,24 @@ export function getDirectoryMaterialRequirements(
   return result;
 }
 
+function documentField(markdown: string, labels: string[]): string {
+  const escaped = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const matcher = new RegExp(
+    `^(?:#{1,6}\\s*)?(?:[-*]\\s*)?(?:${escaped.join('|')})\\s*[:：-]\\s*(.+)$`,
+    'im'
+  );
+  return markdown.match(matcher)?.[1]?.trim().slice(0, 2_000) || '';
+}
+
+function documentUrl(markdown: string, labels: string[]): string {
+  const value = documentField(markdown, labels);
+  return value.match(/https?:\/\/[^\s<>()]+/i)?.[0]?.replace(/[),.;，。]+$/, '') || '';
+}
+
 export function buildDirectoryLaunchKit(launch: LaunchState): DirectoryLaunchKit {
   const existing = launch.directoryLaunchKit;
   const brief = launch.brief;
+  const source = brief?.sourceMarkdown || '';
   return {
     productName: existing?.productName || launch.project.productName,
     productUrl: existing?.productUrl || launch.project.productUrl,
@@ -215,11 +234,15 @@ export function buildDirectoryLaunchKit(launch: LaunchState): DirectoryLaunchKit
         ? existing.tags
         : brief?.positioning.sellingPoints ?? [],
     pricing: existing?.pricing || brief?.product.pricing || '',
-    founderName: existing?.founderName || '',
-    founderEmail: existing?.founderEmail || '',
-    founderUrl: existing?.founderUrl || '',
-    twitterUrl: existing?.twitterUrl || '',
-    linkedinUrl: existing?.linkedinUrl || '',
+    founderName: existing?.founderName || documentField(source, ['创始人姓名', '创始人', 'founder name', 'founder']),
+    founderBio: existing?.founderBio || documentField(source, ['创始人简介', 'founder bio', 'founder biography']),
+    founderEmail: existing?.founderEmail || documentField(source, ['创始人邮箱', '联系邮箱', 'founder email', 'contact email']),
+    founderUrl: existing?.founderUrl || documentUrl(source, ['创始人主页', 'founder url', 'founder website']),
+    twitterUrl: existing?.twitterUrl || documentUrl(source, ['X / Twitter', 'Twitter', 'X URL', 'Twitter URL']),
+    linkedinUrl: existing?.linkedinUrl || documentUrl(source, ['LinkedIn', 'LinkedIn URL']),
+    githubUrl: existing?.githubUrl || documentUrl(source, ['GitHub', 'GitHub URL']),
+    discordUrl: existing?.discordUrl || documentUrl(source, ['Discord', 'Discord URL']),
+    youtubeUrl: existing?.youtubeUrl || documentUrl(source, ['YouTube', 'YouTube URL']),
     demoUrl: existing?.demoUrl || launch.project.productUrl,
     launchDate: existing?.launchDate || launch.project.startDate,
     assets: existing?.assets ?? [],

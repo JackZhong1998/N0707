@@ -48,6 +48,8 @@ create table if not exists public.gtm_projects (
   -- Queryable projection of user-confirmed Launch Kit data, including the
   -- public source URL and captured asset provenance.
   directory_launch_kit jsonb,
+  -- User-confirmed markets available to individual Todos.
+  target_markets jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (owner_id, slug)
@@ -104,6 +106,20 @@ create table if not exists public.market_strategies (
   strategy_updated_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+-- Immutable free lead-magnet deliverable. The complete report is inserted in
+-- one operation and the unique launch key prevents duplicate uploads/retries.
+create table if not exists public.market_strategy_reports (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.gtm_projects(id) on delete cascade,
+  launch_id text not null,
+  locale text not null check (locale in ('zh', 'en')),
+  product_name text not null default '',
+  report_markdown text not null,
+  report jsonb not null,
+  created_at timestamptz not null default now(),
+  unique (project_id, launch_id)
 );
 
 create table if not exists public.channel_strategies (
@@ -183,6 +199,8 @@ create table if not exists public.todos (
   task_type text,
   phase text,
   market text,
+  target_market_id text,
+  output_locale text,
   audience text,
   status text not null default 'pending' check (status in ('pending', 'done', 'skipped')),
   launch_status text not null default 'planned'
@@ -487,6 +505,7 @@ alter table public.project_contexts enable row level security;
 alter table public.conversations enable row level security;
 alter table public.messages enable row level security;
 alter table public.market_strategies enable row level security;
+alter table public.market_strategy_reports enable row level security;
 alter table public.channel_strategies enable row level security;
 alter table public.project_channels enable row level security;
 alter table public.topics enable row level security;
@@ -502,7 +521,7 @@ drop policy if exists "Users can view own subscription" on public.subscriptions;
 drop policy if exists "Service role can manage subscriptions" on public.subscriptions;
 
 revoke all on public.app_users, public.gtm_projects, public.project_contexts,
-  public.conversations, public.messages, public.market_strategies,
+  public.conversations, public.messages, public.market_strategies, public.market_strategy_reports,
   public.channel_strategies, public.project_channels, public.topics,
   public.topic_variants, public.todos,
   public.subscriptions, public.stripe_events, public.ai_usage_events,
@@ -510,7 +529,7 @@ revoke all on public.app_users, public.gtm_projects, public.project_contexts,
   from anon, authenticated;
 
 grant all on public.app_users, public.gtm_projects, public.project_contexts,
-  public.conversations, public.messages, public.market_strategies,
+  public.conversations, public.messages, public.market_strategies, public.market_strategy_reports,
   public.channel_strategies, public.project_channels, public.topics,
   public.topic_variants, public.todos,
   public.subscriptions, public.stripe_events, public.ai_usage_events,

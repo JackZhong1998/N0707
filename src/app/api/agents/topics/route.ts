@@ -30,8 +30,12 @@ export async function POST(request: Request) {
         channelIds,
         count:
           typeof body.count === 'number' && Number.isFinite(body.count)
-            ? Math.max(3, Math.min(14, Math.trunc(body.count)))
+            ? Math.max(1, Math.min(14, Math.trunc(body.count)))
             : 7,
+        brief:
+          typeof body.brief === 'string'
+            ? body.brief.trim().slice(0, 4_000)
+            : undefined,
         userProfileDoc:
           typeof body.userProfileDoc === 'string'
             ? body.userProfileDoc.slice(0, 16_000)

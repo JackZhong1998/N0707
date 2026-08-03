@@ -75,6 +75,10 @@ function DirectoryCard({ directory }: { directory: LaunchDirectory }) {
           alt=""
           fill
           sizes="28px"
+          // Directory logos already come from a public image CDN. Fetch them in
+          // the browser so a slow upstream logo cannot make Next's image proxy
+          // return a noisy 504 while the landing page is loading.
+          unoptimized
           className="object-contain"
         />
       </span>

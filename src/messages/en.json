@@ -262,16 +262,16 @@
     "mostPopular": "Recommended",
     "plans": {
       "free": {
-        "name": "Free Preview",
+        "name": "Free Market Strategy Report",
         "priceMonthly": "$0",
         "priceYearly": "$0",
-        "description": "Let the agents learn your product and preview how each channel would operate.",
+        "description": "Get the complete product launch diagnosis, channel mix, and 30-day publishing schedule free.",
         "features": [
-          "Agents read your site and build a product profile",
-          "Audience, competitor, and positioning research",
-          "2–3 recommended core channels",
-          "Preview each platform's pillars and playbook",
-          "Connected first-week calendar preview"
+          "Import a project document from your coding/AI platform first",
+          "Complete product, audience, pain-point, and launch diagnosis",
+          "Recommended channels, specific rationale, and cadence",
+          "A four-phase Day 1–30 launch publishing plan",
+          "Directory materials, selection criteria, and batch schedule"
         ]
       },
       "pro": {
@@ -294,7 +294,7 @@
       "items": [
         {
           "question": "Is the free plan enough?",
-          "answer": "Free lets the agents learn your product, recommend channels, preview the first 7 days, show 10 matched directories, and produce one complete draft. The full 30-day campaign requires a subscription."
+          "answer": "Free includes a complete 30-day Market Strategy Report with the product launch diagnosis, recommended channels and rationale, four-phase publishing schedule, and directory submission plan. Daily tasks, content drafts, personalized directory rankings, and execution require a subscription."
         },
         {
           "question": "What exactly do I get after one month?",
@@ -336,11 +336,11 @@
       {
         "slug": "first-100-users-without-ads",
         "title": "How to Get Your First 100 Users Without Spending a Dollar on Ads",
-        "excerpt": "For a first launch, paid ads almost always lose money. Here are three zero-budget paths to your first 100 users.",
+        "excerpt": "Paid ads can amplify an untested message during a first launch. Here are three zero-budget paths for finding your first 100 users.",
         "date": "2026-05-18",
         "author": "NowBuild Team",
         "readTime": "7",
-        "content": "The point of your first 100 users isn't revenue — it's market feedback: is your positioning right, does your message land, does the product give people a reason to stay? Running ads at this stage means paying to amplify an unvalidated message.\n\n## Path 1: Tell your own story\n\n'Why I built this' is the highest-performing content in a cold start. Not a feature list — the scene of the problem: what frustrated you, what you tried, why you decided to build. These posts typically get 3–5x the engagement of feature announcements.\n\n## Path 2: One-to-one outreach\n\nList the 20 people most likely to need your product — colleagues, people who asked related questions in communities, users complaining about competitors. Message each one personally and sincerely. No mass blasts. Your first 10 users almost always come this way, and they give the most honest feedback.\n\n## Path 3: Answer questions where users already gather\n\nReddit, Hacker News, industry Slack and Discord groups — search for the exact problem your product solves, answer thoroughly, and mention your product naturally at the end. One high-quality answer can drive long-tail traffic for months.\n\n## How much time per day\n\n15–30 minutes is enough: one post, or three DMs, or one answered question. What matters is doing it every day for 30 days. Skip three days and your accumulated momentum starts evaporating.\n\n## When to consider paid ads\n\nWhen you can answer three questions: Which content converts best? Why do users stay? What is one user worth? Until then, keep your money."
+        "content": "The point of your first 100 users isn't revenue — it's market feedback: is your positioning right, does your message land, does the product give people a reason to stay? Running ads at this stage means paying to amplify an unvalidated message.\n\n## Path 1: Tell your own story\n\n'Why I built this' gives a first launch a concrete, human starting point. Instead of listing features, describe the problem as you experienced it: what frustrated you, what you tried, and why you decided to build. Compare the response with your feature-led posts before deciding which format deserves more effort.\n\n## Path 2: One-to-one outreach\n\nList the people most likely to need your product — colleagues, people who asked related questions in communities, or users describing problems with an alternative. Message each person individually and explain why the product may be relevant. Avoid mass outreach, ask for candid feedback, and record the objections you hear.\n\n## Path 3: Answer questions where users already gather\n\nReddit, Hacker News, and relevant Slack or Discord groups can reveal the language people use for the problem. Find a question your product genuinely helps answer, respond thoroughly, and disclose your connection if you mention the product. A useful answer can remain discoverable and create a natural route to your site.\n\n## How much time per day\n\nChoose a daily block you can sustain; 15–30 minutes is a practical starting point for one focused action, such as publishing one post, sending a few personal messages, or answering one question. Keep a simple log so you can compare actions and responses instead of relying on memory.\n\n## When to consider paid ads\n\nConsider testing paid acquisition after you can answer three questions with evidence: Which message earns qualified responses? Why do users stay? What is an activated user worth to the business? Until then, use direct conversations and organic publishing to refine the message."
       }
     ]
   },
@@ -378,8 +378,8 @@
     },
     "cta": {
       "title": "Ready to build your business loop?",
-      "description": "Your product is ready. Start with a free Launch Brief, then put your Launch Team to work.",
-      "button": "Build My Launch Team"
+      "description": "Start with the complete 30-day Market Strategy Report free, then decide whether to put your Launch Team to work.",
+      "button": "Get My Free Strategy Report"
     }
   },
   "Privacy": {

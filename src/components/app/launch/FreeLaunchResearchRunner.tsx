@@ -6,7 +6,9 @@ import { useRouter } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import {
   isFreeLaunchResearchInFlight,
+  needsFreeMarketStrategyReport,
   needsFreeLaunchResearchResume,
+  runFreeMarketStrategyReport,
   runFreeLaunchResearch,
 } from '@/lib/gtm/free-launch-research';
 
@@ -25,7 +27,9 @@ export default function FreeLaunchResearchRunner() {
     if (!gtm.hydrated || gtm.store.paid || gtm.accessStatus === 'checking') return;
 
     const launch = gtm.store.launch;
-    if (!needsFreeLaunchResearchResume(launch)) {
+    const resumeResearch = needsFreeLaunchResearchResume(launch);
+    const resumeReport = needsFreeMarketStrategyReport(launch);
+    if (!resumeResearch && !resumeReport) {
       activeLaunchIdRef.current = null;
       return;
     }
@@ -36,15 +40,13 @@ export default function FreeLaunchResearchRunner() {
     }
 
     activeLaunchIdRef.current = launchId;
-    void runFreeLaunchResearch({
-      launch: launch!,
-      locale,
-      isZh,
-      gtm,
-    })
+    const task = resumeResearch
+      ? runFreeLaunchResearch({ launch: launch!, locale, isZh, gtm })
+      : runFreeMarketStrategyReport({ launch: launch!, locale, isZh, gtm });
+    void task
       .then(() => {
         if (activeLaunchIdRef.current === launchId) {
-          router.replace('/app/documents/project');
+          router.replace('/app/documents/recommendations');
         }
       })
       .catch((error) => {

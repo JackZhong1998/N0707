@@ -23,6 +23,13 @@ export default function AppIndexPage() {
 
     if (store.paid) {
       if (
+        store.launch.project.phase === 'strategy_report_ready' &&
+        store.launch.channelRecommendations
+      ) {
+        router.replace('/app/documents/recommendations');
+        return;
+      }
+      if (
         ['active', 'completed', 'blueprint_ready'].includes(
           store.launch.project.phase
         )
@@ -33,6 +40,13 @@ export default function AppIndexPage() {
     }
 
     const rawPhase = store.launch.project.phase;
+    if (
+      rawPhase === 'strategy_report_ready' &&
+      store.launch.channelRecommendations
+    ) {
+      router.replace('/app/documents/recommendations');
+      return;
+    }
     const failedResearch =
       rawPhase === 'researching' &&
       (store.launch.project.status === 'paused' ||
@@ -62,6 +76,18 @@ export default function AppIndexPage() {
   }
 
   const rawPhase = store.launch.project.phase;
+  if (
+    rawPhase === 'strategy_report_ready' &&
+    store.launch.channelRecommendations
+  ) {
+    return (
+      <div className="flex h-full items-center justify-center px-6">
+        <p className="text-sm text-zinc-500">
+          {isZh ? '正在打开市场策略报告…' : 'Opening your market strategy report…'}
+        </p>
+      </div>
+    );
+  }
   const phase =
     !store.paid &&
     store.launch.brief &&

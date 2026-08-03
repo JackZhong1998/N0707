@@ -77,7 +77,7 @@ export default function Paywall({
       >
         <div className="flex items-center justify-between gap-4">
           <p className="index-label">
-            {isZh ? '产品分析已完成' : 'Product analysis complete'}
+            {isZh ? '30 天市场策略报告已完成' : '30-day market strategy report complete'}
           </p>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
             {isZh ? '$49 / 月' : '$49 / mo'}
@@ -91,8 +91,8 @@ export default function Paywall({
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">
           {isZh
-            ? 'Launch Brief 已就绪。订阅后，团队会准备策略、内容、发布材料和目录提交；你每天只需用约 30 分钟审核、修改和确认。'
-            : 'Your Launch Brief is ready. Subscribe to have strategy, content, publishing assets, and directory submissions prepared—leaving about 30 minutes a day for review, refinement, and approval.'}
+            ? '你的产品判断、推荐渠道、30 天发布排期和 Directory 提交计划已经免费就绪。订阅后，Agent Team 会把报告变成每天的内容、发布材料和执行任务；你每天只需约 30 分钟审核。'
+            : 'Your product diagnosis, recommended channels, 30-day publishing schedule, and directory submission plan are ready for free. Subscribe to turn the report into daily content, publishing assets, and execution tasks—leaving about 30 minutes a day for review.'}
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -172,15 +172,15 @@ export default function Paywall({
 
         <p className="mt-4 text-center text-[11px] leading-relaxed text-zinc-400">
           {isZh
-            ? '今天收取 $49，之后按月自动续费，可随时取消。取消支付将返回 Launch Brief，分析结果与纠正内容会保留。'
-            : '$49 today, then renews monthly; cancel anytime. Canceling returns you to the Launch Brief with analysis and corrections kept.'}
+            ? '今天收取 $49，之后按月自动续费，可随时取消。取消支付将返回市场策略报告，免费报告会完整保留。'
+            : '$49 today, then renews monthly; cancel anytime. Canceling returns you to the Market Strategy Report, which remains fully available.'}
         </p>
         {error && <p className="mt-3 text-center text-xs text-red-600">{error}</p>}
         <button
           onClick={onClose}
           className="mt-1 flex h-9 w-full items-center justify-center text-sm text-zinc-400 transition-colors hover:text-ink"
         >
-          {isZh ? '返回 Launch Brief' : 'Back to Launch Brief'}
+          {isZh ? '返回市场策略报告' : 'Back to Market Strategy Report'}
         </button>
       </div>
     </div>

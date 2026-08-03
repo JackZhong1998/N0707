@@ -126,6 +126,31 @@ export function expandDirectorActionsToSteps(
         break;
       }
 
+      case 'create_todo':
+        push({
+          stepKey: `${prefix}:create_todo`,
+          stepType: 'create_todo',
+          channelId: action.channelId,
+          actionPayload: action as unknown as Record<string, unknown>,
+        });
+        break;
+
+      case 'write_artifact':
+        push({
+          stepKey: `${prefix}:write_artifact`,
+          stepType: 'write_artifact',
+          actionPayload: action as unknown as Record<string, unknown>,
+        });
+        break;
+
+      case 'research_query':
+        push({
+          stepKey: `${prefix}:research_query`,
+          stepType: 'research_query',
+          actionPayload: action as unknown as Record<string, unknown>,
+        });
+        break;
+
       case 'generate_topics':
         push({
           stepKey: `${prefix}:generate_topics`,
@@ -259,8 +284,31 @@ export function defaultWorkLabel(
   if (types.includes('generate_todos')) {
     return isZh ? '正在生成 Todo…' : 'Generating todos…';
   }
+  if (types.includes('create_todo')) {
+    const writesNow = actions.some(
+      (action) => action.type === 'create_todo' && action.writeNow
+    );
+    return writesNow
+      ? isZh ? '正在新增 Todo 并撰写内容…' : 'Creating the todo and writing its content…'
+      : isZh ? '正在新增 Todo…' : 'Creating the todo…';
+  }
+  if (types.includes('research_query')) {
+    return isZh ? '正在搜索并整理来源…' : 'Searching and synthesizing sources…';
+  }
+  if (types.includes('write_artifact')) {
+    return isZh ? '正在撰写文档…' : 'Writing the document…';
+  }
   if (types.includes('generate_topics')) {
-    return isZh ? '正在生成选题…' : 'Generating topics…';
+    const schedulesTodos = actions.some(
+      (action) => action.type === 'generate_topics' && action.scheduleTodos
+    );
+    return schedulesTodos
+      ? isZh
+        ? '正在把新选题加入现有渠道 Todo…'
+        : 'Adding the new topic to channel todos…'
+      : isZh
+        ? '正在生成选题…'
+        : 'Generating topics…';
   }
   if (types.includes('generate_weekly_review')) {
     return isZh ? '正在生成周复盘…' : 'Writing weekly review…';

@@ -28,6 +28,11 @@ import {
   validatePostUrl,
 } from '@/lib/gtm/channel-capabilities';
 import type { PublishStatus } from '@/lib/gtm/types';
+import {
+  COMMON_OUTPUT_LOCALES,
+  inferOutputLocale,
+  outputLanguageLabel,
+} from '@/lib/gtm/target-markets';
 
 function publishStatusLabel(status: PublishStatus | undefined, isZh: boolean) {
   const labels: Record<PublishStatus, [string, string]> = {
@@ -70,6 +75,12 @@ export default function TaskDetailPage({
   const { setViewContext, clearViewContext } = useViewContext();
 
   const todo = store.todos.find((t) => t.id === id);
+  const selectedMarket = store.targetMarkets?.find(
+    (market) => market.id === todo?.targetMarketId
+  );
+  const effectiveOutputLocale = todo
+    ? todo.outputLocale ?? selectedMarket?.locale ?? inferOutputLocale(todo.market ?? '', 'en-US')
+    : 'en-US';
   const capability = getChannelCapability(todo?.channelId ?? '');
   const showPublishButton = todo ? canPublishTodo(todo) : false;
   const extensionCanFill =
@@ -90,6 +101,35 @@ export default function TaskDetailPage({
         detail: { todoId: id },
       })
     );
+  };
+
+  const updatePublishingContext = (
+    patch: Pick<NonNullable<typeof todo>, 'market' | 'targetMarketId' | 'outputLocale' | 'audience'>
+  ) => {
+    if (!todo || todo.publishedUrl) return;
+    const invalidatesDraft = todo.contentStatus === 'ready' && Boolean(todo.content);
+    if (
+      invalidatesDraft &&
+      !window.confirm(
+        isZh
+          ? '更改目标市场或发布语言后，当前文案需要重新生成。是否继续？'
+          : 'Changing the market or publishing language will regenerate the current copy. Continue?'
+      )
+    ) {
+      return;
+    }
+    writeRequestedRef.current = null;
+    gtm.updateTodo(todo.id, {
+      ...patch,
+      revision: (todo.revision ?? 1) + 1,
+      ...(invalidatesDraft
+        ? {
+            content: undefined,
+            contentStatus: 'none' as const,
+            contentRevision: (todo.contentRevision ?? 1) + 1,
+          }
+        : {}),
+    });
   };
 
   useEffect(() => {
@@ -461,6 +501,73 @@ export default function TaskDetailPage({
             )}
           </div>
         )}
+        <div className="mt-4 grid gap-3 rounded-xl border border-white/[0.07] bg-black/20 p-3 sm:grid-cols-2">
+          <label>
+            <span className="index-label">{isZh ? '这条 To-do 的目标市场' : 'Target market for this Todo'}</span>
+            {store.targetMarkets?.length ? (
+              <select
+                value={todo.targetMarketId ?? selectedMarket?.id ?? ''}
+                disabled={Boolean(todo.publishedUrl)}
+                onChange={(event) => {
+                  const market = store.targetMarkets?.find((item) => item.id === event.target.value);
+                  if (!market) return;
+                  updatePublishingContext({
+                    targetMarketId: market.id,
+                    market: market.name,
+                    outputLocale: market.locale,
+                    audience: market.audience ?? todo.audience,
+                  });
+                }}
+                className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-zinc-950 px-3 text-xs text-ink outline-none focus:border-white/25 disabled:opacity-50"
+              >
+                {!todo.targetMarketId && <option value="">{isZh ? '请选择目标市场' : 'Choose a market'}</option>}
+                {store.targetMarkets.map((market) => (
+                  <option key={market.id} value={market.id}>
+                    {market.name}{market.audience ? ` · ${market.audience}` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="mt-2 text-xs text-zinc-400">{todo.market || (isZh ? '旧项目尚未配置' : 'Not configured in this legacy project')}</p>
+            )}
+          </label>
+          <label>
+            <span className="index-label">{isZh ? '对外发布语言' : 'Publishing language'}</span>
+            <select
+              value={effectiveOutputLocale}
+              disabled={Boolean(todo.publishedUrl)}
+              onChange={(event) =>
+                updatePublishingContext({
+                  targetMarketId: todo.targetMarketId,
+                  market: todo.market,
+                  outputLocale: event.target.value,
+                  audience: todo.audience,
+                })
+              }
+              className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-zinc-950 px-3 text-xs text-ink outline-none focus:border-white/25 disabled:opacity-50"
+            >
+              {!(COMMON_OUTPUT_LOCALES as readonly string[]).includes(effectiveOutputLocale) && (
+                <option value={effectiveOutputLocale}>
+                  {outputLanguageLabel(effectiveOutputLocale, locale)} · {effectiveOutputLocale}
+                </option>
+              )}
+              {COMMON_OUTPUT_LOCALES.map((outputLocale) => (
+                <option key={outputLocale} value={outputLocale}>
+                  {outputLanguageLabel(outputLocale, locale)} · {outputLocale}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="text-[11px] leading-5 text-zinc-500 sm:col-span-2">
+            {todo.publishedUrl
+              ? isZh
+                ? '已发布任务会锁定市场和语言。'
+                : 'Market and language are locked after publishing.'
+              : isZh
+                ? '这里只控制对外文案；按钮、提示和分析仍使用当前页面语言。'
+                : 'This controls external copy only. The interface and explanations still use the current page language.'}
+          </p>
+        </div>
        </section>
 
       <section className="border-t border-white/[0.06] p-5">

@@ -68,6 +68,10 @@ export async function POST(request: Request) {
             ? Math.max(1, Math.min(30, Math.trunc(todo.dayIndex)))
             : 1,
         phase: text(todo.phase, 300) || undefined,
+        market: text(todo.market, 300) || undefined,
+        targetMarketId: text(todo.targetMarketId, 160) || undefined,
+        outputLocale: text(todo.outputLocale, 40) || undefined,
+        audience: text(todo.audience, 500) || undefined,
       },
       currentContent: current
         ? {

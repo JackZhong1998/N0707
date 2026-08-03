@@ -17,10 +17,12 @@ import {
   callChannelRecommender,
   callChannelTodos,
   callChannelWrite,
+  callArtifactWriter,
   callContextAgent,
   callDirector,
   callLaunchPatch,
   callProductResearch,
+  callResearchQuery,
   callStrategist,
   callTopicPlanner,
   callWeeklyReflection,
@@ -30,17 +32,20 @@ import {
   pollAgentWork,
 } from './api-client';
 import { addDays, parseDateStr, todayStr } from './dates';
+import { defaultTargetMarket, resolveTodoMarket } from './target-markets';
 import { buildAgentContextEnvelope } from './agent-context';
 import { filterCalendarChannelIds } from './channel-capabilities';
+import {
+  chooseTopicScheduleDay,
+  chooseTopicScheduleTime,
+} from './topic-scheduling';
 import { applyStrategyToChannelPlans, resolvePendingChannelPlanIds } from './launch';
+import { buildDirectoryLaunchKit } from '@/lib/directories/materials';
+import { applyDirectoryMaterialValues } from '@/lib/directories/material-card';
 import { defaultWorkLabel } from './agent-work-expand';
 import { formatKickoffAnswers } from './kickoff';
 import {
   buildChannelSelectOptionCard,
-  buildPostPayProfileCard,
-  formatPostPayAnswersMessage,
-  formatPostPayProfileSeed,
-  resolveTargetMarketLocale,
   withFixedDirectory,
 } from './post-pay-profile';
 import {
@@ -50,6 +55,8 @@ import {
   type DirectorAction,
   type GtmStore,
   type KickoffCard,
+  type DirectoryMaterialKey,
+  type DirectoryMaterialsCard,
   type LaunchBlueprint,
   type LaunchBrief,
   type LaunchChannelPlan,
@@ -380,43 +387,62 @@ export function useDirector(defaultViewContext?: ViewContext) {
     [gtm]
   );
 
-  // 付费后强制弹出固定用户档案问卷（市场 / 渠道偏好 / 每天时间）
+  // Payment unlocks execution. Ask for the channels to execute directly and
+  // expose Directory as its own workstream; no extra profile questionnaire.
   useEffect(() => {
-    if (!gtm.hydrated || !gtm.store.paid || !gtm.store.launch?.brief) return;
-    if (gtm.store.postPayProfileComplete || postPayCardPostedRef.current) return;
+    const launch = gtm.store.launch;
+    const recommendations = launch?.channelRecommendations;
+    if (!gtm.hydrated || !gtm.store.paid || !launch?.brief || !recommendations) {
+      return;
+    }
+    if (postPayCardPostedRef.current) return;
     const alreadyShown = gtm.store.directorChat.some(
       (message) =>
-        message.card?.kind === 'kickoff' &&
-        (message.card.card.title.includes('用户档案') ||
-          message.card.card.title.includes('Quick profile'))
+        message.card?.kind === 'options' &&
+        (message.card.card.question.includes('选择接下来要执行的渠道') ||
+          message.card.card.question.includes('Choose the channels to execute next'))
     );
-    if (alreadyShown) {
+    const executionStarted =
+      Object.keys(gtm.store.channelStrategies).length > 0 ||
+      gtm.store.todos.length > 0 ||
+      Boolean(launch.channelPlanJob);
+    if (alreadyShown || executionStarted) {
       postPayCardPostedRef.current = true;
       return;
     }
     postPayCardPostedRef.current = true;
     const isZh = locale !== 'en';
-    void publishDirectorMessage({
-      role: 'assistant',
-      content: isZh
-        ? '付费已解锁。先用这张卡片补齐用户档案，我再据此推荐渠道。对话里提到的其他偏好和想法，也会持续写进这份档案。'
-        : 'You’re unlocked. Fill this profile card first so I can recommend channels. Preferences and ideas you mention in chat will keep expanding the same profile.',
-      card: {
-        kind: 'kickoff',
-        card: buildPostPayProfileCard(isZh),
-      },
-    });
-    gtm.setSelectedChannelIds(
-      withFixedDirectory(
-        gtm.store.launch.selectedChannelIds ?? gtm.store.channels
-      )
-    );
+    gtm.setSelectedChannelIds([]);
+    gtm.update({ postPayProfileComplete: true });
+    void (async () => {
+      await publishDirectorMessage({
+        role: 'assistant',
+        content: isZh
+          ? '支付已完成。请选择接下来真正要执行的渠道；确认后，我会依次生成对应的渠道计划，再进入 Todo。'
+          : 'Payment is complete. Choose the channels you want to execute next. After confirmation, I will generate each channel plan and then move into todos.',
+        card: {
+          kind: 'options',
+          card: buildChannelSelectOptionCard(
+            recommendations.recommendations,
+            isZh
+          ),
+        },
+      });
+      await publishDirectorMessage({
+        role: 'assistant',
+        content: isZh
+          ? 'Directory 是独立的发布工作流。点击下面的内容卡片，查看最适合这个产品的平台和提交计划。'
+          : 'Directory is a separate launch workstream. Open the card below to see the best-fit platforms and submission plan for this product.',
+        card: { kind: 'directory_pipeline' },
+      });
+    })();
   }, [
     gtm,
     gtm.hydrated,
     gtm.store.paid,
-    gtm.store.launch?.brief,
-    gtm.store.postPayProfileComplete,
+    gtm.store.launch,
+    gtm.store.channelStrategies,
+    gtm.store.todos.length,
     gtm.store.directorChat,
     locale,
     publishDirectorMessage,
@@ -586,8 +612,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
         card: {
           kind: 'agent-task',
           label: isZh
-            ? '渠道推荐 Agent 正在分析产品与目标市场…'
-            : 'Channel Recommender is analyzing fit…',
+            ? '推广计划 Agent 正在分析产品、目标市场与发布节奏…'
+            : 'Promotion Plan Agent is analyzing the product, market, and launch rhythm…',
           status: 'running',
         },
       });
@@ -601,18 +627,18 @@ export function useDirector(defaultViewContext?: ViewContext) {
         gtm.patchDirectorMessage(cardMsg.id, {
           card: {
             kind: 'agent-task',
-            label: isZh ? '渠道推荐已生成' : 'Channel recommendations ready',
+            label: isZh ? '市场策略报告已生成' : 'Market strategy report ready',
             status: 'done',
           },
         });
         await publishDirectorMessage({
           role: 'assistant',
           content: isZh
-            ? '渠道推荐已经写进左侧「文档」。点击下方卡片可查看完整诊断与优先级；Directory（产品目录提交）是固定能力，不用勾选——稍后我会引导你去提交。请先在选项卡里选择本轮要做的渠道。'
-            : 'Recommendations are in Documents—tap the card below for the full diagnosis and priorities. Directory publishing is always on—I’ll guide you to submit later. Pick channels for this round in the options card.',
+            ? '市场策略报告已经写进左侧「文档」。点击下方卡片可查看完整诊断、30 天排期、渠道优先级和 Directory 提交计划。请再确认本轮要执行的渠道。'
+            : 'The Market Strategy Report is in Documents—open the card for the complete diagnosis, 30-day schedule, channel priorities, and directory submission plan. Then confirm the channels to execute.',
           card: {
             kind: 'channel_recommendations',
-            title: isZh ? '渠道推荐' : 'Channel recommendations',
+            title: isZh ? '30 天市场策略报告' : '30-Day Market Strategy Report',
           },
         });
         await publishDirectorMessage({
@@ -648,8 +674,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
       await publishDirectorMessage({
         role: 'assistant',
         content: isZh
-          ? `已确认 ${channelIds.length} 个渠道：${channelIds.join('、')}。需要我现在为这些渠道写计划吗？`
-          : `Confirmed ${channelIds.length} channels: ${channelIds.join(', ')}. Should I write channel plans for them now?`,
+          ? `已确认 ${channelIds.length} 个渠道：${channelIds.join('、')}。现在开始依次生成对应的渠道计划。`
+          : `Confirmed ${channelIds.length} channels: ${channelIds.join(', ')}. I am now generating each corresponding channel plan.`,
       });
     },
     [gtm, locale, publishDirectorMessage]
@@ -671,7 +697,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
         });
         await publishDirectorMessage({
           role: 'assistant',
-          content: isZh ? '是否生成 Todo？' : 'Generate todos?',
+          // The options card renders its own question and title.
+          content: '',
           card: {
             kind: 'options',
             card: {
@@ -1006,8 +1033,6 @@ export function useDirector(defaultViewContext?: ViewContext) {
       const channelIds = filterCalendarChannelIds(requestedChannelIds);
       if (channelIds.length === 0) return;
       const isZh = locale !== 'en';
-      const contentLocale =
-        storeRef.current.targetMarketLocale ?? locale;
       const taskId = `todos-${Date.now()}`;
       setBackgroundTasks((t) => [...t, taskId]);
       const startDate =
@@ -1040,7 +1065,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
             const res = await callChannelTodos({
               channelId,
               store: executionStore,
-              locale: contentLocale,
+              locale,
               strategyMarkdownOverride:
                 freshStrategiesRef.current[channelId]?.markdown,
             });
@@ -1062,8 +1087,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
               pillar: t.pillar ?? t.phase,
               taskType: t.taskType ?? 'content',
               phase: t.phase,
-              market: t.market,
-              audience: t.audience,
+              ...resolveTodoMarket(t, executionStore.targetMarkets),
               status: 'pending',
               launchStatus:
                 t.launchStatus ?? (t.dayIndex <= 7 ? 'draft' : 'planned'),
@@ -1172,8 +1196,173 @@ export function useDirector(defaultViewContext?: ViewContext) {
     [gtm, locale, publishDirectorMessage]
   );
 
+  const runCreateTodo = useCallback(
+    async (
+      action: Extract<DirectorAction, { type: 'create_todo' }>,
+      agentJobId?: string
+    ) => {
+      const startDate = storeRef.current.startDate ?? action.date;
+      const dayIndex = Math.max(
+        1,
+        Math.floor(
+          (parseDateStr(action.date).getTime() - parseDateStr(startDate).getTime()) /
+            86_400_000
+        ) + 1
+      );
+      let todo: Todo = {
+        id: crypto.randomUUID(),
+        channelId: action.channelId,
+        channelName:
+          storeRef.current.channelStrategies[action.channelId]?.channelName ??
+          action.channelId,
+        dayIndex,
+        date: action.date,
+        time: action.time,
+        title: action.title,
+        brief: action.brief,
+        purpose: action.brief,
+        taskType: 'content',
+        status: 'pending',
+        launchStatus: action.writeNow ? 'generating' : 'planned',
+        contentStatus: action.writeNow ? 'writing' : 'none',
+        revision: 1,
+        ...(() => {
+          const market = defaultTargetMarket(storeRef.current.targetMarkets);
+          return market
+            ? { market: market.name, targetMarketId: market.id, outputLocale: market.locale, audience: market.audience }
+            : {};
+        })(),
+      };
+      if (action.writeNow) {
+        const written = await callChannelWrite({
+          todo,
+          store: storeRef.current,
+          locale: todo.outputLocale ?? locale,
+        });
+        todo = {
+          ...todo,
+          content: written,
+          contentStatus: 'ready',
+          launchStatus: 'ready',
+          contentRevision: 1,
+        };
+      }
+      const { id: _temporaryId, ...todoInput } = todo;
+      gtm.createTodo(todoInput);
+      if (!storeRef.current.startDate) gtm.update({ startDate });
+      await publishDirectorMessage({
+        role: 'assistant',
+        lane: 'background',
+        agentJobId,
+        content:
+          locale !== 'en'
+            ? `已新增 Todo「${todo.title}」，安排在 ${todo.date}${todo.time ? ` ${todo.time}` : ''}${action.writeNow ? '，可发布初稿也已写好' : ''}。`
+            : `Created “${todo.title}” for ${todo.date}${todo.time ? ` at ${todo.time}` : ''}${action.writeNow ? ' and prepared the publish-ready draft' : ''}.`,
+        card: {
+          kind: 'calendar',
+          title: locale !== 'en' ? '新 Todo 已进入日历' : 'New todo added to the calendar',
+        },
+      });
+    },
+    [gtm, locale, publishDirectorMessage]
+  );
+
+  const runWriteArtifact = useCallback(
+    async (
+      action: Extract<DirectorAction, { type: 'write_artifact' }>,
+      agentJobId?: string
+    ) => {
+      const written = await callArtifactWriter({
+        instruction: action.instruction,
+        title: action.title,
+        artifactType: action.artifactType,
+        store: storeRef.current,
+        locale,
+      });
+      const artifact = gtm.createArtifact({
+        kind: 'general',
+        title: written.title,
+        summary: written.summary,
+        markdown: written.markdown,
+        status: 'draft',
+        metadata: {
+          artifactType: action.artifactType,
+          instruction: action.instruction,
+          agentJobId,
+        },
+      });
+      await publishDirectorMessage({
+        role: 'assistant',
+        lane: 'background',
+        agentJobId,
+        content:
+          locale !== 'en'
+            ? `「${artifact.title}」已写好并保存到文档。`
+            : `“${artifact.title}” is written and saved in Documents.`,
+        card: {
+          kind: 'artifact',
+          artifactId: artifact.id,
+          title: artifact.title,
+          summary: artifact.summary,
+          status: artifact.status,
+        },
+      });
+    },
+    [gtm, locale, publishDirectorMessage]
+  );
+
+  const runResearchQuery = useCallback(
+    async (
+      action: Extract<DirectorAction, { type: 'research_query' }>,
+      agentJobId?: string
+    ) => {
+      const research = await callResearchQuery({
+        query: action.query,
+        title: action.title,
+        maxSources: action.maxSources,
+        store: storeRef.current,
+        locale,
+      });
+      const artifact = gtm.createArtifact({
+        kind: 'research_report',
+        title: research.title,
+        summary: research.summary,
+        markdown: research.markdown,
+        status: 'draft',
+        metadata: {
+          query: research.query,
+          sources: research.sources,
+          searchedAt: research.searchedAt,
+          agentJobId,
+        },
+      });
+      await publishDirectorMessage({
+        role: 'assistant',
+        lane: 'background',
+        agentJobId,
+        content:
+          locale !== 'en'
+            ? `调研已完成，报告引用了 ${research.sources.length} 个实际检索来源。`
+            : `Research complete with ${research.sources.length} retrieved sources.`,
+        card: {
+          kind: 'artifact',
+          artifactId: artifact.id,
+          title: artifact.title,
+          summary: artifact.summary,
+          status: artifact.status,
+        },
+      });
+    },
+    [gtm, locale, publishDirectorMessage]
+  );
+
   const runGenerateTopics = useCallback(
-    async (channelIds: string[], count = 7, agentJobId?: string) => {
+    async (
+      channelIds: string[],
+      count = 7,
+      agentJobId?: string,
+      options?: { brief?: string; scheduleTodos?: boolean }
+    ) => {
       if (
         agentJobId &&
         storeRef.current.artifacts.some(
@@ -1182,7 +1371,9 @@ export function useDirector(defaultViewContext?: ViewContext) {
       ) {
         return;
       }
-      const ids = channelIds.length > 0 ? channelIds : storeRef.current.channels;
+      const ids = filterCalendarChannelIds(
+        channelIds.length > 0 ? channelIds : storeRef.current.channels
+      );
       if (ids.length === 0) return;
       const taskId = `topics-${Date.now()}`;
       setBackgroundTasks((tasks) => [...tasks, taskId]);
@@ -1191,7 +1382,11 @@ export function useDirector(defaultViewContext?: ViewContext) {
         content: '',
         card: {
           kind: 'agent-task',
-          label: `选题规划正在生成 ${count} 个核心选题…`,
+          label: options?.brief
+            ? locale !== 'en'
+              ? `正在把新选题适配到 ${ids.length} 个渠道…`
+              : `Adapting the new topic for ${ids.length} channels…`
+            : `选题规划正在生成 ${count} 个核心选题…`,
           status: 'running',
         },
       });
@@ -1199,9 +1394,21 @@ export function useDirector(defaultViewContext?: ViewContext) {
         const result = await callTopicPlanner({
           channelIds: ids,
           count,
+          brief: options?.brief,
           store: storeRef.current,
           locale,
         });
+        if (result.topics.length === 0) {
+          throw new Error(
+            locale !== 'en'
+              ? '选题规划未返回可用内容'
+              : 'Topic planning returned no usable topics'
+          );
+        }
+        const scheduleDay = options?.scheduleTodos
+          ? chooseTopicScheduleDay(storeRef.current)
+          : null;
+        let scheduledCount = 0;
         for (const planned of result.topics) {
           const topic = gtm.createTopic({
             title: planned.title,
@@ -1210,10 +1417,45 @@ export function useDirector(defaultViewContext?: ViewContext) {
             painPoint: planned.painPoint,
             corePoint: planned.corePoint,
             priority: planned.priority,
-            status: planned.status,
+            status: scheduleDay ? 'scheduled' : planned.status,
           });
           for (const variant of planned.variants) {
-            gtm.createTopicVariant({ ...variant, topicId: topic.id });
+            const topicVariant = gtm.createTopicVariant({
+              ...variant,
+              topicId: topic.id,
+              status: scheduleDay ? 'scheduled' : variant.status,
+            });
+            if (scheduleDay) {
+              gtm.createTodo({
+                topicVariantId: topicVariant.id,
+                channelId: variant.channelId,
+                channelName: variant.channelName,
+                dayIndex: scheduleDay.dayIndex,
+                date: scheduleDay.date,
+                time: chooseTopicScheduleTime(
+                  storeRef.current,
+                  variant.channelId,
+                  scheduleDay.date
+                ),
+                title: topic.title,
+                brief: [
+                  `Hook：${variant.hook}`,
+                  `角度：${variant.angle}`,
+                  variant.format ? `形式：${variant.format}` : '',
+                  variant.cta ? `CTA：${variant.cta}` : '',
+                ]
+                  .filter(Boolean)
+                  .join('\n'),
+                purpose: topic.corePoint,
+                taskType: 'content',
+                audience: topic.targetAudience,
+                status: 'pending',
+                launchStatus: 'draft',
+                contentStatus: 'none',
+                revision: 1,
+              });
+              scheduledCount += 1;
+            }
           }
         }
         const artifact = gtm.createArtifact({
@@ -1225,20 +1467,30 @@ export function useDirector(defaultViewContext?: ViewContext) {
           metadata: {
             channelIds: ids,
             topicCount: result.topics.length,
+            scheduledTodoCount: scheduledCount,
+            brief: options?.brief,
             agentJobId,
           },
         });
         gtm.patchDirectorMessage(cardMessage.id, {
           card: {
             kind: 'agent-task',
-            label: `${result.topics.length} 个核心选题已进入选题库`,
+            label: scheduleDay
+              ? locale !== 'en'
+                ? `新选题已新增 ${scheduledCount} 个渠道 Todo`
+                : `New topic added as ${scheduledCount} channel todos`
+              : `${result.topics.length} 个核心选题已进入选题库`,
             status: 'done',
           },
         });
         await publishDirectorMessage({
           role: 'assistant',
           content:
-            locale !== 'en'
+            scheduleDay && locale !== 'en'
+              ? `已把「${result.topics[0]?.title ?? options?.brief ?? '新选题'}」拆成 ${scheduledCount} 个渠道版本，并追加到 ${scheduleDay.date} 的 Todo。原有日历没有被覆盖。`
+              : scheduleDay
+                ? `Added “${result.topics[0]?.title ?? options?.brief ?? 'New topic'}” as ${scheduledCount} channel-specific todos on ${scheduleDay.date}. The existing calendar was preserved.`
+                : locale !== 'en'
               ? `${result.summary}\n\n完整选题计划已经放到左侧工作区，所有渠道版本也已进入选题库并可继续排期。哪里不对味直接告诉我，我会只修改未来未发布的内容。`
               : `${result.summary}\n\nThe full plan is in the workspace and every channel variant is in the topic library, ready for scheduling. Tell me what feels off and I will change only future unpublished work.`,
           card: {
@@ -1957,7 +2209,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
     ) => {
       const launch = storeRef.current.launch;
       if (!launch) {
-        await publishDirectorMessage({ role: 'assistant', content: locale !== 'en' ? '当前还没有可修改的 Launch。请先在左侧输入产品链接。' : 'There is no launch to edit yet. Add the product URL on the left first.' });
+        await publishDirectorMessage({ role: 'assistant', content: locale !== 'en' ? '当前还没有可修改的 Launch。请先在左侧导入项目文档，或选择分析产品链接。' : 'There is no launch to edit yet. Import a project document on the left, or choose website analysis.' });
         return;
       }
       const unpaid = !storeRef.current.paid;
@@ -2245,11 +2497,21 @@ export function useDirector(defaultViewContext?: ViewContext) {
             ? action.channelIds
             : [...new Set([...action.channelIds, ...storeRef.current.channels])];
           if (ids.length > 0) await runGenerateTodos(ids);
+        } else if (action.type === 'create_todo') {
+          await runCreateTodo(action, executionId);
+        } else if (action.type === 'write_artifact') {
+          await runWriteArtifact(action, executionId);
+        } else if (action.type === 'research_query') {
+          await runResearchQuery(action, executionId);
         } else if (action.type === 'generate_topics') {
           await runGenerateTopics(
             action.channelIds,
             action.count ?? 7,
-            executionId
+            executionId,
+            {
+              brief: action.brief,
+              scheduleTodos: action.scheduleTodos,
+            }
           );
         } else if (action.type === 'research_product') {
           await runProductResearch(action.websiteUrl, executionId);
@@ -2323,6 +2585,9 @@ export function useDirector(defaultViewContext?: ViewContext) {
       runGenerateChannelPlans,
       runGenerateStrategy,
       runGenerateTodos,
+      runCreateTodo,
+      runWriteArtifact,
+      runResearchQuery,
       runGenerateTopics,
       runGenerateTodoContent,
       runProductResearch,
@@ -2951,7 +3216,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
     [gtm, locale, publishDirectorMessage, scheduleActions, send]
   );
 
-  /** 提交冷启动问卷（多题固定卡片）；付费后档案卡与进对话 Kickoff 共用 */
+  /** Submit the remaining onboarding/research kickoff cards. */
   const submitKickoff = useCallback(
     async (
       messageId: string,
@@ -2971,30 +3236,6 @@ export function useDirector(defaultViewContext?: ViewContext) {
         },
       });
 
-      const isPostPayProfile =
-        card.title.includes('用户档案') || card.title.includes('Quick profile');
-      if (isPostPayProfile) {
-        const isZh = locale !== 'en';
-        const seed = formatPostPayProfileSeed(answers, isZh);
-        const existing = storeRef.current.userProfileDoc?.trim();
-        const merged =
-          existing && !existing.includes('固定档案') && !existing.includes('Fixed profile')
-            ? `${seed}\n\n${existing}`
-            : seed;
-        gtm.setProfiles(merged, storeRef.current.projectProfileDoc);
-        gtm.update({
-          postPayProfileComplete: true,
-          targetMarketLocale: resolveTargetMarketLocale(answers.market ?? []),
-        });
-        void send(formatPostPayAnswersMessage(card, answers, isZh));
-        void scheduleActions(
-          [{ type: 'recommend_channels' }],
-          [messageId],
-          `recommend-after-profile-${messageId}`
-        );
-        return;
-      }
-
       if (trimmedUrl) {
         await runProductResearch(trimmedUrl);
       }
@@ -3003,10 +3244,47 @@ export function useDirector(defaultViewContext?: ViewContext) {
     [gtm, locale, send, runProductResearch, scheduleActions]
   );
 
+  const submitDirectoryMaterials = useCallback(
+    (
+      messageId: string,
+      card: DirectoryMaterialsCard,
+      values: Partial<Record<DirectoryMaterialKey, string>>
+    ) => {
+      const launch = storeRef.current.launch;
+      if (!launch) return;
+      const kit = applyDirectoryMaterialValues(
+        buildDirectoryLaunchKit(launch),
+        values
+      );
+      gtm.update({
+        launch: {
+          ...launch,
+          directoryLaunchKit: kit,
+          project: { ...launch.project, updatedAt: Date.now() },
+        },
+      });
+      gtm.patchDirectorMessage(messageId, {
+        card: {
+          kind: 'directory_materials',
+          card: { ...card, savedAt: Date.now() },
+        },
+      });
+      gtm.addDirectorMessage({
+        role: 'assistant',
+        content:
+          locale !== 'en'
+            ? '已保存到 Directory 提交资料库。之后每个平台会直接复用；如果某个平台还有特殊要求，我再只追问缺少的部分。'
+            : 'Saved to the directory submission library. Every platform can reuse it; if one has a special requirement, I will only ask for the missing detail.',
+      });
+    },
+    [gtm, locale]
+  );
+
   return {
     send,
     submitOptions,
     submitKickoff,
+    submitDirectoryMaterials,
     /** Backwards-compatible name for existing UI. */
     sending: processing,
     processing,

@@ -5,6 +5,7 @@ import {
   createInitialStore,
   GTM_STORE_VERSION,
   type ChatMessage,
+  type ChannelRecommendationResponse,
   type GtmStore,
   type MessageCard,
   type Todo,
@@ -28,6 +29,7 @@ type ProjectRecord = {
   state_snapshot: unknown;
   updated_at: string;
   atomic_state_available: boolean;
+  target_markets?: unknown;
 };
 
 type DatabaseError = { message: string; code?: string } | null;
@@ -163,6 +165,158 @@ export async function ensureDefaultProject(clerkUserId: string): Promise<{
       state_snapshot: null,
       atomic_state_available: false,
     } as ProjectRecord,
+  };
+}
+
+export async function loadMarketStrategyReport(
+  clerkUserId: string,
+  launchId: string
+): Promise<ChannelRecommendationResponse | null> {
+  const supabase = getServiceSupabase();
+  const { project } = await ensureDefaultProject(clerkUserId);
+  const { data, error } = await supabase
+    .from('market_strategy_reports')
+    .select('report')
+    .eq('project_id', project.id)
+    .eq('launch_id', launchId)
+    .maybeSingle();
+  if (
+    error &&
+    !isMissingSchema(error, [
+      'public.market_strategy_reports',
+      "table 'public.market_strategy_reports'",
+    ])
+  ) {
+    fail('Failed to load market strategy report', error);
+  }
+  if (data?.report) {
+    return data.report as ChannelRecommendationResponse;
+  }
+
+  // Compatibility path for deployments where the new report table has not
+  // reached PostgREST's schema cache yet. The existing Agent job table stores
+  // the same complete JSON payload under a unique project/build key.
+  const fallback = await supabase
+    .from('agent_work_jobs')
+    .select('result_summary')
+    .eq('project_id', project.id)
+    .eq('build_key', `free-market-strategy-report:${launchId}`)
+    .maybeSingle();
+  fail('Failed to load compatible market strategy report', fallback.error);
+  const fallbackPayload = fallback.data?.result_summary as
+    | { report?: ChannelRecommendationResponse }
+    | null
+    | undefined;
+  return fallbackPayload?.report ?? null;
+}
+
+/**
+ * Insert the entire report once. No incremental writes and no update/upsert:
+ * a retry returns the winning row created by the first request.
+ */
+export async function saveMarketStrategyReportOnce(input: {
+  clerkUserId: string;
+  launchId: string;
+  locale: 'zh' | 'en';
+  productName: string;
+  report: ChannelRecommendationResponse;
+}): Promise<{ report: ChannelRecommendationResponse; reused: boolean }> {
+  const supabase = getServiceSupabase();
+  const { project } = await ensureDefaultProject(input.clerkUserId);
+  const insert = await supabase
+    .from('market_strategy_reports')
+    .insert({
+      project_id: project.id,
+      launch_id: input.launchId,
+      locale: input.locale,
+      product_name: input.productName.slice(0, 200),
+      report_markdown: input.report.reportMarkdown,
+      report: input.report,
+    })
+    .select('report')
+    .single();
+  if (!insert.error && insert.data?.report) {
+    return {
+      report: insert.data.report as ChannelRecommendationResponse,
+      reused: false,
+    };
+  }
+  const reportTableMissing = isMissingSchema(insert.error, [
+    'public.market_strategy_reports',
+    "table 'public.market_strategy_reports'",
+  ]);
+  if (insert.error?.code !== '23505' && !reportTableMissing) {
+    fail('Failed to save market strategy report', insert.error);
+  }
+  if (reportTableMissing) {
+    const buildKey = `free-market-strategy-report:${input.launchId}`;
+    const compatibleInsert = await supabase
+      .from('agent_work_jobs')
+      .insert({
+        project_id: project.id,
+        clerk_user_id: input.clerkUserId,
+        build_key: buildKey,
+        locale: input.locale,
+        kind: 'market_strategy_report',
+        status: 'completed',
+        current_step: 'complete',
+        progress_completed: 1,
+        progress_total: 1,
+        input_snapshot: {
+          launchId: input.launchId,
+          productName: input.productName.slice(0, 200),
+        },
+        result_summary: {
+          report: input.report,
+          reportMarkdown: input.report.reportMarkdown,
+        },
+        completed_at: new Date().toISOString(),
+      })
+      .select('result_summary')
+      .single();
+    if (!compatibleInsert.error && compatibleInsert.data?.result_summary) {
+      return { report: input.report, reused: false };
+    }
+    if (compatibleInsert.error?.code !== '23505') {
+      fail(
+        'Failed to save compatible market strategy report',
+        compatibleInsert.error
+      );
+    }
+    const compatibleExisting = await supabase
+      .from('agent_work_jobs')
+      .select('result_summary')
+      .eq('project_id', project.id)
+      .eq('build_key', buildKey)
+      .single();
+    fail(
+      'Failed to reload compatible market strategy report',
+      compatibleExisting.error
+    );
+    const compatiblePayload = compatibleExisting.data?.result_summary as
+      | { report?: ChannelRecommendationResponse }
+      | null
+      | undefined;
+    if (!compatiblePayload?.report) {
+      throw new Error(
+        'Compatible market strategy report resolved without a stored payload'
+      );
+    }
+    return { report: compatiblePayload.report, reused: true };
+  }
+  const existing = await supabase
+    .from('market_strategy_reports')
+    .select('report')
+    .eq('project_id', project.id)
+    .eq('launch_id', input.launchId)
+    .single();
+  fail('Failed to reload market strategy report', existing.error);
+  if (!existing.data?.report) {
+    throw new Error('Market strategy report conflict resolved without a stored row');
+  }
+  return {
+    report: existing.data.report as ChannelRecommendationResponse,
+    reused: true,
   };
 }
 
@@ -379,6 +533,8 @@ export async function loadGtmStore(clerkUserId: string): Promise<{
     taskType: row.task_type ?? undefined,
     phase: row.phase ?? undefined,
     market: row.market ?? undefined,
+    targetMarketId: row.target_market_id ?? undefined,
+    outputLocale: row.output_locale ?? undefined,
     audience: row.audience ?? undefined,
     status: row.status as Todo['status'],
     launchStatus: row.launch_status ?? undefined,
@@ -409,6 +565,9 @@ export async function loadGtmStore(clerkUserId: string): Promise<{
     startDate: project.start_date ?? undefined,
     userProfileDoc: context?.user_profile_doc ?? '',
     projectProfileDoc: context?.project_profile_doc ?? '',
+    targetMarkets: Array.isArray(project.target_markets)
+      ? project.target_markets
+      : [],
     conversationSummary: context?.conversation_summary ?? '',
     memoryFacts: Array.isArray(context?.memory_facts)
       ? context.memory_facts
@@ -573,6 +732,7 @@ export async function saveGtmStore(
         state_revision: nextRevision,
         state_snapshot: store,
         directory_launch_kit: store.launch?.directoryLaunchKit ?? null,
+        target_markets: store.targetMarkets ?? [],
       })
       .eq('id', projectId)
       .eq('state_revision', currentRevision)
@@ -589,6 +749,7 @@ export async function saveGtmStore(
         store_version: GTM_STORE_VERSION,
         plan_ready: Boolean(store.planReady),
         start_date: store.startDate ?? null,
+        target_markets: store.targetMarkets ?? [],
       })
       .eq('id', projectId)
       .eq('updated_at', currentRevision)
@@ -789,6 +950,8 @@ export async function saveGtmStore(
         task_type: todo.taskType ?? null,
         phase: todo.phase ?? null,
         market: todo.market ?? null,
+        target_market_id: todo.targetMarketId ?? null,
+        output_locale: todo.outputLocale ?? null,
         audience: todo.audience ?? null,
         status: todo.status,
         launch_status: todo.launchStatus ?? 'planned',
@@ -813,6 +976,8 @@ export async function saveGtmStore(
         'task_type',
         'launch_status',
         'revision',
+        'target_market_id',
+        'output_locale',
       ])
     ) {
       const preLaunchWrite = await supabase.from('todos').upsert(
