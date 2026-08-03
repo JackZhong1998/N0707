@@ -980,6 +980,75 @@
     'llm_relevance',
     'build_voyage',
   ]);
+  const backlinkDirectories = new Set([
+    'toolfio',
+    'twelve_tools',
+    'fazier',
+    'findly_tools',
+    'acid_tools',
+    'startups_fm',
+    'toolpilot',
+    'unitelist',
+    'saas_hunt_best',
+    'saas_bison',
+    'dodo_directory',
+    'sumodir',
+  ]);
+  const extraRequirements = {
+    hot100: [
+      ['techStack', 'ai'],
+      ['productStage', 'user'],
+      ['twitterUrl', 'user'],
+      ['linkedinUrl', 'user'],
+      ['githubUrl', 'user'],
+    ],
+    foundrlist: [
+      ['twitterUrl', 'user'],
+      ['linkedinUrl', 'user'],
+      ['demoUrl', 'user'],
+    ],
+    devhunt: [
+      ['githubUrl', 'user'],
+      ['demoUrl', 'user'],
+    ],
+    llm_relevance: [['youtubeUrl', 'user']],
+    made_with_bolt: [['twitterUrl', 'user']],
+    made_with_lovable: [['twitterUrl', 'user']],
+    hunt0: [
+      ['twitterUrl', 'user'],
+      ['linkedinUrl', 'user'],
+      ['githubUrl', 'user'],
+      ['launchDate', 'user'],
+    ],
+    alternative_to: [
+      ['featureHighlights', 'ai'],
+      ['supportedPlatforms', 'ai'],
+      ['twitterUrl', 'user'],
+      ['linkedinUrl', 'user'],
+      ['githubUrl', 'user'],
+      ['youtubeUrl', 'user'],
+      ['demoUrl', 'user'],
+    ],
+    toolpilot: [
+      ['companyName', 'user'],
+      ['featureHighlights', 'ai'],
+      ['supportedPlatforms', 'ai'],
+      ['integrations', 'ai'],
+      ['apiAvailability', 'user'],
+      ['communityAvailability', 'user'],
+      ['twitterUrl', 'user'],
+      ['linkedinUrl', 'user'],
+    ],
+    peerlist: [
+      ['techStack', 'ai'],
+      ['githubUrl', 'user'],
+      ['demoUrl', 'user'],
+    ],
+    launch_igniter: [['demoUrl', 'user']],
+    startupbase: [['demoUrl', 'user']],
+    build_voyage: [['techStack', 'ai']],
+    product_launchpad: [['techStack', 'ai']],
+  };
 
   function directoryRequirements(directory) {
     const result = baseRequirements.map((item) => ({ ...item }));
@@ -1017,6 +1086,15 @@
         assetSpec: assetSpecs[directory.id]?.screenshot,
       });
     }
+    if (backlinkDirectories.has(directory.id)) {
+      add('backlinkUrl', 'user', {
+        required: false,
+        detail: '免费方案需要在产品官网添加反向链接或徽章',
+      });
+    }
+    for (const [key, resolution] of extraRequirements[directory.id] || []) {
+      add(key, resolution, { required: false });
+    }
     return result;
   }
 
@@ -1035,7 +1113,7 @@
   }
 
   global.NowBuildDirectoryCatalog = {
-    version: '0.9.13',
+    version: '0.9.14',
     directories,
     byId(id) {
       return directories.find((directory) => directory.id === id);

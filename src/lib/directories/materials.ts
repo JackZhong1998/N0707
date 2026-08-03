@@ -1,5 +1,7 @@
 import { directoryAdapterId } from './automation';
+import generatedRequirements from './requirements.generated.json';
 import type {
+  DirectoryAssetSpec,
   DirectoryLaunchKit,
   DirectoryMaterialCheck,
   DirectoryMaterialKey,
@@ -8,8 +10,6 @@ import type {
   DirectorySubmission,
   LaunchState,
 } from '@/lib/gtm/types';
-
-type Resolution = DirectoryMaterialRequirement['resolution'];
 
 const BASE_REQUIREMENTS: DirectoryMaterialRequirement[] = [
   { key: 'productName', resolution: 'user', required: true },
@@ -23,78 +23,21 @@ const BASE_REQUIREMENTS: DirectoryMaterialRequirement[] = [
   },
 ];
 
-const LONG_DESCRIPTION = new Set([
-  'aura_plus_plus',
-  'openhunts',
-  'earlyhunt',
-  'tinylaunch',
-  'open_launch',
-  'micro_saas_examples',
-  'made_with_lovable',
-  'made_with_bolt',
-  'devhunt',
-  'launchy',
-]);
+interface GeneratedDirectoryProfile {
+  requirements: Array<{
+    key: string;
+    resolution: string;
+    required: boolean;
+    minLength?: number;
+    detail?: string;
+    assetSpec?: DirectoryAssetSpec;
+  }>;
+}
 
-const CATEGORY = new Set([
-  'aura_plus_plus',
-  'openhunts',
-  'earlyhunt',
-  'twelve_tools',
-  'hot100',
-  'findly_tools',
-  'tinylaunch',
-  'open_launch',
-  'micro_saas_examples',
-  'future_tools',
-  'devhunt',
-  'launchy',
-]);
-
-const PRICING = new Set([
-  'openhunts',
-  'hot100',
-  'future_tools',
-  'findly_tools',
-  'devhunt',
-]);
-
-const LOGO = new Set([
-  'aura_plus_plus',
-  'openhunts',
-  'earlyhunt',
-  'twelve_tools',
-  'hot100',
-  'findly_tools',
-  'tinylaunch',
-  'foundrlist',
-  'open_launch',
-  'micro_saas_examples',
-  'made_with_lovable',
-  'made_with_bolt',
-  'devhunt',
-]);
-
-const SCREENSHOTS = new Set([
-  'aura_plus_plus',
-  'openhunts',
-  'earlyhunt',
-  'findly_tools',
-  'tinylaunch',
-  'open_launch',
-  'micro_saas_examples',
-  'launchy',
-  'devhunt',
-]);
-
-const FOUNDER_NAME = new Set(['hot100', 'future_tools', 'tinylaunch']);
-const FOUNDER_EMAIL = new Set([
-  'twelve_tools',
-  'hot100',
-  'micro_saas_examples',
-  'future_tools',
-  'devhunt',
-]);
+const GENERATED_DIRECTORY_REQUIREMENTS = generatedRequirements.directories as unknown as Record<
+  string,
+  GeneratedDirectoryProfile
+>;
 
 const REQUIREMENT_DETAILS: Partial<
   Record<string, Partial<Record<DirectoryMaterialKey, [string, string]>>>
@@ -122,6 +65,15 @@ const LABELS: Record<DirectoryMaterialKey, [string, string]> = {
   longDescription: ['完整介绍', 'Long description'],
   categories: ['产品分类', 'Categories'],
   tags: ['产品标签', 'Tags'],
+  companyName: ['公司名称', 'Company name'],
+  featureHighlights: ['核心功能', 'Feature highlights'],
+  supportedPlatforms: ['支持平台', 'Supported platforms'],
+  integrations: ['集成服务', 'Integrations'],
+  techStack: ['技术栈', 'Tech stack'],
+  productStage: ['产品阶段', 'Product stage'],
+  apiAvailability: ['API 可用性', 'API availability'],
+  communityAvailability: ['社区可用性', 'Community availability'],
+  backlinkUrl: ['反向链接页面', 'Backlink page'],
   pricing: ['定价方式', 'Pricing'],
   founderName: ['创始人姓名', 'Founder name'],
   founderBio: ['创始人简介', 'Founder bio'],
@@ -138,61 +90,29 @@ const LABELS: Record<DirectoryMaterialKey, [string, string]> = {
   screenshots: ['产品截图', 'Product screenshots'],
 };
 
-function requirement(
-  key: DirectoryMaterialKey,
-  resolution: Resolution,
-  adapterId: string | undefined,
-  isZh: boolean,
-  minLength?: number
-): DirectoryMaterialRequirement {
-  return {
-    key,
-    resolution,
-    required: true,
-    minLength,
-    detail: adapterId
-      ? REQUIREMENT_DETAILS[adapterId]?.[key]?.[isZh ? 0 : 1]
-      : undefined,
-  };
-}
-
 export function getDirectoryMaterialRequirements(
   directory: Pick<DirectorySubmission, 'url'>,
   isZh = true
 ): DirectoryMaterialRequirement[] {
   const adapterId = directoryAdapterId(directory.url) ?? undefined;
-  const result = [...BASE_REQUIREMENTS];
-  if (!adapterId) return result;
-  if (LONG_DESCRIPTION.has(adapterId)) {
-    result.push(
-      requirement(
-        'longDescription',
-        'ai',
-        adapterId,
-        isZh,
-        adapterId === 'aura_plus_plus' ? 900 : 80
-      )
-    );
-  }
-  if (CATEGORY.has(adapterId)) {
-    result.push(requirement('categories', 'ai', adapterId, isZh));
-  }
-  if (PRICING.has(adapterId)) {
-    result.push(requirement('pricing', 'user', adapterId, isZh));
-  }
-  if (LOGO.has(adapterId)) {
-    result.push(requirement('logo', 'user', adapterId, isZh));
-  }
-  if (SCREENSHOTS.has(adapterId)) {
-    result.push(requirement('screenshots', 'user', adapterId, isZh));
-  }
-  if (FOUNDER_NAME.has(adapterId)) {
-    result.push(requirement('founderName', 'user', adapterId, isZh));
-  }
-  if (FOUNDER_EMAIL.has(adapterId)) {
-    result.push(requirement('founderEmail', 'user', adapterId, isZh));
-  }
-  return result;
+  const profile = adapterId
+    ? GENERATED_DIRECTORY_REQUIREMENTS[adapterId]
+    : undefined;
+  if (!profile) return BASE_REQUIREMENTS.map((item) => ({ ...item }));
+
+  return profile.requirements.map((item) => {
+    const key = item.key as DirectoryMaterialKey;
+    return {
+      key,
+      resolution: item.resolution as DirectoryMaterialRequirement['resolution'],
+      required: item.required,
+      minLength: item.minLength,
+      detail:
+        REQUIREMENT_DETAILS[adapterId!]?.[key]?.[isZh ? 0 : 1] ||
+        (isZh ? item.detail : undefined),
+      assetSpec: item.assetSpec,
+    };
+  });
 }
 
 function documentField(markdown: string, labels: string[]): string {
@@ -233,6 +153,17 @@ export function buildDirectoryLaunchKit(launch: LaunchState): DirectoryLaunchKit
       existing?.tags?.length
         ? existing.tags
         : brief?.positioning.sellingPoints ?? [],
+    companyName: existing?.companyName || launch.project.productName,
+    featureHighlights: existing?.featureHighlights?.length
+      ? existing.featureHighlights
+      : brief?.positioning.sellingPoints ?? [],
+    supportedPlatforms: existing?.supportedPlatforms ?? [],
+    integrations: existing?.integrations ?? [],
+    techStack: existing?.techStack ?? [],
+    productStage: existing?.productStage || documentField(source, ['产品阶段', 'product stage', 'startup stage']),
+    apiAvailability: existing?.apiAvailability || documentField(source, ['API 可用性', '是否有 API', 'API availability']),
+    communityAvailability: existing?.communityAvailability || documentField(source, ['社区可用性', '是否有社区', 'community availability']),
+    backlinkUrl: existing?.backlinkUrl || documentUrl(source, ['反向链接', '徽章页面', 'backlink url', 'badge page']),
     pricing: existing?.pricing || brief?.product.pricing || '',
     founderName: existing?.founderName || documentField(source, ['创始人姓名', '创始人', 'founder name', 'founder']),
     founderBio: existing?.founderBio || documentField(source, ['创始人简介', 'founder bio', 'founder biography']),
@@ -345,6 +276,10 @@ export function mergeGeneratedDirectoryMaterials(
       | 'longDescription'
       | 'categories'
       | 'tags'
+      | 'featureHighlights'
+      | 'supportedPlatforms'
+      | 'integrations'
+      | 'techStack'
     >
   >
 ): DirectoryLaunchKit {
@@ -361,5 +296,17 @@ export function mergeGeneratedDirectoryMaterials(
     tags: generated.tags?.filter(Boolean).slice(0, 10).length
       ? generated.tags.filter(Boolean).slice(0, 10)
       : kit.tags,
+    featureHighlights: generated.featureHighlights?.filter(Boolean).slice(0, 10).length
+      ? generated.featureHighlights.filter(Boolean).slice(0, 10)
+      : kit.featureHighlights,
+    supportedPlatforms: generated.supportedPlatforms?.filter(Boolean).slice(0, 10).length
+      ? generated.supportedPlatforms.filter(Boolean).slice(0, 10)
+      : kit.supportedPlatforms,
+    integrations: generated.integrations?.filter(Boolean).slice(0, 10).length
+      ? generated.integrations.filter(Boolean).slice(0, 10)
+      : kit.integrations,
+    techStack: generated.techStack?.filter(Boolean).slice(0, 10).length
+      ? generated.techStack.filter(Boolean).slice(0, 10)
+      : kit.techStack,
   };
 }

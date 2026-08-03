@@ -2804,6 +2804,24 @@ export function useDirector(defaultViewContext?: ViewContext) {
           );
         })
         .catch(async (error) => {
+          // A Todo enters `writing` optimistically when it is queued. Only a
+          // real queue/worker failure should return it to `none`, which lets
+          // the detail page offer Retry without showing a false failure while
+          // background work is still running.
+          for (const action of actions) {
+            if (
+              action.type !== 'generate_todo_content' &&
+              action.type !== 'rewrite_todo_content'
+            ) {
+              continue;
+            }
+            const todo = storeRef.current.todos.find(
+              (item) => item.id === action.todoId
+            );
+            if (todo?.contentStatus === 'writing') {
+              gtm.updateTodo(action.todoId, { contentStatus: 'none' });
+            }
+          }
           await publishDirectorMessage({
             role: 'assistant',
             lane: 'background',

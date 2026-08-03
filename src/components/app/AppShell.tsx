@@ -614,10 +614,19 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           ? event.detail.todoId.slice(0, 160)
           : '';
       if (!todoId) return;
+      const contentRevision =
+        event instanceof CustomEvent &&
+        Number.isInteger(event.detail?.contentRevision) &&
+        event.detail.contentRevision > 0
+          ? Math.min(event.detail.contentRevision, 10_000)
+          : 1;
+      // One durable job per content version: refreshes resume the same write,
+      // while a language/market regeneration increments the version and gets
+      // a genuinely new job.
       enqueueActions(
         [{ type: 'generate_todo_content', todoId }],
         [],
-        `write-todo-${todoId}`
+        `write-todo-${todoId}-v${contentRevision}`
       );
     };
     window.addEventListener('nowbuild:write-todo', writeTodo);

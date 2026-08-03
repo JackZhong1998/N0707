@@ -313,5 +313,11 @@ export function defaultWorkLabel(
   if (types.includes('generate_weekly_review')) {
     return isZh ? '正在生成周复盘…' : 'Writing weekly review…';
   }
+  if (
+    types.includes('generate_todo_content') ||
+    types.includes('rewrite_todo_content')
+  ) {
+    return isZh ? '正在撰写发布文案…' : 'Writing publishing copy…';
+  }
   return isZh ? '后台任务进行中…' : 'Running background work…';
 }

@@ -16,7 +16,15 @@ export interface DirectoryMaterialGenerationInput {
 export type GeneratedDirectoryMaterials = Partial<
   Pick<
     DirectoryLaunchKit,
-    'tagline' | 'shortDescription' | 'longDescription' | 'categories' | 'tags'
+    | 'tagline'
+    | 'shortDescription'
+    | 'longDescription'
+    | 'categories'
+    | 'tags'
+    | 'featureHighlights'
+    | 'supportedPlatforms'
+    | 'integrations'
+    | 'techStack'
   >
 >;
 
@@ -45,6 +53,10 @@ export async function generateDirectoryMaterials(
     'longDescription',
     'categories',
     'tags',
+    'featureHighlights',
+    'supportedPlatforms',
+    'integrations',
+    'techStack',
   ]);
   const requested = input.requestedFields.filter((field) => allowed.has(field));
   if (!requested.length) return {};
@@ -58,6 +70,10 @@ shortDescription: 30-280 characters.
 longDescription: 120-1200 words when enough source material exists; otherwise use a shorter factual description.
 categories: 1-5 concise software categories.
 tags: 3-10 concise discovery tags.
+featureHighlights: 3-10 concrete product capabilities; do not repeat marketing adjectives.
+supportedPlatforms: include only platforms explicitly supported by the source material.
+integrations: include only integrations explicitly named in the source material.
+techStack: include only technologies explicitly named in the source material.
 Write in ${input.locale === 'zh' ? 'Simplified Chinese' : 'English'}.`;
 
   const messages: OpenRouterMessage[] = [
@@ -77,7 +93,7 @@ Source material:
 ${input.sourceMarkdown.slice(0, 20_000)}
 
 Output shape:
-{"tagline":"...","shortDescription":"...","longDescription":"...","categories":["..."],"tags":["..."]}`,
+{"tagline":"...","shortDescription":"...","longDescription":"...","categories":["..."],"tags":["..."],"featureHighlights":["..."],"supportedPlatforms":["..."],"integrations":["..."],"techStack":["..."]}`,
     },
   ];
   const raw = await callOpenRouterJson<Record<string, unknown>>(messages, {
@@ -99,6 +115,18 @@ Output shape:
   }
   if (requested.includes('tags')) {
     output.tags = cleanList(raw.tags, 10);
+  }
+  if (requested.includes('featureHighlights')) {
+    output.featureHighlights = cleanList(raw.featureHighlights, 10);
+  }
+  if (requested.includes('supportedPlatforms')) {
+    output.supportedPlatforms = cleanList(raw.supportedPlatforms, 10);
+  }
+  if (requested.includes('integrations')) {
+    output.integrations = cleanList(raw.integrations, 10);
+  }
+  if (requested.includes('techStack')) {
+    output.techStack = cleanList(raw.techStack, 10);
   }
   return output;
 }

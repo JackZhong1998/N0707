@@ -7,6 +7,7 @@
  */
 
 import { use, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
@@ -27,12 +28,17 @@ import {
   getChannelCapability,
   validatePostUrl,
 } from '@/lib/gtm/channel-capabilities';
-import type { PublishStatus } from '@/lib/gtm/types';
+import type { PublishStatus, Todo } from '@/lib/gtm/types';
 import {
   COMMON_OUTPUT_LOCALES,
   inferOutputLocale,
   outputLanguageLabel,
 } from '@/lib/gtm/target-markets';
+
+type PublishingContextPatch = Pick<
+  Todo,
+  'market' | 'targetMarketId' | 'outputLocale' | 'audience'
+>;
 
 function publishStatusLabel(status: PublishStatus | undefined, isZh: boolean) {
   const labels: Record<PublishStatus, [string, string]> = {
@@ -71,6 +77,8 @@ export default function TaskDetailPage({
   const [publishMessage, setPublishMessage] = useState('');
   const [publisher, setPublisher] = useState<PublisherAvailability | null>(null);
   const [confirmUrl, setConfirmUrl] = useState('');
+  const [pendingPublishingContext, setPendingPublishingContext] =
+    useState<PublishingContextPatch | null>(null);
   const writeRequestedRef = useRef<string | null>(null);
   const { setViewContext, clearViewContext } = useViewContext();
 
@@ -93,44 +101,93 @@ export default function TaskDetailPage({
         .sort((a, b) => (a.time ?? '99').localeCompare(b.time ?? '99')),
     [store.todos, todo?.date]
   );
+  const writingThisTodo = Boolean(
+    todo &&
+      todo.contentStatus !== 'ready' &&
+      (todo.contentStatus === 'writing' ||
+        store.agentActionJobs.some((job) =>
+          job.actions.some(
+            (action) =>
+              (action.type === 'generate_todo_content' ||
+                action.type === 'rewrite_todo_content') &&
+              action.todoId === todo.id
+          )
+        ))
+  );
 
-  const requestWrite = () => {
-    writeRequestedRef.current = id;
-    window.dispatchEvent(
-      new CustomEvent('nowbuild:write-todo', {
-        detail: { todoId: id },
-      })
-    );
+  const dispatchWrite = (todoId: string, contentRevision: number) => {
+    writeRequestedRef.current = todoId;
+    // Let the optimistic Todo patch commit before the queue snapshots the
+    // store, especially after market/language changes.
+    window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent('nowbuild:write-todo', {
+          detail: { todoId, contentRevision },
+        })
+      );
+    }, 0);
   };
 
-  const updatePublishingContext = (
-    patch: Pick<NonNullable<typeof todo>, 'market' | 'targetMarketId' | 'outputLocale' | 'audience'>
+  const requestWrite = () => {
+    if (!todo || todo.publishedUrl) return;
+    // `none` means no draft has been written yet, not that writing failed.
+    // Move to the visible in-progress state before the durable job is enqueued
+    // so the Todo and Agent panel never contradict each other.
+    gtm.updateTodo(todo.id, { contentStatus: 'writing' });
+    dispatchWrite(todo.id, todo.contentRevision ?? 1);
+  };
+
+  const applyPublishingContext = (
+    patch: PublishingContextPatch,
+    regenerateDraft: boolean
   ) => {
     if (!todo || todo.publishedUrl) return;
-    const invalidatesDraft = todo.contentStatus === 'ready' && Boolean(todo.content);
-    if (
-      invalidatesDraft &&
-      !window.confirm(
-        isZh
-          ? '更改目标市场或发布语言后，当前文案需要重新生成。是否继续？'
-          : 'Changing the market or publishing language will regenerate the current copy. Continue?'
-      )
-    ) {
-      return;
-    }
-    writeRequestedRef.current = null;
+    const nextContentRevision =
+      (todo.contentRevision ?? 1) + (regenerateDraft ? 1 : 0);
     gtm.updateTodo(todo.id, {
       ...patch,
       revision: (todo.revision ?? 1) + 1,
-      ...(invalidatesDraft
+      ...(regenerateDraft
         ? {
             content: undefined,
-            contentStatus: 'none' as const,
-            contentRevision: (todo.contentRevision ?? 1) + 1,
+            contentStatus: 'writing' as const,
+            contentRevision: nextContentRevision,
           }
         : {}),
     });
+    if (regenerateDraft) {
+      dispatchWrite(todo.id, nextContentRevision);
+    } else {
+      writeRequestedRef.current = null;
+    }
   };
+
+  const updatePublishingContext = (patch: PublishingContextPatch) => {
+    if (!todo || todo.publishedUrl) return;
+    const hasExistingDraft =
+      todo.contentStatus === 'ready' && Boolean(todo.content);
+    if (hasExistingDraft) {
+      setPendingPublishingContext(patch);
+      return;
+    }
+    applyPublishingContext(patch, false);
+  };
+
+  const confirmPublishingContextChange = () => {
+    if (!pendingPublishingContext) return;
+    const patch = pendingPublishingContext;
+    setPendingPublishingContext(null);
+    applyPublishingContext(patch, true);
+  };
+
+  useEffect(() => {
+    if (!pendingPublishingContext) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPendingPublishingContext(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [pendingPublishingContext]);
 
   useEffect(() => {
     if (
@@ -572,7 +629,7 @@ export default function TaskDetailPage({
 
       <section className="border-t border-white/[0.06] p-5">
         <p className="index-label mb-4">{isZh ? '发布文案' : 'Publishing copy'}</p>
-        {todo.contentStatus === 'writing' && (
+        {writingThisTodo && (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <span className="relative flex h-3 w-3">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-zinc-400 opacity-60" />
@@ -627,13 +684,19 @@ export default function TaskDetailPage({
             />
           </article>
         )}
-        {todo.contentStatus === 'none' && (
+        {todo.contentStatus === 'none' && !writingThisTodo && (
           <div className="flex h-full items-center justify-center">
             <button
               onClick={requestWrite}
               className="rounded-full bg-white/[0.06] px-5 py-2.5 text-sm text-ink-soft hover:bg-white/[0.1]"
             >
-              {isZh ? '内容生成失败，点击重试' : 'Failed to write. Retry'}
+              {writeRequestedRef.current === todo.id
+                ? isZh
+                  ? '内容生成失败，点击重试'
+                  : 'Failed to write. Retry'
+                : isZh
+                  ? '正在准备生成内容…'
+                  : 'Preparing to write…'}
             </button>
           </div>
         )}
@@ -808,6 +871,7 @@ export default function TaskDetailPage({
   );
 
   return (
+    <>
     <div className="flex h-full flex-col gap-3 p-3">
       <div className="flex shrink-0 items-center justify-between gap-3 px-1">
         <Link
@@ -894,5 +958,116 @@ export default function TaskDetailPage({
         </div>
       </div>
     </div>
+    {pendingPublishingContext && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 px-4 py-8 backdrop-blur-md"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setPendingPublishingContext(null);
+              }
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="publishing-context-dialog-title"
+              className="relative w-full max-w-lg overflow-hidden rounded-[28px] border border-white/[0.11] bg-[#0d0f0c] p-5 shadow-[0_32px_100px_rgba(0,0,0,0.72)] sm:p-7"
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(139,183,72,0.18),transparent_68%)]" />
+              <div className="relative flex flex-col items-center text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand-300/20 bg-brand-500/10 text-brand-300 shadow-[0_0_32px_rgba(139,183,72,0.12)]">
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7h-5V2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7a8 8 0 10.2 9" />
+                  </svg>
+                </div>
+                <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-300">
+                  {isZh ? '发布设置已改变' : 'Publishing settings changed'}
+                </p>
+                <h2
+                  id="publishing-context-dialog-title"
+                  className="mt-2 font-[family-name:var(--font-display)] text-2xl font-black tracking-tight text-white"
+                >
+                  {isZh
+                    ? '需要重新生成这条文案吗？'
+                    : 'Regenerate this copy?'}
+                </h2>
+                <p className="mt-3 max-w-md text-sm leading-6 text-zinc-400">
+                  {isZh
+                    ? '当前草稿仍使用原来的市场和语言。为了避免文案与受众不一致，建议按新设置重新生成。'
+                    : 'The current draft still uses the previous market and language. Regenerate it so the copy matches the new audience.'}
+                </p>
+
+                <div className="mt-5 grid w-full grid-cols-[1fr_auto_1fr] items-stretch gap-2 text-left">
+                  <div className="min-w-0 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3">
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                      {isZh ? '当前' : 'Current'}
+                    </span>
+                    <p className="mt-1 truncate text-xs font-semibold text-zinc-300">
+                      {todo.market || (isZh ? '未指定市场' : 'No market')}
+                    </p>
+                    <p className="mt-0.5 truncate text-[10px] text-zinc-600">
+                      {outputLanguageLabel(effectiveOutputLocale, locale)} · {effectiveOutputLocale}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center text-brand-300/70">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 rounded-2xl border border-brand-300/20 bg-brand-500/[0.07] p-3">
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-300/70">
+                      {isZh ? '新设置' : 'New'}
+                    </span>
+                    <p className="mt-1 truncate text-xs font-semibold text-white">
+                      {pendingPublishingContext.market || todo.market || (isZh ? '未指定市场' : 'No market')}
+                    </p>
+                    <p className="mt-0.5 truncate text-[10px] text-brand-300/70">
+                      {outputLanguageLabel(
+                        pendingPublishingContext.outputLocale || effectiveOutputLocale,
+                        locale
+                      )}{' '}
+                      · {pendingPublishingContext.outputLocale || effectiveOutputLocale}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex w-full flex-col-reverse gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setPendingPublishingContext(null)}
+                    className="h-11 flex-1 rounded-full border border-white/[0.1] bg-white/[0.035] px-5 text-sm font-semibold text-zinc-300 transition hover:bg-white/[0.07] hover:text-white"
+                  >
+                    {isZh ? '取消修改' : 'Cancel change'}
+                  </button>
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={confirmPublishingContextChange}
+                    className="h-11 flex-[1.35] rounded-full bg-brand-500 px-5 text-sm font-bold text-white shadow-[0_10px_32px_rgba(139,183,72,0.2)] transition hover:bg-brand-400"
+                  >
+                    {isZh ? '更新并重新生成' : 'Update & regenerate'}
+                  </button>
+                </div>
+                <p className="mt-3 text-[10px] leading-4 text-zinc-600">
+                  {isZh
+                    ? '重新生成会替换当前草稿，不影响已经发布的内容。'
+                    : 'This replaces the current draft and does not affect published content.'}
+                </p>
+              </div>
+            </section>
+          </div>,
+          document.body
+        )
+      : null}
+    </>
   );
 }

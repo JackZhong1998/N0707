@@ -32,6 +32,31 @@ export const COMMON_OUTPUT_LOCALES = [
   'pt-BR', 'pt-PT', 'it-IT', 'ar-SA', 'hi-IN', 'id-ID', 'th-TH', 'vi-VN',
 ] as const;
 
+const OUTPUT_LANGUAGE_LABELS: Record<string, { zh: string; en: string }> = {
+  'en-US': { zh: '英语（美国）', en: 'English (US)' },
+  'en-GB': { zh: '英语（英国）', en: 'English (UK)' },
+  'en-CA': { zh: '英语（加拿大）', en: 'English (Canada)' },
+  'en-AU': { zh: '英语（澳大利亚）', en: 'English (Australia)' },
+  'zh-CN': { zh: '中文（简体）', en: 'Chinese (Simplified)' },
+  'zh-TW': { zh: '中文（繁体）', en: 'Chinese (Traditional)' },
+  'zh-HK': { zh: '中文（香港）', en: 'Chinese (Hong Kong)' },
+  'fr-FR': { zh: '法语（法国）', en: 'French (France)' },
+  'fr-CA': { zh: '法语（加拿大）', en: 'French (Canada)' },
+  'de-DE': { zh: '德语（德国）', en: 'German (Germany)' },
+  'es-ES': { zh: '西班牙语（西班牙）', en: 'Spanish (Spain)' },
+  'es-MX': { zh: '西班牙语（墨西哥）', en: 'Spanish (Mexico)' },
+  'ja-JP': { zh: '日语（日本）', en: 'Japanese (Japan)' },
+  'ko-KR': { zh: '韩语（韩国）', en: 'Korean (South Korea)' },
+  'pt-BR': { zh: '葡萄牙语（巴西）', en: 'Portuguese (Brazil)' },
+  'pt-PT': { zh: '葡萄牙语（葡萄牙）', en: 'Portuguese (Portugal)' },
+  'it-IT': { zh: '意大利语（意大利）', en: 'Italian (Italy)' },
+  'ar-SA': { zh: '阿拉伯语（沙特）', en: 'Arabic (Saudi Arabia)' },
+  'hi-IN': { zh: '印地语（印度）', en: 'Hindi (India)' },
+  'id-ID': { zh: '印尼语（印度尼西亚）', en: 'Indonesian (Indonesia)' },
+  'th-TH': { zh: '泰语（泰国）', en: 'Thai (Thailand)' },
+  'vi-VN': { zh: '越南语（越南）', en: 'Vietnamese (Vietnam)' },
+};
+
 export function normalizeOutputLocale(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
@@ -57,15 +82,8 @@ export function inferOutputLocale(value: string, fallback = 'en-US'): string {
 
 export function outputLanguageLabel(locale: string, uiLocale: string): string {
   const normalized = normalizeOutputLocale(locale) ?? locale;
-  try {
-    const display = new Intl.DisplayNames(
-      [uiLocale === 'zh' ? 'zh-CN' : 'en-US'],
-      { type: 'language' }
-    ).of(normalized);
-    return display || normalized;
-  } catch {
-    return normalized;
-  }
+  const labels = OUTPUT_LANGUAGE_LABELS[normalized];
+  return labels ? labels[uiLocale === 'zh' ? 'zh' : 'en'] : normalized;
 }
 
 function marketId(region: string, index: number): string {

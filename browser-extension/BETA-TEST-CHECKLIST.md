@@ -1,8 +1,8 @@
-# NowBuild Publisher 0.9.13 Beta 测试清单
+# NowBuild Publisher 0.9.14 Beta 测试清单
 
 ## 测试前
 
-1. 在 `chrome://extensions` 重新加载插件，确认版本显示为 `0.9.13`。
+1. 在 `chrome://extensions` 重新加载插件，确认版本显示为 `0.9.14`。
 2. 先分别登录要测试的平台，不要让插件代替你执行 Google 登录。
 3. 从插件弹窗打开「执行测试台」，只使用 `Dry Run`。
 4. 每个平台测试结束后检查页面内容，然后关闭该平台标签页；不要点击最终发布。

@@ -57,7 +57,7 @@ function emitDirectory(status, detail = {}) {
     type: 'NOWBUILD_CHANNEL_EVENT',
     requestId: activeDirectoryRequest.requestId,
     status,
-    adapterVersion: `${directoryAdapter.id}-directory-0.9.13`,
+    adapterVersion: `${directoryAdapter.id}-directory-0.9.14`,
     ...detail,
   });
 }
@@ -72,12 +72,24 @@ function normalizedKit(request) {
     longDescription: String(kit.longDescription || '').trim(),
     categories: directoryRuntime.uniqueTags(kit.categories, 5),
     tags: directoryRuntime.uniqueTags(kit.tags, 10),
+    companyName: String(kit.companyName || kit.productName || '').trim(),
+    featureHighlights: directoryRuntime.uniqueTags(kit.featureHighlights, 10),
+    supportedPlatforms: directoryRuntime.uniqueTags(kit.supportedPlatforms, 10),
+    integrations: directoryRuntime.uniqueTags(kit.integrations, 10),
+    techStack: directoryRuntime.uniqueTags(kit.techStack, 10),
+    productStage: String(kit.productStage || '').trim(),
+    apiAvailability: String(kit.apiAvailability || '').trim(),
+    communityAvailability: String(kit.communityAvailability || '').trim(),
+    backlinkUrl: String(kit.backlinkUrl || '').trim(),
     pricing: String(kit.pricing || '').trim(),
     founderName: String(kit.founderName || '').trim(),
     founderEmail: String(kit.founderEmail || '').trim(),
     founderUrl: String(kit.founderUrl || '').trim(),
     twitterUrl: String(kit.twitterUrl || '').trim(),
     linkedinUrl: String(kit.linkedinUrl || '').trim(),
+    githubUrl: String(kit.githubUrl || '').trim(),
+    discordUrl: String(kit.discordUrl || '').trim(),
+    youtubeUrl: String(kit.youtubeUrl || '').trim(),
     demoUrl: String(kit.demoUrl || '').trim(),
     launchDate: String(kit.launchDate || '').trim(),
     assets: Array.isArray(kit.assets) ? kit.assets : [],
@@ -256,14 +268,19 @@ async function siteAutofill(kit) {
     const extras = [
       ['#first_5', firstName, 'Founder first name'],
       ['#last_5', lastName, 'Founder last name'],
-      ['#input_19', kit.productName, 'Company'],
+      ['#input_19', kit.companyName || kit.productName, 'Company'],
     ];
     for (const [selector, value, label] of extras) {
       const input = document.querySelector(selector);
       if (input && value) await fillControl(input, value, label);
     }
     const featureValues = directoryRuntime
-      .uniqueTags([...kit.categories, ...kit.tags], 5)
+      .uniqueTags(
+        kit.featureHighlights.length
+          ? kit.featureHighlights
+          : [...kit.categories, ...kit.tags],
+        5
+      )
       .map((value) => value.trim())
       .filter(Boolean);
     for (const [index, selector] of [
@@ -704,7 +721,7 @@ async function learnedFlowForCurrentPage() {
 
 function learnedValue(kit, key) {
   if (!key) return '';
-  if (key === 'categories' || key === 'tags') return (kit[key] || []).join(', ');
+  if (Array.isArray(kit[key])) return (kit[key] || []).join(', ');
   return String(kit[key] || '');
 }
 
@@ -993,6 +1010,10 @@ async function fillLaunchKit(kit) {
       positive: [/founder name|maker name|your name|contact name/i], negative: [/product|startup|tool/i],
     },
     {
+      key: 'companyName', value: kit.companyName, label: '公司名称',
+      positive: [/company name|organization name|business name/i], negative: [/contact/i],
+    },
+    {
       key: 'twitterUrl', value: kit.twitterUrl, label: 'Twitter URL',
       positive: [/twitter|x profile|x url/i], negative: [],
     },
@@ -1001,12 +1022,56 @@ async function fillLaunchKit(kit) {
       positive: [/linkedin/i], negative: [],
     },
     {
+      key: 'githubUrl', value: kit.githubUrl, label: 'GitHub URL',
+      positive: [/github/i], negative: [/login|sign in/i],
+    },
+    {
+      key: 'discordUrl', value: kit.discordUrl, label: 'Discord URL',
+      positive: [/discord/i], negative: [/login|sign in/i],
+    },
+    {
+      key: 'youtubeUrl', value: kit.youtubeUrl, label: 'YouTube URL',
+      positive: [/youtube/i], negative: [],
+    },
+    {
       key: 'demoUrl', value: kit.demoUrl, label: 'Demo URL',
       positive: [/demo|youtube|video|walkthrough/i], negative: [],
     },
     {
       key: 'founderUrl', value: kit.founderUrl, label: '创始人主页',
       positive: [/founder url|maker url|profile url|personal website/i], negative: [/product/i],
+    },
+    {
+      key: 'featureHighlights', value: kit.featureHighlights.join(', '), label: '核心功能',
+      positive: [/feature|benefit|capabilit/i], negative: [/image|icon/],
+    },
+    {
+      key: 'supportedPlatforms', value: kit.supportedPlatforms.join(', '), label: '支持平台',
+      positive: [/supported platform|available on|platforms/i], negative: [],
+    },
+    {
+      key: 'integrations', value: kit.integrations.join(', '), label: '集成服务',
+      positive: [/integration|integrates with/i], negative: [],
+    },
+    {
+      key: 'techStack', value: kit.techStack.join(', '), label: '技术栈',
+      positive: [/tech stack|technolog(?:y|ies)|built with/i], negative: [],
+    },
+    {
+      key: 'apiAvailability', value: kit.apiAvailability, label: 'API 可用性',
+      positive: [/api availab|has api|api access/i], negative: [],
+    },
+    {
+      key: 'communityAvailability', value: kit.communityAvailability, label: '社区可用性',
+      positive: [/community availab|has community/i], negative: [],
+    },
+    {
+      key: 'backlinkUrl', value: kit.backlinkUrl, label: '反向链接页面',
+      positive: [/backlink url|badge url|where.*badge|proof.*backlink/i], negative: [],
+    },
+    {
+      key: 'productStage', value: kit.productStage, label: '产品阶段',
+      positive: [/product stage|startup stage|development stage/i], negative: [],
     },
     {
       key: 'launchDate', value: kit.launchDate, label: '发布日期',

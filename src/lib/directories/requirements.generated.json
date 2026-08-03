@@ -1,0 +1,4360 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "0.9.14",
+  "directoryCount": 76,
+  "requirementCounts": {
+    "productName": 76,
+    "productUrl": 76,
+    "tagline": 76,
+    "shortDescription": 76,
+    "longDescription": 22,
+    "categories": 25,
+    "logo": 23,
+    "screenshots": 11,
+    "pricing": 9,
+    "backlinkUrl": 12,
+    "founderEmail": 10,
+    "founderName": 5,
+    "techStack": 4,
+    "productStage": 1,
+    "twitterUrl": 7,
+    "linkedinUrl": 5,
+    "githubUrl": 5,
+    "demoUrl": 6,
+    "youtubeUrl": 2,
+    "launchDate": 1,
+    "featureHighlights": 2,
+    "supportedPlatforms": 2,
+    "companyName": 1,
+    "integrations": 1,
+    "apiAvailability": 1,
+    "communityAvailability": 1
+  },
+  "directories": {
+    "uneed": {
+      "id": "uneed",
+      "name": "Uneed",
+      "submitUrl": "https://www.uneed.best/submit-a-tool",
+      "hosts": [
+        "uneed.best"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "url_preview",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "peerpush": {
+      "id": "peerpush",
+      "name": "PeerPush",
+      "submitUrl": "https://peerpush.com/submit",
+      "hosts": [
+        "peerpush.com",
+        "peerpush.net"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "full_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T03:59:06.195Z",
+        "sourceFile": "audit-updates-0.9.1.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "aura_plus_plus": {
+      "id": "aura_plus_plus",
+      "name": "Aura++",
+      "submitUrl": "https://auraplusplus.com/projects/submit",
+      "hosts": [
+        "auraplusplus.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 900,
+          "detail": "至少 200 词"
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 512,
+            "height": 512,
+            "type": "image/png"
+          }
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 1280,
+            "height": 720,
+            "type": "image/jpeg",
+            "quality": 0.86
+          }
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:59:42.843Z",
+        "sourceFile": "audit-updates-0.9.1.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "openhunts": {
+      "id": "openhunts",
+      "name": "OpenHunts",
+      "submitUrl": "https://openhunts.com/projects/submit",
+      "hosts": [
+        "openhunts.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "full_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "toolfio": {
+      "id": "toolfio",
+      "name": "Toolfio",
+      "submitUrl": "https://toolfio.com/submit",
+      "hosts": [
+        "toolfio.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "plan_gate",
+      "blocker": "免费方案要求站点达到平台条件并添加永久徽章；插件不会修改产品官网。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "earlyhunt": {
+      "id": "earlyhunt",
+      "name": "EarlyHunt",
+      "submitUrl": "https://earlyhunt.com/submit",
+      "hosts": [
+        "earlyhunt.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "twelve_tools": {
+      "id": "twelve_tools",
+      "name": "Twelve Tools",
+      "submitUrl": "https://twelve.tools/submit-your-tool",
+      "hosts": [
+        "twelve.tools"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "full_form",
+      "blocker": "免费方案要求在产品官网添加 Twelve Tools 的反向链接；插件不会修改产品官网。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "hot100": {
+      "id": "hot100",
+      "name": "Hot100.ai",
+      "submitUrl": "https://www.hot100.ai/submit",
+      "hosts": [
+        "hot100.ai"
+      ],
+      "pricing": "Free",
+      "entryStage": "full_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "techStack",
+          "resolution": "ai",
+          "required": false
+        },
+        {
+          "key": "productStage",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "twitterUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "linkedinUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "githubUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "fazier": {
+      "id": "fazier",
+      "name": "Fazier",
+      "submitUrl": "https://fazier.com/submit",
+      "hosts": [
+        "fazier.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "plan_gate",
+      "blocker": "免费方案要求在产品官网或页脚长期放置 Fazier 徽章；Google 弹窗登录在本次验证中未稳定回到提交页。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "dang_ai": {
+      "id": "dang_ai",
+      "name": "Dang AI",
+      "submitUrl": "https://dang.ai/login?next=%2Fpricing",
+      "hosts": [
+        "dang.ai"
+      ],
+      "pricing": "Free",
+      "entryStage": "login_gate",
+      "blocker": "只提供邮件安全链接登录，没有 Google 登录入口。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "findly_tools": {
+      "id": "findly_tools",
+      "name": "Findly.tools",
+      "submitUrl": "https://findly.tools/submit",
+      "hosts": [
+        "findly.tools"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "full_form",
+      "blocker": "免费方案要求在产品官网放置 Findly 徽章；无徽章方案为一次性付费。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "saashub": {
+      "id": "saashub",
+      "name": "SaaSHub",
+      "submitUrl": "https://www.saashub.com/",
+      "hosts": [
+        "saashub.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "bot_gate",
+      "blocker": "当前访问先进入反机器人检查，无法稳定读取提交表单。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "betalist": {
+      "id": "betalist",
+      "name": "BetaList",
+      "submitUrl": "https://betalist.com/submit",
+      "hosts": [
+        "betalist.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "login_gate",
+      "blocker": "只提供 X、邮箱密码或邮箱魔法链接登录，没有 Google 登录入口。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "tinylaunch": {
+      "id": "tinylaunch",
+      "name": "TinyLaunch",
+      "submitUrl": "https://www.tinylaunch.com/",
+      "hosts": [
+        "tinylaunch.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "profile_gate",
+      "blocker": "首次 Google 登录后必须先完成并保存 Maker Profile，才能进入产品提交。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "foundrlist": {
+      "id": "foundrlist",
+      "name": "FoundrList",
+      "submitUrl": "https://www.foundrlist.com/submit",
+      "hosts": [
+        "foundrlist.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "url_autofill",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "twitterUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "linkedinUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "demoUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "open_launch": {
+      "id": "open_launch",
+      "name": "Open Launch",
+      "submitUrl": "https://open-launch.com/projects/submit",
+      "hosts": [
+        "open-launch.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "microlaunch": {
+      "id": "microlaunch",
+      "name": "MicroLaunch",
+      "submitUrl": "https://microlaunch.net/",
+      "hosts": [
+        "microlaunch.net"
+      ],
+      "pricing": "Free",
+      "entryStage": "dynamic_launch_gate",
+      "blocker": "Google 登录成功，但 Launch 按钮未稳定暴露可识别的提交表单或固定提交 URL。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "tiny_startups": {
+      "id": "tiny_startups",
+      "name": "Tiny Startups",
+      "submitUrl": "https://www.tinystartups.com/submit",
+      "hosts": [
+        "tinystartups.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [
+          "email and password on the sign-in modal"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "devhunt": {
+      "id": "devhunt",
+      "name": "DevHunt",
+      "submitUrl": "https://devhunt.org/login",
+      "hosts": [
+        "devhunt.org"
+      ],
+      "pricing": "Paid",
+      "entryStage": "login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "githubUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "demoUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [
+          "profile full name",
+          "username",
+          "social media URL",
+          "optional about"
+        ],
+        "observedImageFields": [
+          "optional profile avatar at the profile gate"
+        ]
+      }
+    },
+    "super_launch": {
+      "id": "super_launch",
+      "name": "Super Launch",
+      "submitUrl": "https://www.superlaun.ch/dashboard/submit",
+      "hosts": [
+        "superlaun.ch",
+        "accounts.superlaun.ch"
+      ],
+      "pricing": "Free",
+      "entryStage": "login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "alternative_me": {
+      "id": "alternative_me",
+      "name": "Alternative.me",
+      "submitUrl": "https://alternative.me/how-to/submit-software/",
+      "hosts": [
+        "alternative.me"
+      ],
+      "pricing": "Free",
+      "entryStage": "account_gate",
+      "blocker": "账号注册只支持显示名称、邮箱和密码，没有 Google 登录。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": null,
+        "sourceFile": "recording-progress.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "micro_saas_examples": {
+      "id": "micro_saas_examples",
+      "name": "Micro SaaS Examples",
+      "submitUrl": "https://www.microsaasexamples.com/submit",
+      "hosts": [
+        "microsaasexamples.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "full_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "auto_submit_opt_in",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 256,
+            "height": 256,
+            "type": "image/png",
+            "maxBytes": 1000000
+          }
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 1200,
+            "height": 630,
+            "type": "image/jpeg",
+            "quality": 0.88,
+            "maxBytes": 4000000
+          }
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28",
+        "sourceFile": "audit-batch-d.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "future_tools": {
+      "id": "future_tools",
+      "name": "Future Tools",
+      "submitUrl": "https://futuretools.io/submit-a-tool",
+      "hosts": [
+        "futuretools.io"
+      ],
+      "pricing": "Free",
+      "entryStage": "full_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T14:17:55+08:00",
+        "sourceFile": "audit-batch-b.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "llm_relevance": {
+      "id": "llm_relevance",
+      "name": "LLM Relevance",
+      "submitUrl": "https://www.llmrelevance.com/submit",
+      "hosts": [
+        "llmrelevance.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "full_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "auto_submit_opt_in",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "youtubeUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T06:32:10Z",
+        "sourceFile": "audit-batch-g.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "made_with_bolt": {
+      "id": "made_with_bolt",
+      "name": "Made with Bolt",
+      "submitUrl": "https://madewithbolt.com/submit-project",
+      "hosts": [
+        "madewithbolt.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "full_form",
+      "blocker": "只接受使用 Bolt 构建的项目。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "twitterUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28",
+        "sourceFile": "audit-batch-h.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "made_with_lovable": {
+      "id": "made_with_lovable",
+      "name": "Made with Lovable",
+      "submitUrl": "https://madewithlovable.com/submit-project",
+      "hosts": [
+        "madewithlovable.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "full_form",
+      "blocker": "只接受使用 Lovable 构建的项目；最终提交受 reCAPTCHA 保护。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "twitterUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T14:35:19+08:00",
+        "sourceFile": "audit-batch-f.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "hunt0": {
+      "id": "hunt0",
+      "name": "HUNT0",
+      "submitUrl": "https://hunt0.com/submit",
+      "hosts": [
+        "hunt0.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "full_form_then_login",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "twitterUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "linkedinUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "githubUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "launchDate",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T06:32:10Z",
+        "sourceFile": "audit-batch-g.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "saasgrow": {
+      "id": "saasgrow",
+      "name": "SaaSGrow",
+      "submitUrl": "https://saasgrow.app/submit",
+      "hosts": [
+        "saasgrow.app"
+      ],
+      "pricing": "Free",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T06:32:10Z",
+        "sourceFile": "audit-batch-g.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "acid_tools": {
+      "id": "acid_tools",
+      "name": "Acid Tools",
+      "submitUrl": "https://acidtools.com/submit",
+      "hosts": [
+        "acidtools.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_badge_wizard",
+      "blocker": "免费方案要求在产品官网长期放置 Acid Tools 徽章；付费方案会跳转到 Dodo Payments。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [
+          "websiteUrl",
+          "badge verification URL",
+          "toolName",
+          "selectedCategories",
+          "selectedPricing",
+          "shortDescription",
+          "aboutTool",
+          "agreeToTerms"
+        ],
+        "observedImageFields": [
+          "screenshotFile",
+          "iconFile"
+        ]
+      }
+    },
+    "rank_in_public": {
+      "id": "rank_in_public",
+      "name": "RankInPublic",
+      "submitUrl": "https://rankinpublic.xyz/launch",
+      "hosts": [
+        "rankinpublic.xyz"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "startups_fm": {
+      "id": "startups_fm",
+      "name": "Startups.fm",
+      "submitUrl": "https://startups.fm/submit",
+      "hosts": [
+        "startups.fm"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "details_then_plan",
+      "blocker": "免费方案要求在产品官网持续放置 Startups.fm 徽章；免徽章快速通道为 £49。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "founderName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "startup_fame": {
+      "id": "startup_fame",
+      "name": "Startup Fame",
+      "submitUrl": "https://startupfa.me/login",
+      "hosts": [
+        "startupfa.me"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_dynamic_submit",
+      "blocker": null,
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "turbo0": {
+      "id": "turbo0",
+      "name": "Turbo0",
+      "submitUrl": "https://turbo0.com/submit",
+      "hosts": [
+        "turbo0.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [
+          "email and password on the native login page"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "alternative_to": {
+      "id": "alternative_to",
+      "name": "AlternativeTo",
+      "submitUrl": "https://alternativeto.net/login/",
+      "hosts": [
+        "alternativeto.net"
+      ],
+      "pricing": "Free",
+      "entryStage": "google_login_then_dynamic_submit",
+      "blocker": "新账号必须注册满 7 天才能提交新应用。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "featureHighlights",
+          "resolution": "ai",
+          "required": false
+        },
+        {
+          "key": "supportedPlatforms",
+          "resolution": "ai",
+          "required": false
+        },
+        {
+          "key": "twitterUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "linkedinUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "githubUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "youtubeUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "demoUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [
+          "Search is public; application fields are not exposed while signed out"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "toolpilot": {
+      "id": "toolpilot",
+      "name": "ToolPilot",
+      "submitUrl": "https://form.jotform.com/231772738321053",
+      "hosts": [
+        "toolpilot.ai",
+        "form.jotform.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "external_full_form",
+      "blocker": "免费方案要求产品官网提供反向链接。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 500,
+            "height": 500,
+            "type": "image/jpeg",
+            "quality": 0.9
+          }
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        },
+        {
+          "key": "companyName",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "featureHighlights",
+          "resolution": "ai",
+          "required": false
+        },
+        {
+          "key": "supportedPlatforms",
+          "resolution": "ai",
+          "required": false
+        },
+        {
+          "key": "integrations",
+          "resolution": "ai",
+          "required": false
+        },
+        {
+          "key": "apiAvailability",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "communityAvailability",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "twitterUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "linkedinUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T06:17:26Z",
+        "sourceFile": "audit-batch-a.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "peerlist": {
+      "id": "peerlist",
+      "name": "Peerlist Launchpad",
+      "submitUrl": "https://peerlist.io/launchpad",
+      "hosts": [
+        "peerlist.io"
+      ],
+      "pricing": "Free",
+      "entryStage": "profile_login_then_dynamic_submit",
+      "blocker": "首次 Profile 可自动填写，但 Launch 前仍可能要求完成 40% 资料并通过 Peerlist Verification。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 500,
+            "height": 500,
+            "type": "image/png"
+          }
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 1200,
+            "height": 630,
+            "type": "image/jpeg",
+            "quality": 0.88,
+            "maxCount": 4
+          }
+        },
+        {
+          "key": "techStack",
+          "resolution": "ai",
+          "required": false
+        },
+        {
+          "key": "githubUrl",
+          "resolution": "user",
+          "required": false
+        },
+        {
+          "key": "demoUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "launch_igniter": {
+      "id": "launch_igniter",
+      "name": "LaunchIgniter",
+      "submitUrl": "https://launchigniter.com/submit",
+      "hosts": [
+        "launchigniter.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 512,
+            "height": 512,
+            "type": "image/png"
+          }
+        },
+        {
+          "key": "demoUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [
+          "email on login",
+          "product fields behind authentication"
+        ],
+        "observedImageFields": [
+          "logo",
+          "screenshots",
+          "demo video described by the submit page"
+        ]
+      }
+    },
+    "neeed_directory": {
+      "id": "neeed_directory",
+      "name": "Neeed Directory",
+      "submitUrl": "https://neeed.directory/login?redirect=/submit",
+      "hosts": [
+        "neeed.directory"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 256,
+            "height": 256,
+            "type": "image/png"
+          }
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 1280,
+            "height": 720,
+            "type": "image/jpeg",
+            "quality": 0.88
+          }
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [
+          "optional prefill website URL",
+          "name",
+          "punchline",
+          "description",
+          "productWebsite",
+          "category"
+        ],
+        "observedImageFields": [
+          "logo: JPG/PNG, 256x256, max 2MB",
+          "cover: JPG/PNG, 1280x720, max 8MB"
+        ]
+      }
+    },
+    "startup_fast": {
+      "id": "startup_fast",
+      "name": "StartupFast",
+      "submitUrl": "https://www.startupfa.st/projects/submit",
+      "hosts": [
+        "startupfa.st"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "sideprojectors": {
+      "id": "sideprojectors",
+      "name": "SideProjectors",
+      "submitUrl": "https://www.sideprojectors.com/submit/type",
+      "hosts": [
+        "sideprojectors.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "google_login_then_wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [
+          "email and password on login"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "ai_tools_inc": {
+      "id": "ai_tools_inc",
+      "name": "AI Tools Inc",
+      "submitUrl": "https://loxr142exnq.typeform.com/to/RB6ZnEf2",
+      "hosts": [
+        "aitools.inc",
+        "loxr142exnq.typeform.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "external_typeform",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:41:46Z",
+        "sourceFile": "deep-record-batch-i.json",
+        "observedFields": [
+          "AI Tool name",
+          "Website URL"
+        ],
+        "observedImageFields": [
+          "Not yet reached"
+        ]
+      }
+    },
+    "nxgn_tools": {
+      "id": "nxgn_tools",
+      "name": "NXGN Tools",
+      "submitUrl": "https://www.nxgntools.com/",
+      "hosts": [
+        "nxgntools.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_dynamic_submit",
+      "blocker": null,
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T15:59:59+08:00",
+        "sourceFile": "deep-record-batch-n.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "launchllama_tools": {
+      "id": "launchllama_tools",
+      "name": "LaunchLlama Tools",
+      "submitUrl": "https://tools.launchllama.co/submit",
+      "hosts": [
+        "tools.launchllama.co",
+        "launchllama.co"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [
+          "email and password only on login screen"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "indie_deals": {
+      "id": "indie_deals",
+      "name": "Indie Deals",
+      "submitUrl": "https://indie.deals/submit",
+      "hosts": [
+        "indie.deals"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [
+          "email and password only on login screen"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "startupbase": {
+      "id": "startupbase",
+      "name": "StartupBase",
+      "submitUrl": "https://startupbase.io/submit",
+      "hosts": [
+        "startupbase.io"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "pricing",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "demoUrl",
+          "resolution": "user",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [
+          "email",
+          "verification code when using email"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "unitelist": {
+      "id": "unitelist",
+      "name": "UniteList",
+      "submitUrl": "https://unitelist.com/get-started",
+      "hosts": [
+        "unitelist.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "manual_only",
+      "blocker": "免费方案要求在产品官网添加指向专属 listing URL 的 do-follow 徽章并通过 Verify Badge。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "fridayhunt": {
+      "id": "fridayhunt",
+      "name": "FridayHunt",
+      "submitUrl": "https://fridayhunt.com/projects/submit",
+      "hosts": [
+        "fridayhunt.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 512,
+            "height": 512,
+            "type": "image/png"
+          }
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 1280,
+            "height": 720,
+            "type": "image/jpeg",
+            "quality": 0.86
+          }
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [
+          "email",
+          "terms agreement on sign-in"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "firsto": {
+      "id": "firsto",
+      "name": "Firsto",
+      "submitUrl": "https://firsto.co/projects/submit",
+      "hosts": [
+        "firsto.co"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 512,
+            "height": 512,
+            "type": "image/png"
+          }
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 1280,
+            "height": 720,
+            "type": "image/jpeg",
+            "quality": 0.86
+          }
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [
+          "email and password only on login page"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "saas_hunt_best": {
+      "id": "saas_hunt_best",
+      "name": "SaaSHunt",
+      "submitUrl": "https://saashunt.best/projects/submit",
+      "hosts": [
+        "saashunt.best"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": "免费流程可能要求产品官网徽章。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T15:44:41+08:00",
+        "sourceFile": "deep-record-batch-j.json",
+        "observedFields": [
+          "email and password only on login page"
+        ],
+        "observedImageFields": []
+      }
+    },
+    "appalist": {
+      "id": "appalist",
+      "name": "AppaList",
+      "submitUrl": "https://appalist.com/get-started",
+      "hosts": [
+        "appalist.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "weliketools": {
+      "id": "weliketools",
+      "name": "WeLikeTools",
+      "submitUrl": "https://weliketools.com/get-started",
+      "hosts": [
+        "weliketools.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "startup_trusted": {
+      "id": "startup_trusted",
+      "name": "StartupTrusted",
+      "submitUrl": "https://startuptrusted.com/submit",
+      "hosts": [
+        "startuptrusted.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "promote_project": {
+      "id": "promote_project",
+      "name": "PromoteProject",
+      "submitUrl": "https://www.promoteproject.com/",
+      "hosts": [
+        "promoteproject.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_modal_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "saas_bison": {
+      "id": "saas_bison",
+      "name": "SaaSBison",
+      "submitUrl": "https://saasbison.com/submit",
+      "hosts": [
+        "saasbison.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "badge_then_form",
+      "blocker": "免费方案要求产品官网永久反向链接；Premium 为 $9.99。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "proofstories": {
+      "id": "proofstories",
+      "name": "ProofStories",
+      "submitUrl": "https://proofstories.io/submit/",
+      "hosts": [
+        "proofstories.io"
+      ],
+      "pricing": "Free",
+      "entryStage": "google_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "find_your_saas": {
+      "id": "find_your_saas",
+      "name": "FindYourSaaS",
+      "submitUrl": "https://findyoursaas.com/onboard",
+      "hosts": [
+        "findyoursaas.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "login_then_dynamic_form",
+      "blocker": null,
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "toolfolio": {
+      "id": "toolfolio",
+      "name": "Toolfolio",
+      "submitUrl": "https://toolfolio.com/boosted-listing",
+      "hosts": [
+        "toolfolio.io",
+        "toolfolio.com"
+      ],
+      "pricing": "Paid",
+      "entryStage": "paid_package_gate",
+      "blocker": "当前 Submit tool 只进入付费 boosted-listing 套餐构建器。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T07:47:48Z",
+        "sourceFile": "deep-record-batch-k.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "indiehub": {
+      "id": "indiehub",
+      "name": "IndieHub",
+      "submitUrl": "https://indiehub.best/submit",
+      "hosts": [
+        "indiehub.best"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T06:36:13Z",
+        "sourceFile": "audit-batch-e.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "dodo_directory": {
+      "id": "dodo_directory",
+      "name": "DodoDirectory",
+      "submitUrl": "https://dododirectory.com/submit",
+      "hosts": [
+        "dododirectory.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "badge_then_form",
+      "blocker": "免费方案要求产品官网永久徽章。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T14:35:19+08:00",
+        "sourceFile": "audit-batch-f.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "build_voyage": {
+      "id": "build_voyage",
+      "name": "BuildVoyage",
+      "submitUrl": "https://buildvoyage.com/submit",
+      "hosts": [
+        "buildvoyage.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "auto_submit_opt_in",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "techStack",
+          "resolution": "ai",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "configured",
+        "checkedAt": "2026-07-28T14:35:19+08:00",
+        "sourceFile": "audit-batch-f.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "sumodir": {
+      "id": "sumodir",
+      "name": "SumoDir",
+      "submitUrl": "https://sumodir.com/submit",
+      "hosts": [
+        "sumodir.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "badge_then_form",
+      "blocker": "免费方案要求产品官网反向链接；付费方案由 Polar 结算。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "backlinkUrl",
+          "resolution": "user",
+          "required": false,
+          "detail": "免费方案需要在产品官网添加反向链接或徽章"
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T14:35:19+08:00",
+        "sourceFile": "audit-batch-f.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "confetti_saas": {
+      "id": "confetti_saas",
+      "name": "ConfettiSaaS",
+      "submitUrl": "https://confettisaas.com/submit",
+      "hosts": [
+        "confettisaas.com",
+        "tally.so"
+      ],
+      "pricing": "Free",
+      "entryStage": "external_wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T14:35:19+08:00",
+        "sourceFile": "audit-batch-f.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "shipyard_hq": {
+      "id": "shipyard_hq",
+      "name": "Shipyard HQ",
+      "submitUrl": "https://shipyardhq.dev/member/products/add",
+      "hosts": [
+        "shipyardhq.dev",
+        "accounts.shipyardhq.dev"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_profile_then_form",
+      "blocker": "首次账号需要用户确认姓氏并接受服务条款。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T14:35:19+08:00",
+        "sourceFile": "audit-batch-f.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "resource_fyi": {
+      "id": "resource_fyi",
+      "name": "Resource.fyi",
+      "submitUrl": "https://resource.fyi/",
+      "hosts": [
+        "resource.fyi"
+      ],
+      "pricing": "Free",
+      "entryStage": "dynamic_login_then_form",
+      "blocker": null,
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T06:32:10Z",
+        "sourceFile": "audit-batch-g.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "stellar_launch": {
+      "id": "stellar_launch",
+      "name": "Stellar Launch",
+      "submitUrl": "https://www.stellarlaunch.org/projects/submit",
+      "hosts": [
+        "stellarlaunch.org"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_wizard",
+      "blocker": null,
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "categories",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "logo",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 512,
+            "height": 512,
+            "type": "image/png"
+          }
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T06:32:10Z",
+        "sourceFile": "audit-batch-g.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "indie_hacker_stacks": {
+      "id": "indie_hacker_stacks",
+      "name": "IndieHackerStacks",
+      "submitUrl": "https://indiehackerstacks.com/",
+      "hosts": [
+        "indiehackerstacks.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "dynamic_login_then_wizard",
+      "blocker": "Add your product stack 是客户端动态入口，未稳定暴露登录或表单。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28T06:32:10Z",
+        "sourceFile": "audit-batch-g.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "product_launchpad": {
+      "id": "product_launchpad",
+      "name": "ProductLaunchpad",
+      "submitUrl": "https://productlaunchpad.app/submit",
+      "hosts": [
+        "productlaunchpad.app"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "email_login_then_form",
+      "blocker": "只支持邮箱登录，需用户完成邮件验证。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "techStack",
+          "resolution": "ai",
+          "required": false
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28",
+        "sourceFile": "deep-record-batch-l.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "launchy": {
+      "id": "launchy",
+      "name": "Launchy",
+      "submitUrl": "https://launchy.tools/submit",
+      "hosts": [
+        "launchy.tools"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "google_login_then_wizard",
+      "blocker": "1280×720 缩略图为必填；缺少或上传失败时需要用户接管。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "longDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 80
+        },
+        {
+          "key": "screenshots",
+          "resolution": "user",
+          "required": true,
+          "assetSpec": {
+            "width": 1280,
+            "height": 720,
+            "type": "image/jpeg",
+            "quality": 0.88
+          }
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "recording_partial",
+        "checkedAt": "2026-07-28",
+        "sourceFile": "deep-record-batch-l.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "sourceforge": {
+      "id": "sourceforge",
+      "name": "SourceForge",
+      "submitUrl": "https://sourceforge.net/software/vendors/",
+      "hosts": [
+        "sourceforge.net"
+      ],
+      "pricing": "Free",
+      "entryStage": "manual_only",
+      "blocker": "需要独立 SourceForge Vendor 账号，且当前入口主要引导销售套餐；没有可稳定自动登录的 Google 流程。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T04:05:58.755Z",
+        "sourceFile": "audit-updates-0.9.2b.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "g2": {
+      "id": "g2",
+      "name": "G2",
+      "submitUrl": "https://www.g2.com/add_product_requests/new",
+      "hosts": [
+        "g2.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "google_login_then_form",
+      "blocker": "Google 登录未显示账号选择器时，需要用户输入邮箱完成首次登录。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T04:05:29.527Z",
+        "sourceFile": "audit-updates-0.9.2.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "product_hunt": {
+      "id": "product_hunt",
+      "name": "Product Hunt",
+      "submitUrl": "https://www.producthunt.com/",
+      "hosts": [
+        "producthunt.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "account_gate",
+      "blocker": "当前仅提供 LinkedIn、GitHub 和 X 登录；首次登录后还需邮箱确认。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T07:41:46Z",
+        "sourceFile": "deep-record-batch-i.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "capterra": {
+      "id": "capterra",
+      "name": "Capterra",
+      "submitUrl": "https://www.capterra.com/vendors/",
+      "hosts": [
+        "capterra.com"
+      ],
+      "pricing": "Free",
+      "entryStage": "manual_only",
+      "blocker": "Vendor 入口受 Cloudflare 与独立供应商流程影响，未获得稳定可重放表单。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T03:59:06.199Z",
+        "sourceFile": "audit-updates-0.9.1.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "submit_ai_tools": {
+      "id": "submit_ai_tools",
+      "name": "Submit AI Tools",
+      "submitUrl": "https://submitaitools.org/submit-your-ai-tool/",
+      "hosts": [
+        "submitaitools.org"
+      ],
+      "pricing": "Paid",
+      "entryStage": "paid_package_gate",
+      "blocker": "人工验证通过后仅显示付费提交，Basic 当前为 $19 lifetime。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T06:17:26Z",
+        "sourceFile": "audit-batch-a.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "software_world": {
+      "id": "software_world",
+      "name": "SoftwareWorld",
+      "submitUrl": "https://www.softwareworld.co/register/",
+      "hosts": [
+        "softwareworld.co"
+      ],
+      "pricing": "Paid",
+      "entryStage": "paid_package_gate",
+      "blocker": "新软件发布需要一次性 $99 approval fee；注册页另有 reCAPTCHA。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T06:17:26Z",
+        "sourceFile": "audit-batch-a.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "startup_stash": {
+      "id": "startup_stash",
+      "name": "Startup Stash",
+      "submitUrl": "https://startupstash.com/add-listing/",
+      "hosts": [
+        "startupstash.com"
+      ],
+      "pricing": "Free + Paid",
+      "entryStage": "manual_only",
+      "blocker": "11 步 Typeform 嵌入表单会动态重排问题与输入焦点，无法稳定重放。",
+      "requirementsConfidence": "verified",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T14:17:55+08:00",
+        "sourceFile": "audit-batch-b.json",
+        "observedFields": [],
+        "observedImageFields": []
+      }
+    },
+    "magicbox_tools": {
+      "id": "magicbox_tools",
+      "name": "MagicBox.tools",
+      "submitUrl": "https://magicbox.tools/submit",
+      "hosts": [
+        "magicbox.tools"
+      ],
+      "pricing": "Paid",
+      "entryStage": "paid_package_gate",
+      "blocker": "填写名称、官网和邮箱后只提供付费方案，Basic 当前为 $15.9 one time。",
+      "requirementsConfidence": "partial",
+      "submissionPolicy": "prepare_only",
+      "requirements": [
+        {
+          "key": "productName",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "productUrl",
+          "resolution": "user",
+          "required": true
+        },
+        {
+          "key": "tagline",
+          "resolution": "ai",
+          "required": true
+        },
+        {
+          "key": "shortDescription",
+          "resolution": "ai",
+          "required": true,
+          "minLength": 20
+        },
+        {
+          "key": "founderEmail",
+          "resolution": "user",
+          "required": true
+        }
+      ],
+      "evidence": {
+        "catalog": "browser-extension/directories/catalog.js",
+        "recordingStatus": "blocked",
+        "checkedAt": "2026-07-28T07:41:46Z",
+        "sourceFile": "deep-record-batch-i.json",
+        "observedFields": [
+          "Tool Name",
+          "Website URL",
+          "Contact Email"
+        ],
+        "observedImageFields": []
+      }
+    }
+  }
+}

@@ -13,7 +13,10 @@
     "lint": "next lint",
     "postbuild": "next-sitemap",
     "skills:download": "bash scripts/download-gingiris-skills.sh",
-    "skills:audit": "node scripts/audit-agent-skills.mjs"
+    "skills:audit": "node scripts/audit-agent-skills.mjs",
+    "directories:requirements": "node scripts/build-directory-requirements.mjs",
+    "directories:requirements:check": "node scripts/build-directory-requirements.mjs --check",
+    "directories:verify": "npm run directories:requirements:check && node scripts/verify-browser-extension.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",

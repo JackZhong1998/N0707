@@ -40,6 +40,15 @@ export default function LaunchKitPage() {
         launch.brief?.sourceMarkdown ?? launch.brief?.product.summary ?? '',
       categories: [],
       tags: launch.brief?.positioning.sellingPoints ?? [],
+      companyName: launch.project.productName,
+      featureHighlights: launch.brief?.positioning.sellingPoints ?? [],
+      supportedPlatforms: [],
+      integrations: [],
+      techStack: [],
+      productStage: '',
+      apiAvailability: '',
+      communityAvailability: '',
+      backlinkUrl: '',
       pricing: launch.brief?.product.pricing ?? '',
       ...emptyContact,
       demoUrl: launch.project.productUrl,
@@ -183,6 +192,11 @@ export default function LaunchKitPage() {
     ['tagline', 'Slogan', 'text'],
     ['shortDescription', isZh ? '简短介绍' : 'Short description', 'text'],
     ['pricing', isZh ? '定价方式' : 'Pricing', 'text'],
+    ['companyName', isZh ? '公司名称' : 'Company name', 'text'],
+    ['productStage', isZh ? '产品阶段' : 'Product stage', 'text'],
+    ['apiAvailability', isZh ? 'API 可用性' : 'API availability', 'text'],
+    ['communityAvailability', isZh ? '社区可用性' : 'Community availability', 'text'],
+    ['backlinkUrl', isZh ? '反向链接页面' : 'Backlink page', 'url'],
     ['founderName', isZh ? '创始人姓名' : 'Founder name', 'text'],
     ['founderBio', isZh ? '创始人简介' : 'Founder bio', 'text'],
     ['founderEmail', isZh ? '联系邮箱' : 'Contact email', 'email'],
@@ -292,6 +306,30 @@ export default function LaunchKitPage() {
             className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"
           />
         </label>
+        {([
+          ['featureHighlights', isZh ? '核心功能（逗号分隔）' : 'Feature highlights (comma separated)'],
+          ['supportedPlatforms', isZh ? '支持平台（逗号分隔）' : 'Supported platforms (comma separated)'],
+          ['integrations', isZh ? '集成服务（逗号分隔）' : 'Integrations (comma separated)'],
+          ['techStack', isZh ? '技术栈（逗号分隔）' : 'Tech stack (comma separated)'],
+        ] as const).map(([key, label]) => (
+          <label key={key}>
+            <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</span>
+            <input
+              value={kit[key].join(', ')}
+              onChange={(event) =>
+                setKit({
+                  ...kit,
+                  [key]: event.target.value
+                    .split(/[,，]/)
+                    .map((value) => value.trim())
+                    .filter(Boolean)
+                    .slice(0, 10),
+                })
+              }
+              className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"
+            />
+          </label>
+        ))}
       </section>
 
       <section className="mt-4 rounded-3xl border border-white/[0.08] p-6">

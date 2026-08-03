@@ -11,6 +11,7 @@ const FIELD_META: Partial<
       label: [string, string];
       source: 'detected' | 'ai_draft' | 'user_required';
       input: 'text' | 'url' | 'email' | 'textarea' | 'list';
+      detail?: [string, string];
     }
   >
 > = {
@@ -22,6 +23,15 @@ const FIELD_META: Partial<
   longDescription: { label: ['完整介绍', 'Long description'], source: 'ai_draft', input: 'textarea' },
   categories: { label: ['分类', 'Categories'], source: 'ai_draft', input: 'list' },
   tags: { label: ['标签', 'Tags'], source: 'ai_draft', input: 'list' },
+  companyName: { label: ['公司名称', 'Company name'], source: 'detected', input: 'text' },
+  featureHighlights: { label: ['核心功能', 'Feature highlights'], source: 'ai_draft', input: 'list' },
+  supportedPlatforms: { label: ['支持平台', 'Supported platforms'], source: 'ai_draft', input: 'list' },
+  integrations: { label: ['集成服务', 'Integrations'], source: 'ai_draft', input: 'list' },
+  techStack: { label: ['技术栈', 'Tech stack'], source: 'ai_draft', input: 'list' },
+  productStage: { label: ['产品阶段', 'Product stage'], source: 'user_required', input: 'text' },
+  apiAvailability: { label: ['API 可用性', 'API availability'], source: 'user_required', input: 'text', detail: ['例如：已提供 / 未提供 / 开发中', 'For example: Available / Not available / In development'] },
+  communityAvailability: { label: ['社区可用性', 'Community availability'], source: 'user_required', input: 'text', detail: ['例如：Discord 社区 / 暂无社区', 'For example: Discord community / No community'] },
+  backlinkUrl: { label: ['反向链接页面', 'Backlink page'], source: 'user_required', input: 'url', detail: ['仅在你已经放置平台徽章或反向链接时填写', 'Only add this after placing the directory badge or backlink'] },
   founderName: { label: ['创始人姓名', 'Founder name'], source: 'user_required', input: 'text' },
   founderBio: { label: ['创始人简介', 'Founder bio'], source: 'user_required', input: 'textarea' },
   founderEmail: { label: ['联系邮箱', 'Contact email'], source: 'user_required', input: 'email' },
@@ -31,6 +41,8 @@ const FIELD_META: Partial<
   githubUrl: { label: ['GitHub', 'GitHub'], source: 'user_required', input: 'url' },
   discordUrl: { label: ['Discord', 'Discord'], source: 'user_required', input: 'url' },
   youtubeUrl: { label: ['YouTube', 'YouTube'], source: 'user_required', input: 'url' },
+  demoUrl: { label: ['演示链接', 'Demo URL'], source: 'user_required', input: 'url' },
+  launchDate: { label: ['发布日期', 'Launch date'], source: 'user_required', input: 'text' },
 };
 
 const INITIAL_KEYS: DirectoryMaterialKey[] = [
@@ -90,6 +102,7 @@ export function createDirectoryMaterialsCard(
               : meta.source,
         input: meta.input,
         required: required.has(key),
+        detail: meta.detail?.[isZh ? 0 : 1],
       }];
     }),
     needsLogo: requestedKeys?.includes('logo') && !kit.assets.some((asset) => asset.kind === 'logo'),
@@ -105,7 +118,14 @@ export function applyDirectoryMaterialValues(
   for (const [rawKey, rawValue] of Object.entries(values)) {
     const key = rawKey as DirectoryMaterialKey;
     const value = String(rawValue ?? '').trim();
-    if (key === 'categories' || key === 'tags') {
+    if (
+      key === 'categories' ||
+      key === 'tags' ||
+      key === 'featureHighlights' ||
+      key === 'supportedPlatforms' ||
+      key === 'integrations' ||
+      key === 'techStack'
+    ) {
       next[key] = value
         .split(/[,，\n]/)
         .map((item) => item.trim())

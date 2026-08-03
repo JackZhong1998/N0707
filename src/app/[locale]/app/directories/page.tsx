@@ -45,6 +45,7 @@ import { createMatchedDirectoryPipeline } from '@/lib/gtm/launch';
 import {
   aiGeneratableKeys,
   buildDirectoryLaunchKit,
+  getDirectoryMaterialRequirements,
   mergeGeneratedDirectoryMaterials,
   preflightDirectory,
 } from '@/lib/directories/materials';
@@ -579,12 +580,25 @@ export default function DirectoryWorkspacePage() {
       }
     }
 
-    const initialChecks = selected.map((item) => {
-      const adapterId = directoryAdapterId(item.url);
-      return preflightDirectory(item, kit, isZh, {
-        requirements: adapterId
+    const requirementsByDirectory = new Map(
+      selected.map((item) => {
+        const adapterId = directoryAdapterId(item.url);
+        const requirements = adapterId
           ? supportedDirectoryById.get(adapterId)?.requirements
-          : undefined,
+          : undefined;
+        return [
+          item.id,
+          requirements ?? getDirectoryMaterialRequirements(item, isZh),
+        ] as const;
+      })
+    );
+    const initialChecks = selected.map((item) => {
+      const requirements = requirementsByDirectory.get(item.id) ?? [];
+      return preflightDirectory(item, kit, isZh, {
+        requirements: requirements.map((requirement) => ({
+          ...requirement,
+          required: true,
+        })),
       });
     });
     const requestedFields = aiGeneratableKeys(initialChecks);
@@ -610,7 +624,8 @@ export default function DirectoryWorkspacePage() {
         : undefined;
       const preflight = preflightDirectory(item, kit, isZh, {
         aiUnavailable,
-        requirements: supportedProfile?.requirements,
+        requirements:
+          supportedProfile?.requirements ?? requirementsByDirectory.get(item.id),
       });
       const completed = existingJobs.find(
         (job) => job.directoryId === item.id && jobIsTerminal(job)
@@ -701,11 +716,26 @@ export default function DirectoryWorkspacePage() {
         ? `检查完成：${readyCount} 个进入后台队列，${needsCount} 个需要补充资料。`
         : `Check complete: ${readyCount} queued, ${needsCount} need more information.`
     );
-    if (needsCount > 0) {
+    const supplementalChecks = selected.flatMap((item) =>
+      preflightDirectory(item, kit, isZh, {
+        aiUnavailable: true,
+        requirements: (
+          requirementsByDirectory.get(item.id) ?? []
+        ).map((requirement) => ({
+          ...requirement,
+          required: true,
+        })),
+      }).checks.filter((check) => check.status !== 'ready')
+    );
+    if (needsCount > 0 || supplementalChecks.length > 0) {
       const missingChecks = newJobs.flatMap((job) =>
         job.preflight.checks.filter((check) => check.status !== 'ready')
       );
-      const missingKeys = [...new Set(missingChecks.map((check) => check.key))];
+      const missingKeys = [
+        ...new Set(
+          [...missingChecks, ...supplementalChecks].map((check) => check.key)
+        ),
+      ];
       const requiredKeys = [
         ...new Set(
           missingChecks
@@ -732,8 +762,12 @@ export default function DirectoryWorkspacePage() {
         gtm.addDirectorMessage({
           role: 'assistant',
           content: isZh
-            ? `这批 Directory 还有 ${needsCount} 个平台缺少提交资料。我已经整理成一张补全卡片，填写后会直接保存到资料库。`
-            : `${needsCount} directories still need submission details. Complete this card and I will save everything directly to the material library.`,
+            ? needsCount > 0
+              ? `这批 Directory 还有 ${needsCount} 个平台缺少必需资料。我也合并了这些平台可复用的补充字段，填写后会直接保存到资料库。`
+              : '提交前还有一些可复用资料值得补全。它们不会阻塞队列，但能提高后续平台的自动填写率。'
+            : needsCount > 0
+              ? `${needsCount} directories still need required details. I also merged reusable optional fields into this card.`
+              : 'A few reusable details are still worth adding. They will not block the queue, but they improve autofill coverage.',
           card: {
             kind: 'directory_materials',
             card: materialCard,

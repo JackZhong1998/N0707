@@ -108,12 +108,36 @@ export async function POST(request: Request) {
     try {
       const remote = await loadGtmStore(access.userId);
       if (remote.hasRemoteData) {
+        // The browser has the newest market/language and optimistic writing
+        // state for the Todo that triggered this job. The debounced state PUT
+        // may still be in flight, so keep that targeted Todo while taking all
+        // unrelated durable worker output from the server.
+        const targetedTodoIds = new Set(
+          actions.flatMap((action) =>
+            action.type === 'generate_todo_content' ||
+            action.type === 'rewrite_todo_content'
+              ? [action.todoId]
+              : []
+          )
+        );
+        const clientTargetTodos = body.store.todos.filter((todo) =>
+          targetedTodoIds.has(todo.id)
+        );
         baseStore = {
           ...remote.store,
           directorChat:
             body.store.directorChat.length >= remote.store.directorChat.length
               ? body.store.directorChat
               : remote.store.directorChat,
+          todos:
+            targetedTodoIds.size > 0
+              ? [
+                  ...remote.store.todos.filter(
+                    (todo) => !targetedTodoIds.has(todo.id)
+                  ),
+                  ...clientTargetTodos,
+                ]
+              : remote.store.todos,
         };
       }
     } catch {

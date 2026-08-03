@@ -567,6 +567,15 @@ export type DirectoryMaterialKey =
   | 'longDescription'
   | 'categories'
   | 'tags'
+  | 'companyName'
+  | 'featureHighlights'
+  | 'supportedPlatforms'
+  | 'integrations'
+  | 'techStack'
+  | 'productStage'
+  | 'apiAvailability'
+  | 'communityAvailability'
+  | 'backlinkUrl'
   | 'pricing'
   | 'founderName'
   | 'founderBio'
@@ -677,6 +686,15 @@ export interface DirectoryLaunchKit {
   longDescription: string;
   categories: string[];
   tags: string[];
+  companyName: string;
+  featureHighlights: string[];
+  supportedPlatforms: string[];
+  integrations: string[];
+  techStack: string[];
+  productStage: string;
+  apiAvailability: string;
+  communityAvailability: string;
+  backlinkUrl: string;
   pricing: string;
   founderName: string;
   founderBio: string;

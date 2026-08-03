@@ -18,11 +18,25 @@ vm.runInNewContext(
 );
 const catalog = catalogSandbox.globalThis.NowBuildDirectoryCatalog;
 const errors = [];
+const generatedRequirements = JSON.parse(
+  fs.readFileSync(
+    path.join(root, 'src/lib/directories/requirements.generated.json'),
+    'utf8'
+  )
+);
 
 if (catalog.version !== manifest.version) {
   errors.push(
     `Catalog version ${catalog.version} differs from manifest ${manifest.version}`
   );
+}
+if (generatedRequirements.catalogVersion !== catalog.version) {
+  errors.push(
+    `Generated requirements ${generatedRequirements.catalogVersion} differ from catalog ${catalog.version}`
+  );
+}
+if (generatedRequirements.directoryCount !== catalog.directories.length) {
+  errors.push('Generated requirements directory count differs from catalog');
 }
 
 const appVersionSource = fs.readFileSync(
@@ -48,12 +62,25 @@ const allowedRequirementKeys = new Set([
   'longDescription',
   'categories',
   'tags',
+  'companyName',
+  'featureHighlights',
+  'supportedPlatforms',
+  'integrations',
+  'techStack',
+  'productStage',
+  'apiAvailability',
+  'communityAvailability',
+  'backlinkUrl',
   'pricing',
   'founderName',
+  'founderBio',
   'founderEmail',
   'founderUrl',
   'twitterUrl',
   'linkedinUrl',
+  'githubUrl',
+  'discordUrl',
+  'youtubeUrl',
   'demoUrl',
   'launchDate',
   'logo',
@@ -72,6 +99,15 @@ for (const directory of catalog.directories) {
   }
   if (!Array.isArray(directory.requirements) || !directory.requirements.length) {
     errors.push(`Directory ${directory.id} has no material requirements`);
+  }
+  const generatedProfile = generatedRequirements.directories[directory.id];
+  if (!generatedProfile) {
+    errors.push(`Generated requirements missing directory ${directory.id}`);
+  } else if (
+    JSON.stringify(generatedProfile.requirements) !==
+    JSON.stringify(directory.requirements)
+  ) {
+    errors.push(`Generated requirements are stale for ${directory.id}`);
   }
   for (const requirement of directory.requirements || []) {
     if (!allowedRequirementKeys.has(requirement.key)) {

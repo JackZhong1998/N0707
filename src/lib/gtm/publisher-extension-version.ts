@@ -1,10 +1,22 @@
 /** Keep in sync with browser-extension/manifest.json */
-export const PUBLISHER_EXTENSION_VERSION = '0.9.13';
+export const PUBLISHER_EXTENSION_VERSION = '0.9.14';
 
 export const PUBLISHER_EXTENSION_RELEASE_NOTES: Record<
   string,
   { zh: string[]; en: string[] }
 > = {
+  '0.9.14': {
+    zh: [
+      '统一收录社交链接、Demo、功能、平台、集成、技术栈和反向链接字段',
+      '目录执行时合并所选平台的要求，只向用户追问仍然缺失的内容',
+      '录制器与通用适配器可识别并重放新的标准字段',
+    ],
+    en: [
+      'Standardize social, demo, feature, platform, integration, tech-stack, and backlink fields',
+      'Merge selected-directory requirements at runtime and ask only for details that remain missing',
+      'Teach the recorder and generic adapter to recognize and replay the expanded field schema',
+    ],
+  },
   '0.9.13': {
     zh: [
       '全部目录使用统一素材要求清单，检查结果包含图片尺寸、格式与大小限制',
