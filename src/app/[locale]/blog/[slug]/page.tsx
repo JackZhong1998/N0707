@@ -16,6 +16,44 @@ export function generateStaticParams() {
   return enMessages.Blog.posts.map((post) => ({ slug: post.slug }));
 }
 
+function getFirstUsersNextSteps(locale: string) {
+  return locale === 'zh'
+    ? {
+        eyebrow: '把方法变成行动',
+        title: '接下来，选对渠道并排出 30 天计划',
+        description: '先根据产品类型确定优先渠道，再把触达、内容和复盘安排进同一套冷启动节奏。',
+        relatedLabel: '继续阅读',
+        related: [
+          {
+            href: '/blog/how-to-choose-first-channel',
+            title: '按产品类型选择第一个推广渠道',
+          },
+          {
+            href: '/blog/product-done-now-what',
+            title: '查看第一次推广的 30 天路线图',
+          },
+        ],
+        cta: '制定我的 30 天推广计划',
+      }
+    : {
+        eyebrow: 'Turn the playbook into action',
+        title: 'Next, choose your channels and map the next 30 days',
+        description: 'Start with the channels that fit your product, then connect outreach, content, and review in one launch rhythm.',
+        relatedLabel: 'Continue reading',
+        related: [
+          {
+            href: '/blog/how-to-choose-first-channel',
+            title: 'Choose your first marketing channel by product type',
+          },
+          {
+            href: '/blog/product-done-now-what',
+            title: 'Follow the 30-day roadmap for your first launch',
+          },
+        ],
+        cta: 'Build my 30-day marketing plan',
+      };
+}
+
 async function getPost(locale: string, slug: string) {
   const t = await getTranslations({ locale, namespace: 'Blog' });
   for (let i = 0; i < 10; i++) {
@@ -75,6 +113,7 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) notFound();
 
   const t = await getTranslations({ locale, namespace: 'Blog' });
+  const firstUsersNextSteps = getFirstUsersNextSteps(locale);
 
   const articleStructuredData = {
     '@context': 'https://schema.org',
@@ -158,6 +197,49 @@ export default async function BlogPostPage({ params }: Props) {
                 return <p key={i} className="mb-4 leading-relaxed text-gray-600">{paragraph}</p>;
               })}
             </div>
+
+            {post.slug === 'first-100-users-without-ads' && (
+              <aside
+                className="mt-14 rounded-3xl border border-gray-200 bg-gray-50 p-6 sm:p-8"
+                aria-labelledby="first-users-next-step"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">
+                  {firstUsersNextSteps.eyebrow}
+                </p>
+                <h2
+                  id="first-users-next-step"
+                  className="mt-3 font-display text-2xl font-bold tracking-tight text-gray-900"
+                >
+                  {firstUsersNextSteps.title}
+                </h2>
+                <p className="mt-3 leading-7 text-gray-600">
+                  {firstUsersNextSteps.description}
+                </p>
+                <nav className="mt-6" aria-label={firstUsersNextSteps.relatedLabel}>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {firstUsersNextSteps.relatedLabel}
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {firstUsersNextSteps.related.map((item) => (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          className="text-sm font-medium text-primary-600 underline decoration-primary-200 underline-offset-4 transition-colors hover:text-primary-700"
+                        >
+                          {item.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+                <Link
+                  href="/sign-in"
+                  className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-primary-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+                >
+                  {firstUsersNextSteps.cta}
+                </Link>
+              </aside>
+            )}
           </div>
         </article>
       </main>

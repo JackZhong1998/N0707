@@ -1,8 +1,8 @@
 {
   "Metadata": {
     "home": {
-      "title": "30-Day Agent Launch Team for Software Products | NowBuild",
-      "description": "Turn one software product URL into a coordinated 30-day launch. A context-sharing agent team handles research, strategy, content, communities, SEO, and product distribution."
+      "title": "AI Marketing Agent Team for Solo Founders | NowBuild",
+      "description": "Put an AI Marketing Agent Team and 28+ Channel Skills to work researching, creating, publishing, distributing, and turning real feedback into market validation."
     },
     "blog": {
       "title": "Blog — GTM Playbooks & First-User Growth",
@@ -189,39 +189,39 @@
   },
   "FAQ": {
     "title": "Frequently Asked Questions",
-    "subtitle": "What the agents do, what still needs your confirmation, and what a 30-day launch actually includes.",
+    "subtitle": "Clear answers about the Agent Team, Channel Skills, automation boundaries, directory submissions, and what 30 days can realistically prove.",
     "items": [
       {
         "question": "What is NowBuild?",
-        "answer": "NowBuild is a 30-day agent launch team for software products, built for solo founders and one-person companies. You provide one product URL; the team researches the market, builds one shared campaign, selects the right channels, prepares daily work, and adjusts the plan around execution and public feedback."
+        "answer": "NowBuild is an AI Marketing Agent Team for solo founders who have built a product but do not know how to grow or validate its market. The team shares product memory, calls professional Channel Skills, and continuously researches, creates, distributes, and reviews one 30-day campaign using real market feedback."
       },
       {
         "question": "How is this different from ChatGPT?",
-        "answer": "ChatGPT usually produces one isolated draft after every prompt. NowBuild keeps your product profile, content pillars, weekly narratives, calendar, publishing status, and public performance signals together, so day 18 continues the same strategy instead of starting from a blank page again."
+        "answer": "ChatGPT is useful for one-off answers or drafts. NowBuild coordinates multiple Agents that share product memory, a market hypothesis, channel plans, publishing progress, and real feedback while calling Channel Skills to keep the same campaign moving."
       },
       {
-        "question": "Which channels can the agents operate?",
-        "answer": "The Agent Launch Team covers capabilities across X, LinkedIn, Xiaohongshu, WeChat, Reddit, Hacker News, Indie Hackers, TikTok, YouTube, Instagram, Product Hunt, GitHub, SEO, websites, and product directories. The agents select the channel mix that fits your product and audience instead of forcing every campaign onto every platform."
+        "question": "What are Channel Skills?",
+        "answer": "Channel Skills are platform-specific execution playbooks. A Reddit Agent studies community context and real questions; a TikTok Agent prepares hooks, spoken scripts, and storyboards; an SEO Agent organizes keywords and content clusters around search intent. They share one market goal but never simply rewrite the same post everywhere."
       },
       {
-        "question": "Does NowBuild publish automatically?",
+        "question": "Can NowBuild publish completely automatically?",
         "answer": "NowBuild prepares publish-ready work and assists with browser publishing where the platform allows it. Login, CAPTCHA, account authorization, media selection, community-rule checks, and final confirmation may still require you. NowBuild does not store your platform passwords or pretend those platform controls do not exist."
       },
       {
-        "question": "Will every platform receive the same rewritten post?",
-        "answer": "No. Community agents write around real decisions and useful discussion. TikTok produces spoken scripts, shots, and hook tests. YouTube aligns titles, thumbnail concepts, chapters, and demo footage. Instagram designs carousels, memes, Reels, and Stories. SEO builds connected articles from search intent. They share one product position but use different audience jobs, structures, proof, and CTAs."
+        "question": "How do automated Directory submissions work?",
+        "answer": "The Directory Agent first matches opportunities by product type, audience, and submission requirements. It then prepares descriptions, tags, assets, and form fields and executes supported submission flows. Each third-party platform still controls acceptance, timing, fees, and whether a backlink is provided."
       },
       {
-        "question": "What exactly do I get in one month?",
-        "answer": "You receive one shared product profile, a 30-day campaign blueprint, selected channel plans, a daily action calendar, ready-to-review copy or production packages, intelligent matching across 100+ directory opportunities, automated submission to 76 supported directories, publishing-status tracking, weekly reviews, and a final cross-channel report. The daily workflow is designed to turn hours of preparation into about 30 minutes of review, refinement, and approval."
+        "question": "Can 30 days guarantee users or revenue?",
+        "answer": "No. NowBuild promises a continuous, recorded, reviewable market-validation process—not guaranteed traffic, rankings, users, or revenue. After 30 days, you should have channel performance, user response, reusable content, and the market signals needed for the next decision."
       },
       {
-        "question": "Does intelligent matching across 100+ directories mean 100 guaranteed backlinks?",
-        "answer": "No. NowBuild intelligently matches your product against 100+ opportunities and automates submission to 76 supported directories after the required authorization. Each directory still controls eligibility, review, approval, links, timing, payment, and verification."
+        "question": "What is the difference between free and the $49 plan?",
+        "answer": "The free stage lets the Agents understand your product and deliver a product and market-direction analysis. The paid plan assembles the full AI Marketing Agent Team and unlocks a 30-day Campaign, Channel Skills, daily content and execution tasks, Directory automation, publishing tracking, and weekly reviews."
       },
       {
-        "question": "Can I pay for only one 30-day launch?",
-        "answer": "Yes. The Agent Launch Team is $49 monthly, and you may cancel after one launch month. One subscription includes one active product, one campaign at a time, and one new 30-day campaign per billing cycle."
+        "question": "Can I pay for only one month?",
+        "answer": "Yes. A $49 subscription includes one active product and one 30-day Campaign at a time. You can cancel after completing one campaign."
       }
     ]
   },

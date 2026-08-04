@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/landing/Hero';
-import StopRandom from '@/components/landing/StopRandom';
 import AgentTeam from '@/components/landing/AgentTeam';
 import Channels from '@/components/landing/Channels';
+import AutomatedWorkflow from '@/components/landing/AutomatedWorkflow';
 import CalendarGlimpse from '@/components/landing/CalendarGlimpse';
 import Comparison from '@/components/landing/Comparison';
 import ClosingCta from '@/components/landing/ClosingCta';
@@ -94,10 +94,10 @@ export default async function HomePage({ params }: Props) {
       audienceType: locale === 'zh' ? '独立开发者和一人公司' : 'Solo founders and one-person companies',
     },
     featureList: [
-      '30-day product launch plan',
-      'Platform-specific AI marketing agents',
-      'Daily content calendar',
-      'SEO topic clusters',
+      'Shared-product-memory AI Marketing Agent Team',
+      '28+ platform-native Channel Skills',
+      '30-day automated market-validation campaign',
+      'Daily research, content, publishing, and review workflow',
       '100+ matched directory opportunities and automated submission to 76 supported directories',
     ],
     offers: [
@@ -127,12 +127,12 @@ export default async function HomePage({ params }: Props) {
       <Navbar variant="dark" />
       <main>
         <Hero />
-        <StopRandom />
-        <CalendarGlimpse />
         <AgentTeam />
         <Channels />
-        <LandingPricing />
+        <AutomatedWorkflow />
+        <CalendarGlimpse />
         <Comparison />
+        <LandingPricing />
         <FAQ />
         <ClosingCta />
       </main>

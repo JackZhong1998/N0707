@@ -2,21 +2,21 @@
 
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-hairline bg-white px-5 transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.05)]">
+    <div className="border-b border-zinc-200 bg-white px-1">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between py-5 text-left transition-colors hover:text-primary-600"
+        className="flex w-full items-center justify-between py-6 text-left"
+        aria-expanded={open}
       >
-        <span className="pr-4 text-base font-semibold text-gray-900">{question}</span>
+        <span className="pr-4 text-base font-semibold text-ink">{question}</span>
         <span className="shrink-0">
           <svg
-            className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            className={`h-5 w-5 text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180 text-brand-700' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={2}
@@ -31,7 +31,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           open ? 'max-h-96 pb-5 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
-        <p className="text-sm leading-relaxed text-gray-500">{answer}</p>
+        <p className="max-w-2xl pb-1 text-sm leading-7 text-ink-muted">{answer}</p>
       </div>
     </div>
   );
@@ -47,39 +47,22 @@ export default function FAQ() {
   }));
 
   return (
-    <section className="bg-surface py-20 sm:py-28">
+    <section className="bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="text-center">
-          <h2 className="font-display text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          <p className="index-label">{isZh ? '购买前的关键问题' : 'WHAT FOUNDERS ASK BEFORE STARTING'}</p>
+          <h2 className="mt-5 font-[family-name:var(--font-display)] text-4xl font-bold tracking-[-0.045em] text-ink sm:text-5xl">
             {t('title')}
           </h2>
-          <p className="mt-4 text-lg text-gray-500">{t('subtitle')}</p>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-ink-muted">{t('subtitle')}</p>
         </div>
 
-        {/* FAQ List */}
-        <div className="mt-12 space-y-3">
+        <div className="mt-12 border-t border-zinc-200">
           {items.map((item, index) => (
             <FAQItem key={index} question={item.question} answer={item.answer} />
           ))}
         </div>
 
-        <div className="mt-8 rounded-2xl border border-brand-200 bg-brand-50 p-6 text-center">
-          <p className="text-base font-bold text-gray-900">
-            {isZh ? '还想完整了解新用户进入后会发生什么？' : 'Want the complete new-user campaign walkthrough?'}
-          </p>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-500">
-            {isZh
-              ? '查看 30 天冷启动页面，了解你会获得哪些文档、渠道计划、每日任务、制作包和每周复盘。'
-              : 'See every document, channel plan, daily task, production package, and weekly review in the 30-day campaign tour.'}
-          </p>
-          <Link
-            href="/30-day-campaign"
-            className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-brand-700 px-5 text-sm font-semibold text-white transition hover:bg-brand-800"
-          >
-            {isZh ? '查看完整的 30 天体验 →' : 'See the 30-day campaign experience →'}
-          </Link>
-        </div>
       </div>
     </section>
   );

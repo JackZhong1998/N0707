@@ -4,33 +4,32 @@ import {
   launchDirectories,
   type LaunchDirectory,
 } from '@/lib/directories/data';
-import { BRAND_MISSION } from '@/lib/brand';
 
 type ChannelItem = {
   id: string;
   name: string;
   nameZh: string;
+  skill: string;
+  skillZh: string;
 };
 
 const CHANNELS: ChannelItem[] = [
-  { id: 'twitter_x', name: 'X / Twitter', nameZh: 'X / Twitter' },
-  { id: 'linkedin', name: 'LinkedIn', nameZh: 'LinkedIn' },
-  { id: 'reddit', name: 'Reddit', nameZh: 'Reddit' },
-  { id: 'hacker_news', name: 'Hacker News', nameZh: 'Hacker News' },
-  { id: 'indie_hackers', name: 'Indie Hackers', nameZh: 'Indie Hackers' },
-  { id: 'product_hunt', name: 'Product Hunt', nameZh: 'Product Hunt' },
-  { id: 'github_growth', name: 'GitHub', nameZh: 'GitHub' },
-  { id: 'xiaohongshu', name: 'Xiaohongshu', nameZh: '小红书' },
-  { id: 'wechat_official', name: 'WeChat Official', nameZh: '微信公众号' },
-  { id: 'user_outreach', name: 'Private Outreach', nameZh: '私域触达' },
-  { id: 'tiktok', name: 'TikTok', nameZh: 'TikTok' },
-  { id: 'youtube', name: 'YouTube', nameZh: 'YouTube' },
-  { id: 'instagram', name: 'Instagram', nameZh: 'Instagram' },
-  { id: 'website_copy', name: 'Website', nameZh: '官网转化' },
-  { id: 'seo', name: 'SEO', nameZh: 'SEO' },
-  { id: 'directory', name: 'Directories', nameZh: '产品目录' },
-  { id: 'user_interview', name: 'User Interviews', nameZh: '用户访谈' },
-  { id: 'competitor_research', name: 'Competitor Research', nameZh: '竞品研究' },
+  { id: 'twitter_x', name: 'X / Twitter', nameZh: 'X / Twitter', skill: 'Trends · Threads · Engagement', skillZh: '趋势选题 · Threads · 互动' },
+  { id: 'linkedin', name: 'LinkedIn', nameZh: 'LinkedIn', skill: 'Expert POV · Founder Story', skillZh: '专业观点 · Founder Story' },
+  { id: 'reddit', name: 'Reddit', nameZh: 'Reddit', skill: 'Community research · Native posts', skillZh: '社区研究 · 原生帖子' },
+  { id: 'hacker_news', name: 'Hacker News', nameZh: 'Hacker News', skill: 'Show HN · Technical narrative', skillZh: 'Show HN · 技术叙事' },
+  { id: 'indie_hackers', name: 'Indie Hackers', nameZh: 'Indie Hackers', skill: 'Build in public · Retrospectives', skillZh: 'Build in Public · 复盘' },
+  { id: 'product_hunt', name: 'Product Hunt', nameZh: 'Product Hunt', skill: 'Launch strategy · Assets', skillZh: 'Launch 策划 · 发布素材' },
+  { id: 'github_growth', name: 'GitHub', nameZh: 'GitHub', skill: 'README growth · Distribution', skillZh: 'README 增长 · 社区分发' },
+  { id: 'xiaohongshu', name: 'Xiaohongshu', nameZh: '小红书', skill: 'Topics · Notes · Publishing', skillZh: '选题 · 笔记 · 发布' },
+  { id: 'wechat_official', name: 'WeChat Official', nameZh: '微信公众号', skill: 'Articles · Headlines · Layout', skillZh: '长文 · 标题 · 排版' },
+  { id: 'tiktok', name: 'TikTok', nameZh: 'TikTok', skill: 'Scripts · Hooks · Storyboards', skillZh: '脚本 · Hook · 分镜' },
+  { id: 'youtube', name: 'YouTube', nameZh: 'YouTube', skill: 'Topics · Scripts · SEO', skillZh: '选题 · 脚本 · SEO' },
+  { id: 'instagram', name: 'Instagram', nameZh: 'Instagram', skill: 'Reels · Carousel · Caption', skillZh: 'Reels · Carousel · Caption' },
+  { id: 'seo', name: 'SEO', nameZh: 'SEO', skill: 'Keywords · Topic clusters · Pages', skillZh: '关键词 · 内容集群 · 落地页' },
+  { id: 'website_copy', name: 'Website Conversion', nameZh: '官网转化', skill: 'Positioning · Hero · CTA', skillZh: '定位 · Hero · CTA' },
+  { id: 'user_interview', name: 'User Interviews', nameZh: '用户访谈', skill: 'Recruiting · Guides · Validation', skillZh: '招募 · 提纲 · 需求验证' },
+  { id: 'competitor_research', name: 'Competitor Research', nameZh: '竞品研究', skill: 'Positioning · Pricing · Gaps', skillZh: '定位 · 价格 · 差异机会' },
 ];
 
 const FEATURED_DIRECTORY_NAMES = [
@@ -61,7 +60,14 @@ function ChannelCard({
   return (
     <div className="hero-logo-card">
       <ChannelLogo channelId={channel.id} size={28} />
-      <span>{isZh ? channel.nameZh : channel.name}</span>
+      <span className="leading-none">
+        <span className="block text-[0.8125rem] font-semibold text-zinc-200">
+          {isZh ? channel.nameZh : channel.name}
+        </span>
+        <span className="mt-1.5 block text-[0.65rem] font-normal text-zinc-500">
+          {isZh ? channel.skillZh : channel.skill}
+        </span>
+      </span>
     </div>
   );
 }
@@ -90,14 +96,8 @@ function DirectoryCard({ directory }: { directory: LaunchDirectory }) {
 export default function HeroChannelMarquee({ isZh }: { isZh: boolean }) {
   return (
     <div className="mt-8 sm:mt-10">
-      <p className="text-center font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500 sm:text-xs">
-        {isZh
-          ? '同一个推广目标，每个渠道各司其职'
-          : 'One campaign. Every channel plays its part.'}
-      </p>
-
       <div
-        className="hero-marquee mt-5 sm:mt-6"
+        className="hero-marquee"
         aria-label={isZh ? '目前支持的推广渠道' : 'Supported channel agents'}
       >
         <div className="hero-marquee-track">
@@ -119,31 +119,31 @@ export default function HeroChannelMarquee({ isZh }: { isZh: boolean }) {
       </div>
 
       <div
-        className="hero-marquee hero-marquee-reverse mt-3"
+        className="hero-marquee hero-directory-marquee hero-marquee-reverse mt-3"
         aria-label={
-          isZh ? '热门产品发布目录' : 'Popular product launch directories'
+          isZh
+            ? '支持自动匹配和提交的海外产品收录站'
+            : 'Popular product launch directories'
         }
       >
         <div className="hero-marquee-track">
-          <div className="hero-marquee-group">
-            {FEATURED_DIRECTORIES.map((directory) => (
-              <DirectoryCard key={directory.domain} directory={directory} />
-            ))}
-          </div>
-          <div className="hero-marquee-group" aria-hidden>
-            {FEATURED_DIRECTORIES.map((directory) => (
-              <DirectoryCard
-                key={`duplicate-${directory.domain}`}
-                directory={directory}
-              />
-            ))}
-          </div>
+          {[0, 1, 2, 3].map((sequenceIndex) => (
+            <div
+              key={`directory-sequence-${sequenceIndex}`}
+              className="hero-marquee-group"
+              aria-hidden={sequenceIndex > 0 || undefined}
+            >
+              {FEATURED_DIRECTORIES.map((directory) => (
+                <DirectoryCard
+                  key={`${sequenceIndex}-${directory.domain}`}
+                  directory={directory}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
-      <p className="mt-6 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600 sm:mt-8 sm:text-xs">
-        {BRAND_MISSION}
-      </p>
     </div>
   );
 }
