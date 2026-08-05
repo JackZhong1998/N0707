@@ -711,6 +711,16 @@ export async function saveGtmStore(
   const supabase = getServiceSupabase();
   const { project } = await ensureDefaultProject(clerkUserId);
   const projectId = project.id as string;
+  const subscriptionRes = await supabase
+    .from('subscriptions')
+    .select('status')
+    .eq('user_id', clerkUserId)
+    .maybeSingle();
+  fail('Failed to load subscription', subscriptionRes.error);
+  const paidStatuses = new Set(['active', 'trialing']);
+  const paid = paidStatuses.has(subscriptionRes.data?.status ?? '');
+  // Entitlement is server-owned; never persist a browser-forged paid flag.
+  const durableStore: GtmStore = { ...store, paid };
   const currentRevision = expectedRevision ?? String(project.state_revision ?? 0);
   let nextRevision: string;
   if (project.atomic_state_available) {
@@ -727,12 +737,12 @@ export async function saveGtmStore(
       .from('gtm_projects')
       .update({
         store_version: GTM_STORE_VERSION,
-        plan_ready: Boolean(store.planReady),
-        start_date: store.startDate ?? null,
+        plan_ready: Boolean(durableStore.planReady),
+        start_date: durableStore.startDate ?? null,
         state_revision: nextRevision,
-        state_snapshot: store,
-        directory_launch_kit: store.launch?.directoryLaunchKit ?? null,
-        target_markets: store.targetMarkets ?? [],
+        state_snapshot: durableStore,
+        directory_launch_kit: durableStore.launch?.directoryLaunchKit ?? null,
+        target_markets: durableStore.targetMarkets ?? [],
       })
       .eq('id', projectId)
       .eq('state_revision', currentRevision)
@@ -747,9 +757,9 @@ export async function saveGtmStore(
       .from('gtm_projects')
       .update({
         store_version: GTM_STORE_VERSION,
-        plan_ready: Boolean(store.planReady),
-        start_date: store.startDate ?? null,
-        target_markets: store.targetMarkets ?? [],
+        plan_ready: Boolean(durableStore.planReady),
+        start_date: durableStore.startDate ?? null,
+        target_markets: durableStore.targetMarkets ?? [],
       })
       .eq('id', projectId)
       .eq('updated_at', currentRevision)

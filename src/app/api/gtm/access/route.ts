@@ -1,5 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { ensureAppUser } from '@/lib/gtm/database';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getStripe } from '@/lib/stripe';
 
@@ -12,6 +13,15 @@ type AccessOutcome =
   | 'unauthorized'
   | 'clerk_error'
   | 'supabase_error';
+
+async function mirrorClerkUser(userId: string) {
+  const clerkUser = await currentUser();
+  await ensureAppUser(userId, {
+    email: clerkUser?.primaryEmailAddress?.emailAddress,
+    displayName: clerkUser?.fullName,
+    avatarUrl: clerkUser?.imageUrl,
+  });
+}
 
 function timingHeaders(
   clerkAuthMs: number,
@@ -102,6 +112,15 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Mirror Clerk → app_users on every authenticated visit (including free tier).
+    // Failures must not block the entitlement check; /api/gtm/state also ensures
+    // the row when remote hydration runs.
+    try {
+      await mirrorClerkUser(userId);
+    } catch (mirrorError) {
+      console.error('[gtm/access] Failed to mirror Clerk user', mirrorError);
+    }
+
     const sessionId = new URL(request.url).searchParams.get('session_id');
     if (sessionId) {
       if (!/^cs_(test_|live_)[A-Za-z0-9]+$/.test(sessionId)) {

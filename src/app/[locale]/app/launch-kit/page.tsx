@@ -212,23 +212,28 @@ export default function LaunchKitPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-7 sm:px-8 sm:py-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-300">
-            Directory Submission
-          </p>
-          <h1 className="mt-2 text-3xl font-black text-white">
-            {isZh ? '目录提交资料' : 'Directory submission materials'}
-          </h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            {isZh
-              ? '检查自动整理的资料，补充空白内容，并确认插件可使用的图片。'
-              : 'Review detected details, fill any gaps, and confirm images the extension may use.'}
-          </p>
-        </div>
-        <Link href="/app/directories" className="text-xs text-zinc-400 hover:text-white">
-          {isZh ? '返回目录 →' : 'Back to directories →'}
-        </Link>
+      <Link
+        href="/app/directories"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-white"
+      >
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+        {isZh ? '返回目录' : 'Back to directories'}
+      </Link>
+
+      <header className="mt-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-300">
+          Directory Submission
+        </p>
+        <h1 className="mt-2 text-3xl font-black text-white">
+          {isZh ? '目录提交资料' : 'Directory submission materials'}
+        </h1>
+        <p className="mt-2 text-sm text-zinc-500">
+          {isZh
+            ? '检查自动整理的资料，补充空白内容，并确认插件可使用的图片。'
+            : 'Review detected details, fill any gaps, and confirm images the extension may use.'}
+        </p>
       </header>
 
       {missingForCurrentBatch.length > 0 && (

@@ -239,9 +239,15 @@ async function collectSiteAssets(request, sender) {
           .find(Boolean);
         const icon = [
           'link[rel~="apple-touch-icon"]',
-          'link[rel~="icon"][sizes="any"]',
+          'link[rel="apple-touch-icon"]',
+          'link[rel~="icon"][sizes="192x192"]',
+          'link[rel~="icon"][sizes="180x180"]',
+          'link[rel~="icon"][type="image/png"]',
+          'link[rel~="icon"][type="image/svg+xml"]',
           'link[rel~="icon"]',
         ].map((selector) => absolute(document.querySelector(selector)?.href)).find(Boolean);
+        // Prefer explicit brand logo meta/icons. Do not scrape arbitrary <img>
+        // tags — customer logo walls and partner rows look like "logo" too.
         return {
           title: document.title,
           logo: meta([
@@ -250,6 +256,7 @@ async function collectSiteAssets(request, sender) {
           ]) || icon,
           image: meta([
             'meta[property="og:image"]',
+            'meta[property="og:image:secure_url"]',
             'meta[name="twitter:image"]',
             'meta[name="twitter:image:src"]',
           ]),
@@ -315,12 +322,14 @@ async function hasCustomMetricsPermission(payload) {
 }
 
 function validDirectoryPayload(payload) {
-  if (!payload || typeof payload !== 'object') return false;
-  if (!payload.requestId || typeof payload.requestId !== 'string') return false;
+  if (!payload || typeof payload !== 'object') return 'Missing payload';
+  if (!payload.requestId || typeof payload.requestId !== 'string') {
+    return 'Missing requestId';
+  }
   const directory = DIRECTORY_CATALOG?.byId(payload.directoryId);
-  if (!directory) return false;
+  if (!directory) return `Unknown directory: ${payload.directoryId || '(empty)'}`;
   const kit = payload.launchKit;
-  if (!kit || typeof kit !== 'object') return false;
+  if (!kit || typeof kit !== 'object') return 'Missing launchKit';
   const stringLimits = {
     productName: 120,
     productUrl: 2048,
@@ -337,47 +346,136 @@ function validDirectoryPayload(payload) {
     launchDate: 40,
   };
   for (const [key, limit] of Object.entries(stringLimits)) {
-    if (kit[key] !== undefined && typeof kit[key] !== 'string') return false;
-    if (String(kit[key] || '').length > limit) return false;
+    if (kit[key] !== undefined && typeof kit[key] !== 'string') {
+      return `${key} must be a string`;
+    }
+    if (String(kit[key] || '').length > limit) {
+      return `${key} exceeds ${limit} characters`;
+    }
   }
   const required = ['productName', 'productUrl', 'tagline', 'shortDescription'];
-  if (required.some((key) => !String(kit[key] || '').trim())) return false;
+  const missing = required.find((key) => !String(kit[key] || '').trim());
+  if (missing) return `Missing required field: ${missing}`;
   try {
     const url = new URL(kit.productUrl);
-    if (!['http:', 'https:'].includes(url.protocol)) return false;
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return 'productUrl must be http(s)';
+    }
   } catch {
-    return false;
+    return 'Invalid productUrl';
   }
   for (const key of ['founderUrl', 'twitterUrl', 'linkedinUrl', 'demoUrl']) {
     const value = String(kit[key] || '').trim();
     if (!value) continue;
     try {
       const url = new URL(value);
-      if (!['http:', 'https:'].includes(url.protocol)) return false;
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        return `${key} must be http(s)`;
+      }
     } catch {
-      return false;
+      return `Invalid ${key}`;
     }
   }
   for (const key of ['categories', 'tags']) {
-    if (kit[key] !== undefined && !Array.isArray(kit[key])) return false;
+    if (kit[key] !== undefined && !Array.isArray(kit[key])) {
+      return `${key} must be an array`;
+    }
     const values = Array.isArray(kit[key]) ? kit[key] : [];
-    if (values.length > (key === 'categories' ? 5 : 10)) return false;
+    if (values.length > (key === 'categories' ? 5 : 10)) {
+      return `${key} has too many items`;
+    }
     if (values.some((value) => typeof value !== 'string' || value.length > 80)) {
-      return false;
+      return `${key} items must be strings up to 80 characters`;
     }
   }
   const assets = Array.isArray(kit.assets) ? kit.assets : [];
-  if (assets.length > 6) return false;
+  if (assets.length > 6) return 'Too many assets';
   let assetSize = 0;
   for (const asset of assets) {
-    if (!asset || typeof asset !== 'object') return false;
-    if (!['logo', 'screenshot'].includes(asset.kind)) return false;
+    if (!asset || typeof asset !== 'object') return 'Invalid asset';
+    if (!['logo', 'screenshot'].includes(asset.kind)) return 'Invalid asset kind';
     if (typeof asset.dataUrl !== 'string' || !asset.dataUrl.startsWith('data:image/')) {
-      return false;
+      return 'Asset must be a data:image URL';
     }
     assetSize += asset.dataUrl.length;
   }
-  return assetSize <= 7_000_000;
+  if (assetSize > 7_000_000) return 'Assets exceed size limit';
+  return null;
+}
+
+function sanitizeDirectoryLaunchKit(kit) {
+  if (!kit || typeof kit !== 'object') return kit;
+  const stringLimits = {
+    productName: 120,
+    productUrl: 2048,
+    tagline: 180,
+    shortDescription: 1000,
+    longDescription: 12000,
+    pricing: 80,
+    founderName: 160,
+    founderEmail: 320,
+    founderUrl: 2048,
+    twitterUrl: 2048,
+    linkedinUrl: 2048,
+    demoUrl: 2048,
+    launchDate: 40,
+  };
+  const next = { ...kit };
+  for (const [key, limit] of Object.entries(stringLimits)) {
+    if (next[key] !== undefined && next[key] !== null) {
+      next[key] = String(next[key]).slice(0, limit);
+    }
+  }
+  for (const key of ['founderUrl', 'twitterUrl', 'linkedinUrl', 'demoUrl']) {
+    const value = String(next[key] || '').trim();
+    if (!value) {
+      next[key] = '';
+      continue;
+    }
+    try {
+      const url = new URL(value);
+      next[key] = ['http:', 'https:'].includes(url.protocol) ? value : '';
+    } catch {
+      next[key] = '';
+    }
+  }
+  for (const [key, maxItems] of [
+    ['categories', 5],
+    ['tags', 10],
+  ]) {
+    if (!Array.isArray(next[key])) {
+      next[key] = [];
+      continue;
+    }
+    next[key] = next[key]
+      .filter((value) => typeof value === 'string')
+      .map((value) => value.trim().slice(0, 80))
+      .filter(Boolean)
+      .slice(0, maxItems);
+  }
+  const assets = Array.isArray(next.assets) ? [...next.assets] : [];
+  const filtered = assets
+    .filter(
+      (asset) =>
+        asset &&
+        typeof asset === 'object' &&
+        ['logo', 'screenshot'].includes(asset.kind) &&
+        typeof asset.dataUrl === 'string' &&
+        asset.dataUrl.startsWith('data:image/')
+    )
+    .slice(0, 6);
+  let assetSize = filtered.reduce((sum, asset) => sum + asset.dataUrl.length, 0);
+  while (assetSize > 7_000_000 && filtered.length > 0) {
+    const dropIndex = [...filtered]
+      .map((asset, index) => ({ asset, index }))
+      .reverse()
+      .find((item) => item.asset.kind === 'screenshot')?.index;
+    const index = dropIndex === undefined ? filtered.length - 1 : dropIndex;
+    assetSize -= filtered[index].dataUrl.length;
+    filtered.splice(index, 1);
+  }
+  next.assets = filtered;
+  return next;
 }
 
 function sleep(ms) {
@@ -666,8 +764,12 @@ async function startDirectorySubmission(request, sender) {
   if (!isAllowedCommandSender(sender)) {
     throw new Error('Untrusted NowBuild page');
   }
-  if (!validDirectoryPayload(request.payload)) {
-    throw new Error('Invalid directory submission request');
+  if (request.payload?.launchKit) {
+    request.payload.launchKit = sanitizeDirectoryLaunchKit(request.payload.launchKit);
+  }
+  const invalidReason = validDirectoryPayload(request.payload);
+  if (invalidReason) {
+    throw new Error(`Invalid directory submission request: ${invalidReason}`);
   }
   const payload = request.payload;
   const directory = DIRECTORY_CATALOG.byId(payload.directoryId);
@@ -721,8 +823,12 @@ async function startDirectorySubmission(request, sender) {
 
 async function startDirectoryRecording(request, sender) {
   if (!isAllowedCommandSender(sender)) throw new Error('Untrusted NowBuild page');
-  if (!validDirectoryPayload(request.payload)) {
-    throw new Error('Invalid directory recording request');
+  if (request.payload?.launchKit) {
+    request.payload.launchKit = sanitizeDirectoryLaunchKit(request.payload.launchKit);
+  }
+  const invalidReason = validDirectoryPayload(request.payload);
+  if (invalidReason) {
+    throw new Error(`Invalid directory recording request: ${invalidReason}`);
   }
   const payload = request.payload;
   const directory = DIRECTORY_CATALOG.byId(payload.directoryId);

@@ -1,5 +1,6 @@
 'use client';
 
+import { sanitizeDirectoryLaunchKitForExtension } from '@/lib/directories/materials';
 import type {
   DirectoryAssetSpec,
   DirectoryLaunchKit,
@@ -193,6 +194,7 @@ export async function submitDirectoryWithExtension(
 ): Promise<{ requestId: string }> {
   const requestId = crypto.randomUUID();
   const allowFinalSubmit = options.allowFinalSubmit === true;
+  const sanitizedKit = sanitizeDirectoryLaunchKitForExtension(launchKit);
   await sendCommand(
     'DIRECTORY_SUBMIT',
     {
@@ -200,7 +202,7 @@ export async function submitDirectoryWithExtension(
       payload: {
         requestId,
         directoryId,
-        launchKit,
+        launchKit: sanitizedKit,
         options: {
           mode: allowFinalSubmit ? 'live' : 'dry_run',
           allowFinalSubmit,
@@ -374,4 +376,24 @@ export function collectMetricsWithExtension(
   });
 
   return { requestId, completion };
+}
+
+const PUBLISHER_EXTENSION_GUIDE_KEY = 'nowbuild:publisher-extension-guide-seen';
+
+/** Whether the first-time publish → install-plugin redirect has already run. */
+export function hasSeenPublisherExtensionGuide(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    return localStorage.getItem(PUBLISHER_EXTENSION_GUIDE_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export function markPublisherExtensionGuideSeen(): void {
+  try {
+    localStorage.setItem(PUBLISHER_EXTENSION_GUIDE_KEY, '1');
+  } catch {
+    // Private mode / quota — treat as best-effort.
+  }
 }

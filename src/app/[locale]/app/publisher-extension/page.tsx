@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Link } from '@/i18n/navigation';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import {
   detectPublisherExtension,
   type PublisherAvailability,
@@ -46,6 +46,8 @@ function CheckIcon() {
 function PublisherExtensionPageContent() {
   const locale = useLocale();
   const isZh = locale !== 'en';
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const requestedReturnTo = searchParams.get('returnTo') ?? '';
   const returnTo = /^\/app\/calendar\/task\/[a-zA-Z0-9_-]+$/.test(requestedReturnTo)
@@ -54,6 +56,9 @@ function PublisherExtensionPageContent() {
   const returningToTask = returnTo !== '/app/calendar';
   const [publisher, setPublisher] = useState<PublisherAvailability | null>(null);
   const [checking, setChecking] = useState(true);
+  const [showGuideToast, setShowGuideToast] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const guideHandledRef = useRef(false);
 
   const checkExtension = async () => {
     setChecking(true);
@@ -64,6 +69,28 @@ function PublisherExtensionPageContent() {
   useEffect(() => {
     void checkExtension();
   }, []);
+
+  useEffect(() => {
+    if (guideHandledRef.current || searchParams.get('guide') !== '1') return;
+    guideHandledRef.current = true;
+    setShowGuideToast(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('guide');
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`);
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (!showGuideToast) return;
+    const showFrame = window.requestAnimationFrame(() => setToastVisible(true));
+    const hideTimer = window.setTimeout(() => setToastVisible(false), 8000);
+    const removeTimer = window.setTimeout(() => setShowGuideToast(false), 8600);
+    return () => {
+      window.cancelAnimationFrame(showFrame);
+      window.clearTimeout(hideTimer);
+      window.clearTimeout(removeTimer);
+    };
+  }, [showGuideToast]);
 
   const needsUpgrade =
     publisher?.installed === true &&
@@ -96,7 +123,50 @@ function PublisherExtensionPageContent() {
       ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+      {showGuideToast && (
+        <div
+          className="pointer-events-none fixed inset-x-0 top-4 z-[60] flex justify-center px-4 sm:top-6"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className={`pointer-events-auto flex max-w-lg items-start gap-3 rounded-2xl border border-brand-400/30 bg-night-panel/95 px-4 py-3.5 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl transition-all duration-500 sm:px-5 ${
+              toastVisible
+                ? 'translate-y-0 opacity-100'
+                : '-translate-y-3 opacity-0'
+            }`}
+          >
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-brand-300">
+              <DownloadIcon />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold tracking-tight text-white">
+                {isZh ? '请先下载并安装发布插件' : 'Download and install the publisher'}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-zinc-400">
+                {isZh
+                  ? '安装后才能更好地自动填写并执行发布任务。装好后点下方「我已安装，重新检测」。'
+                  : 'Install it so publishing tasks can fill and run more reliably. After installing, choose “I installed it — check again” below.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setToastVisible(false);
+                window.setTimeout(() => setShowGuideToast(false), 280);
+              }}
+              className="shrink-0 rounded-full p-1 text-zinc-500 transition-colors hover:bg-white/10 hover:text-white"
+              aria-label={isZh ? '关闭提示' : 'Dismiss'}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="flex shrink-0 flex-wrap items-baseline gap-3 border-b border-white/[0.08] px-4 py-3 sm:px-6">
         <h1 className="text-base font-bold tracking-tight text-white sm:text-lg">
           {isZh ? '发布插件' : 'Publisher extension'}
@@ -235,9 +305,11 @@ function PublisherExtensionPageContent() {
                         : 'Download Chrome extension'}
                   </a>
                   <button
-                    onClick={() => void checkExtension()}
-                    disabled={checking}
-                    className="h-11 rounded-full border border-white/[0.08] bg-white/[0.03] px-5 text-sm font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.06] disabled:text-zinc-600"
+                    type="button"
+                    onClick={() => {
+                      window.location.reload();
+                    }}
+                    className="h-11 rounded-full border border-white/[0.08] bg-white/[0.03] px-5 text-sm font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.06]"
                   >
                     {isZh ? '我已安装，重新检测' : 'I installed it — check again'}
                   </button>

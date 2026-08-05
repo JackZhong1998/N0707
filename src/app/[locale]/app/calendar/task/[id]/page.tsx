@@ -9,7 +9,7 @@
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale } from 'next-intl';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useGtm } from '@/lib/gtm/store';
 import { Markdown } from '@/lib/gtm/markdown';
 import { publishTo } from '@/lib/gtm/publish-links';
@@ -17,6 +17,8 @@ import PostMetricsPanel from '@/components/app/PostMetricsPanel';
 import { useViewContext } from '@/lib/gtm/view-context-provider';
 import {
   detectPublisherExtension,
+  hasSeenPublisherExtensionGuide,
+  markPublisherExtensionGuideSeen,
   publishWithExtension,
   type PublisherEvent,
   type PublisherAvailability,
@@ -68,6 +70,7 @@ export default function TaskDetailPage({
   const gtm = useGtm();
   const { store, hydrated } = gtm;
   const locale = useLocale();
+  const router = useRouter();
   const isZh = locale !== 'en';
   const [copied, setCopied] = useState(false);
   const [urlError, setUrlError] = useState('');
@@ -367,6 +370,24 @@ export default function TaskDetailPage({
 
   const handlePublish = async () => {
     if (!todo.content || !showPublishButton) return;
+
+    // First time a Todo needs the publisher extension: guide to install page.
+    if (
+      capability.extensionSupport !== 'none' &&
+      !hasSeenPublisherExtensionGuide()
+    ) {
+      const latest = publisher ?? (await detectPublisherExtension());
+      setPublisher(latest);
+      if (!latest.installed) {
+        markPublisherExtensionGuideSeen();
+        router.push(
+          `/app/publisher-extension?returnTo=${encodeURIComponent(`/app/calendar/task/${id}`)}&guide=1`
+        );
+        return;
+      }
+      markPublisherExtensionGuideSeen();
+    }
+
     const text = getContentText();
     setPublishing(true);
     setPublishMessage(isZh ? '正在连接发布插件…' : 'Connecting to the publisher…');

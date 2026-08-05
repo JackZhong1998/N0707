@@ -114,6 +114,9 @@ function blockerLabel(blocker: string | undefined, isZh: boolean): string {
     unsupported_directory: ['需要人工提交', 'Manual submission required'],
     extension_required: ['需要发布插件', 'Publisher extension required'],
     extension_error: ['插件执行失败', 'Extension error'],
+    google_oauth_loop: ['Google 登录循环', 'Google login loop'],
+    google_reauthentication: ['需要验证 Google 密码', 'Google password required'],
+    google_2fa: ['需要 Google 二次验证', 'Google 2FA required'],
   };
   const label = blocker ? labels[blocker] : undefined;
   return label?.[isZh ? 0 : 1] ?? (isZh ? '需要处理' : 'Action required');
@@ -808,6 +811,42 @@ export default function DirectoryWorkspacePage() {
     }
   };
 
+  const retryJob = (job: DirectorySubmissionJob) => {
+    if (!availability?.installed) {
+      setDirectoryMessage(
+        isZh
+          ? '请先安装并启用发布插件，再重试。'
+          : 'Install and enable the publisher extension before retrying.'
+      );
+      return;
+    }
+    if (!job.adapterId || !supportedDirectoryIds.has(job.adapterId)) {
+      setDirectoryMessage(
+        isZh
+          ? '当前插件不支持该目录，无法自动重试。'
+          : 'The installed extension does not support this directory.'
+      );
+      return;
+    }
+    patchJob(
+      job.id,
+      {
+        status: 'queued',
+        blocker: undefined,
+        blockerDetail: undefined,
+        requestId: undefined,
+        proof: undefined,
+        missingRequired: undefined,
+      },
+      { status: 'matched', proof: undefined }
+    );
+    setDirectoryMessage(
+      isZh
+        ? `已重新排队：${job.directoryName}`
+        : `Re-queued: ${job.directoryName}`
+    );
+  };
+
   const updateDirectory = (
     id: string,
     patch: Partial<DirectorySubmission>
@@ -858,7 +897,30 @@ export default function DirectoryWorkspacePage() {
     );
   }
 
-  if (!gtm.store.paid) {
+  // Don't flash the free catalog while subscription access is still unknown.
+  // `store.paid` stays false until /api/gtm/access resolves.
+  if (
+    gtm.accessStatus === 'checking' ||
+    gtm.accessStatus === 'error' ||
+    (!gtm.hydrated && gtm.accessStatus !== 'unpaid')
+  ) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 px-4">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-300" />
+        <p className="text-sm text-zinc-500">
+          {gtm.accessStatus === 'error'
+            ? isZh
+              ? '正在重试订阅状态…'
+              : 'Retrying subscription status…'
+            : isZh
+              ? '正在加载推荐目录…'
+              : 'Loading recommended directories…'}
+        </p>
+      </div>
+    );
+  }
+
+  if (gtm.accessStatus === 'unpaid' || !gtm.store.paid) {
     const query = catalogSearch.trim().toLowerCase();
     const publicDirectories = launchDirectories.filter((item) =>
       query
@@ -1090,6 +1152,27 @@ export default function DirectoryWorkspacePage() {
                         </button>
                       </>
                     )}
+                    {job.status === 'failed' && (
+                      <button
+                        type="button"
+                        onClick={() => retryJob(job)}
+                        title={isZh ? '重新提交' : 'Retry submission'}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-black hover:bg-zinc-200"
+                      >
+                        <svg
+                          className="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                          aria-hidden
+                        >
+                          <path d="M21 12a9 9 0 1 1-2.6-6.3" />
+                          <path d="M21 3v6h-6" />
+                        </svg>
+                        {isZh ? '重试' : 'Retry'}
+                      </button>
+                    )}
                     {(job.status === 'manual' || job.status === 'failed') &&
                       directory && (
                         <a
@@ -1098,7 +1181,7 @@ export default function DirectoryWorkspacePage() {
                           rel="noreferrer"
                           className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-300"
                         >
-                          {isZh ? '前往处理 ↗' : 'Open task ↗'}
+                          {isZh ? '打开平台 ↗' : 'Open site ↗'}
                         </a>
                       )}
                   </div>
@@ -1275,6 +1358,27 @@ export default function DirectoryWorkspacePage() {
                     className="rounded-full bg-amber-200 px-3 py-1.5 text-[10px] font-bold text-black"
                   >
                     {isZh ? '处理后继续' : 'Continue after action'}
+                  </button>
+                )}
+                {job?.status === 'failed' && (
+                  <button
+                    type="button"
+                    onClick={() => retryJob(job)}
+                    title={isZh ? '重新提交' : 'Retry submission'}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-black hover:bg-zinc-200"
+                  >
+                    <svg
+                      className="h-3 w-3"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      aria-hidden
+                    >
+                      <path d="M21 12a9 9 0 1 1-2.6-6.3" />
+                      <path d="M21 3v6h-6" />
+                    </svg>
+                    {isZh ? '重试' : 'Retry'}
                   </button>
                 )}
                 <input

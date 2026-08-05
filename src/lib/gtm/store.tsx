@@ -763,7 +763,7 @@ export type SubscriptionAccessStatus =
 interface GtmContextValue {
   store: GtmStore;
   hydrated: boolean;
-  /** True after paid remote state was merged (or no remote sync is required). */
+  /** True after remote state was merged (or no remote sync is required). */
   remoteReady: boolean;
   accessStatus: SubscriptionAccessStatus;
   update: (patch: Partial<GtmStore>) => void;
@@ -1112,21 +1112,15 @@ function GtmProviderState({
       if (cancelled || paid === null) return;
 
       setAccessStatus(paid ? 'paid' : 'unpaid');
-      setStore((current) => ({ ...current, paid }));
-
-      if (!paid) {
-        // Free tier keeps the local Launch Brief workspace so users can finish
-        // analysis and up to 20 Brief corrections before checkout. Remote
-        // persistence remains paid-only below.
-        setStore((current) => sanitizeUnpaidStore(current));
-        setRemoteReady(true);
-        return;
-      }
+      setStore((current) =>
+        paid
+          ? { ...current, paid: true }
+          : sanitizeUnpaidStore({ ...current, paid: false })
+      );
 
       try {
-        // The local write-ahead cache is already safe to render. Remote state
-        // continues hydrating in the background, so a transient schema/network
-        // error can never leave the whole product behind a permanent spinner.
+        // Authenticated users (free + paid) hydrate from Supabase. The local
+        // write-ahead cache is already safe to render while remote merges.
         let remoteAttempt = 0;
         while (!cancelled) {
           try {
@@ -1136,26 +1130,21 @@ function GtmProviderState({
               revision: string;
             }>('/api/gtm/state', 15_000);
             if (cancelled) return;
-            const remoteStore = dropRetiredNotifications(payload.store);
+            const remoteStore = dropRetiredNotifications({
+              ...payload.store,
+              paid,
+            });
             remoteRevisionRef.current = payload.revision;
             remoteBaseStoreRef.current = remoteStore;
             cacheRemoteRevision(key, payload.revision);
-            setStore((current) =>
-              payload.hasRemoteData
+            setStore((current) => {
+              const merged = payload.hasRemoteData
                 ? cachedRemoteRevision === payload.revision
-                  ? mergeConflictingStores(
-                      current,
-                      { ...remoteStore, paid: true },
-                      { ...remoteStore, paid: true }
-                    )
-                  : mergeHydratedStores(current, {
-                      ...remoteStore,
-                      paid: true,
-                    })
-                : cachedRemoteRevision === payload.revision
-                  ? { ...current, paid: true }
-                  : { ...current, paid: true }
-            );
+                  ? mergeConflictingStores(current, remoteStore, remoteStore)
+                  : mergeHydratedStores(current, remoteStore)
+                : { ...current, paid };
+              return paid ? merged : sanitizeUnpaidStore(merged);
+            });
             setRemoteReady(true);
             return;
           } catch (error) {
@@ -1243,13 +1232,13 @@ function GtmProviderState({
     };
   }, [hydrated]);
 
-  // Supabase is the durable source of truth for authenticated users. A short
-  // debounce coalesces rapid chat/token updates into one normalized write.
+  // Supabase is the durable source of truth for authenticated users (free +
+  // paid). A short debounce coalesces rapid chat/token updates into one write.
   useEffect(() => {
     if (
       !hydrated ||
       !remoteReady ||
-      accessStatus !== 'paid' ||
+      (accessStatus !== 'paid' && accessStatus !== 'unpaid') ||
       !userId ||
       loadedKeyRef.current !== storageKey(userId)
     ) {

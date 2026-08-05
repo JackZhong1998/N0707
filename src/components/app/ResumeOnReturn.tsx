@@ -31,21 +31,19 @@ export default function ResumeOnReturn() {
 
       try {
         let remotePaid = current.store.paid;
-        // Free tier state lives in the browser write-ahead cache until checkout.
-        // Pulling an empty Supabase snapshot would erase in-progress research.
-        if (remotePaid) {
-          const stateResponse = await fetch('/api/gtm/state', {
-            cache: 'no-store',
-          });
-          if (stateResponse.ok) {
-            const payload = (await stateResponse.json()) as {
-              store?: GtmStore;
-              revision?: string;
-            };
-            if (payload.store) {
-              current.adoptRemoteStore(payload.store, payload.revision);
-              remotePaid = Boolean(payload.store.paid);
-            }
+        // Signed-in free + paid users persist to Supabase. Anonymous sessions
+        // stay local-only (401 from /api/gtm/state is ignored below).
+        const stateResponse = await fetch('/api/gtm/state', {
+          cache: 'no-store',
+        });
+        if (stateResponse.ok) {
+          const payload = (await stateResponse.json()) as {
+            store?: GtmStore;
+            revision?: string;
+          };
+          if (payload.store) {
+            current.adoptRemoteStore(payload.store, payload.revision);
+            remotePaid = Boolean(payload.store.paid);
           }
         }
 

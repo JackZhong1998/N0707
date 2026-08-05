@@ -28,11 +28,11 @@ export type GeneratedDirectoryMaterials = Partial<
   >
 >;
 
-function cleanList(value: unknown, limit: number): string[] {
+function cleanList(value: unknown, limit: number, itemLimit = 80): string[] {
   return Array.isArray(value)
     ? value
         .filter((item): item is string => typeof item === 'string')
-        .map((item) => item.trim())
+        .map((item) => item.trim().slice(0, itemLimit))
         .filter(Boolean)
         .slice(0, limit)
     : [];

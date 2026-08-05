@@ -4,6 +4,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Hide the Next.js "N" badge in the bottom-left during development.
+  devIndicators: false,
   experimental: {
     // Keep server and client chunk manifests in one compiler process.
     // This avoids intermittent missing-chunk errors in Next.js 15 builds.

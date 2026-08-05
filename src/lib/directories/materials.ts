@@ -310,3 +310,126 @@ export function mergeGeneratedDirectoryMaterials(
       : kit.techStack,
   };
 }
+
+/** Limits mirrored by browser-extension `validDirectoryPayload`. */
+const EXTENSION_STRING_LIMITS = {
+  productName: 120,
+  productUrl: 2048,
+  tagline: 180,
+  shortDescription: 1000,
+  longDescription: 12_000,
+  pricing: 80,
+  founderName: 160,
+  founderEmail: 320,
+  founderUrl: 2048,
+  twitterUrl: 2048,
+  linkedinUrl: 2048,
+  demoUrl: 2048,
+  launchDate: 40,
+} as const;
+
+const EXTENSION_URL_KEYS = [
+  'founderUrl',
+  'twitterUrl',
+  'linkedinUrl',
+  'demoUrl',
+] as const;
+
+const EXTENSION_MAX_ASSET_CHARS = 7_000_000;
+
+function clipText(value: unknown, limit: number): string {
+  return String(value ?? '').slice(0, limit);
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function clipStringList(
+  values: unknown,
+  maxItems: number,
+  maxItemLength: number
+): string[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim().slice(0, maxItemLength))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+/**
+ * Normalize Launch Kit fields so the publisher extension accepts the payload.
+ * Selling points used as tags, long source markdown, and soft-invalid URLs are
+ * common reasons for "Invalid directory submission request".
+ */
+export function sanitizeDirectoryLaunchKitForExtension(
+  kit: DirectoryLaunchKit
+): DirectoryLaunchKit {
+  const next: DirectoryLaunchKit = {
+    ...kit,
+    productName: clipText(kit.productName, EXTENSION_STRING_LIMITS.productName).trim(),
+    productUrl: clipText(kit.productUrl, EXTENSION_STRING_LIMITS.productUrl).trim(),
+    tagline: clipText(kit.tagline, EXTENSION_STRING_LIMITS.tagline).trim(),
+    shortDescription: clipText(
+      kit.shortDescription,
+      EXTENSION_STRING_LIMITS.shortDescription
+    ).trim(),
+    longDescription: clipText(
+      kit.longDescription,
+      EXTENSION_STRING_LIMITS.longDescription
+    ),
+    pricing: clipText(kit.pricing, EXTENSION_STRING_LIMITS.pricing),
+    founderName: clipText(kit.founderName, EXTENSION_STRING_LIMITS.founderName),
+    founderEmail: clipText(kit.founderEmail, EXTENSION_STRING_LIMITS.founderEmail),
+    founderUrl: clipText(kit.founderUrl, EXTENSION_STRING_LIMITS.founderUrl).trim(),
+    twitterUrl: clipText(kit.twitterUrl, EXTENSION_STRING_LIMITS.twitterUrl).trim(),
+    linkedinUrl: clipText(kit.linkedinUrl, EXTENSION_STRING_LIMITS.linkedinUrl).trim(),
+    demoUrl: clipText(kit.demoUrl, EXTENSION_STRING_LIMITS.demoUrl).trim(),
+    launchDate: clipText(kit.launchDate, EXTENSION_STRING_LIMITS.launchDate).trim(),
+    categories: clipStringList(kit.categories, 5, 80),
+    tags: clipStringList(kit.tags, 10, 80),
+    featureHighlights: clipStringList(kit.featureHighlights, 10, 160),
+    supportedPlatforms: clipStringList(kit.supportedPlatforms, 10, 80),
+    integrations: clipStringList(kit.integrations, 10, 80),
+    techStack: clipStringList(kit.techStack, 10, 80),
+    assets: Array.isArray(kit.assets) ? [...kit.assets] : [],
+  };
+
+  for (const key of EXTENSION_URL_KEYS) {
+    const value = next[key].trim();
+    next[key] = value && isHttpUrl(value) ? value : '';
+  }
+
+  next.assets = next.assets
+    .filter(
+      (asset) =>
+        asset &&
+        (asset.kind === 'logo' || asset.kind === 'screenshot') &&
+        typeof asset.dataUrl === 'string' &&
+        asset.dataUrl.startsWith('data:image/')
+    )
+    .slice(0, 6);
+
+  let assetSize = next.assets.reduce(
+    (sum, asset) => sum + asset.dataUrl.length,
+    0
+  );
+  while (assetSize > EXTENSION_MAX_ASSET_CHARS && next.assets.length > 0) {
+    const dropIndex = [...next.assets]
+      .map((asset, index) => ({ asset, index }))
+      .reverse()
+      .find((item) => item.asset.kind === 'screenshot')?.index;
+    const index =
+      dropIndex === undefined ? next.assets.length - 1 : dropIndex;
+    assetSize -= next.assets[index].dataUrl.length;
+    next.assets.splice(index, 1);
+  }
+
+  return next;
+}
