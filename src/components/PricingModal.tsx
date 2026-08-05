@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
+import { createCheckoutSessionUrl, signInUrlForCheckout } from '@/lib/stripe/checkout';
 
 type PricingModalProps = {
   isOpen: boolean;
@@ -18,19 +19,19 @@ export default function PricingModal({ isOpen, onClose }: PricingModalProps) {
   async function handleSubscribe(plan: string) {
     if (plan === 'free') {
       onClose();
-      window.location.href = `/${locale}/sign-up`;
+      window.location.href = `/${locale === 'zh' ? 'zh/' : ''}sign-up`;
       return;
     }
 
     try {
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, billingCycle: 'monthly', locale }),
-      });
-      const { url } = await response.json();
-      if (url) window.location.href = url;
+      const url = await createCheckoutSessionUrl({ plan: 'pro', locale });
+      window.location.assign(url);
     } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code === 'unauthorized') {
+        window.location.assign(signInUrlForCheckout(locale, window.location.origin));
+        return;
+      }
       console.error('Failed to create checkout session:', error);
     }
   }

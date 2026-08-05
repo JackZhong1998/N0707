@@ -45,7 +45,6 @@ export default async function SignUpPage({ params }: Props) {
     <div className="flex min-h-screen items-center justify-center bg-paper-dim px-4">
       <SignUp
         fallbackRedirectUrl={afterAuthUrl}
-        forceRedirectUrl={afterAuthUrl}
         signInFallbackRedirectUrl={afterAuthUrl}
         appearance={{
           elements: {

@@ -1,5 +1,5 @@
 import { getLocale } from 'next-intl/server';
-import { Link } from '@/i18n/navigation';
+import StartCheckoutButton from '@/components/pricing/StartCheckoutButton';
 import { CONFIGURED_DIRECTORY_COUNT } from '@/lib/directories/automation';
 
 export default async function LandingPricing() {
@@ -71,7 +71,7 @@ export default async function LandingPricing() {
       ];
 
   return (
-    <section id="pricing" className="bg-canvas-warm">
+    <section id="pricing" className="scroll-mt-16 bg-canvas-warm">
       <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
         <div className="mx-auto max-w-4xl text-center">
           <p className="index-label">{isZh ? '一支团队的能力，一个人的成本' : 'Team-sized launch. Indie-sized cost.'}</p>
@@ -161,9 +161,7 @@ export default async function LandingPricing() {
             <p className="mt-5 text-sm leading-6 text-zinc-400">
               {isZh ? '为一个活跃的软件产品，完整推进一轮冷启动。' : 'One active software product. One coordinated launch campaign.'}
             </p>
-            <Link href="/sign-in" className="mt-8 inline-flex h-13 w-full items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-brand-300">
-              {isZh ? '组建我的推广团队' : 'Build My Launch Team'}
-            </Link>
+            <StartCheckoutButton className="mt-8 inline-flex h-13 w-full items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-brand-300 disabled:cursor-wait disabled:bg-zinc-300" />
             <p className="mt-4 text-center text-[10px] leading-5 text-zinc-500">
               {isZh ? '先免费获取 30 天市场策略报告 · 每天约 30 分钟审核 · 随时取消' : 'Free 30-day strategy report first · About 30 minutes to review daily · Cancel anytime'}
             </p>

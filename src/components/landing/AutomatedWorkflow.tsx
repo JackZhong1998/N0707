@@ -85,7 +85,7 @@ export default async function AutomatedWorkflow() {
   const activity = isZh ? ACTIVITY_ZH : ACTIVITY_EN;
 
   return (
-    <section id="workflow" className="relative overflow-hidden bg-night text-white">
+    <section id="workflow" className="relative scroll-mt-16 overflow-hidden bg-night text-white">
       <div className="bg-grid-dark absolute inset-0 opacity-45" aria-hidden />
       <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-500/[0.06] blur-[120px]" aria-hidden />
       <div className="relative mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28">

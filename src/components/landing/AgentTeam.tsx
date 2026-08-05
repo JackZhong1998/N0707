@@ -36,7 +36,7 @@ export default async function AgentTeam() {
   const agents = isZh ? AGENTS_ZH : AGENTS_EN;
 
   return (
-    <section id="agent-team" className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden bg-night text-white">
+    <section id="agent-team" className="relative flex min-h-[calc(100svh-4rem)] scroll-mt-16 items-center overflow-hidden bg-night text-white">
       <div className="bg-grid-dark absolute inset-0 opacity-40" aria-hidden />
       <div className="relative mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
         <div className="grid gap-8 lg:grid-cols-[1fr_.78fr] lg:items-end">

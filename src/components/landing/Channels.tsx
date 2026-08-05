@@ -120,7 +120,7 @@ export default function Channels() {
   };
 
   return (
-    <section id="channels" className="overflow-hidden bg-white">
+    <section id="channels" className="scroll-mt-16 overflow-hidden bg-white">
       <div className="mx-auto max-w-7xl px-5 pb-12 pt-14 sm:px-8 sm:pb-16 sm:pt-16">
         <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr] lg:items-end lg:gap-14">
           <div>

@@ -26,11 +26,10 @@
     }
   },
   "Nav": {
-    "features": "Features",
-    "directories": "Launch directory",
+    "agentTeam": "Agent Team",
+    "channels": "Channels",
+    "workflow": "Workflow",
     "pricing": "Pricing",
-    "blog": "Blog",
-    "about": "About",
     "signIn": "Sign In",
     "getStarted": "Get Started"
   },

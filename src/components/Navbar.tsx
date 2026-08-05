@@ -67,11 +67,10 @@ export default function Navbar({ variant = 'light' }: { variant?: 'dark' | 'ligh
   const dark = variant === 'dark';
 
   const navLinks = [
-    { href: '/#channels', label: t('features') },
-    { href: '/directories', label: t('directories') },
-    { href: '/pricing', label: t('pricing') },
-    { href: '/blog', label: t('blog') },
-    { href: '/about', label: t('about') },
+    { href: '/#agent-team', label: t('agentTeam') },
+    { href: '/#channels', label: t('channels') },
+    { href: '/#workflow', label: t('workflow') },
+    { href: '/#pricing', label: t('pricing') },
   ];
 
   const linkCls = dark
@@ -99,7 +98,7 @@ export default function Navbar({ variant = 'light' }: { variant?: 'dark' | 'ligh
           ))}
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-0 md:flex">
           <LanguageSwitcher dark={dark} />
           <AuthButtons signInLabel={t('signIn')} getStartedLabel={t('getStarted')} dark={dark} />
         </div>

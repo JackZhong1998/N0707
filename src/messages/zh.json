@@ -26,11 +26,10 @@
     }
   },
   "Nav": {
-    "features": "功能",
-    "directories": "产品发布",
+    "agentTeam": "Agent Team",
+    "channels": "渠道 Skills",
+    "workflow": "工作流",
     "pricing": "定价",
-    "blog": "博客",
-    "about": "关于",
     "signIn": "登录",
     "getStarted": "免费试用"
   },

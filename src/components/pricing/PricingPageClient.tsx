@@ -1,18 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/landing/Footer';
+import PricingCheckoutButton from '@/components/pricing/PricingCheckoutButton';
 import { CONFIGURED_DIRECTORY_COUNT } from '@/lib/directories/automation';
 
 export default function PricingPageClient() {
   const locale = useLocale();
   const t = useTranslations('Pricing');
   const isZh = locale === 'zh';
-  const [checkoutError, setCheckoutError] = useState('');
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const freeFeatures = isZh
     ? ['读取官网，建立产品档案', '梳理目标用户、竞品和市场定位', '推荐适合这次冷启动的渠道', '预览前 7 天行动日历', '预览 10 个匹配目录和 1 篇完整内容']
@@ -35,25 +34,6 @@ export default function PricingPageClient() {
         [`Automated submission to ${CONFIGURED_DIRECTORY_COUNT} directories`, 'Matched from 100+ opportunities, with submission and publishing status tracked'],
         ['Weekly reviews and a next move', 'Publishing records, market feedback, and early PMF signals turned into a clear recommendation'],
       ];
-
-  async function startCheckout() {
-    if (checkoutLoading) return;
-    setCheckoutError('');
-    setCheckoutLoading(true);
-    try {
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'pro', billingCycle: 'monthly', locale }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) throw new Error(payload.error || 'Checkout failed');
-      window.location.href = payload.url;
-    } catch (error) {
-      setCheckoutLoading(false);
-      setCheckoutError(error instanceof Error ? error.message : isZh ? '暂时无法打开支付页' : 'Unable to open checkout');
-    }
-  }
 
   return (
     <>
@@ -143,15 +123,20 @@ export default function PricingPageClient() {
                   </li>
                 ))}
               </ul>
-              <button type="button" disabled={checkoutLoading} onClick={startCheckout} className="mt-9 inline-flex h-13 items-center justify-center rounded-full bg-white text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-wait disabled:bg-zinc-300">
-                {checkoutLoading
-                  ? (isZh ? '正在前往安全支付页…' : 'Opening secure checkout…')
-                  : (isZh ? '组建我的推广团队' : 'Build My Launch Team')}
-              </button>
+              <Suspense
+                fallback={
+                  <div className="mt-9 inline-flex h-13 w-full items-center justify-center rounded-full bg-zinc-300 text-sm font-semibold text-black">
+                    {isZh ? '正在前往安全支付页…' : 'Opening secure checkout…'}
+                  </div>
+                }
+              >
+                <PricingCheckoutButton
+                  className="mt-9 inline-flex h-13 w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-wait disabled:bg-zinc-300"
+                />
+              </Suspense>
               <p className="mt-3 text-center text-[11px] leading-5 text-zinc-500">
                 {isZh ? '今天支付 $49，立即开始一轮完整的 30 天冷启动；只使用一个月也可以。' : '$49 today starts one complete 30-day launch. Subscribing for only one month is fine.'}
               </p>
-              {checkoutError && <p className="mt-3 text-center text-xs text-red-400">{checkoutError}</p>}
             </article>
           </div>
 

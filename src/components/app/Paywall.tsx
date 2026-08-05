@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLocale } from 'next-intl';
 import { CONFIGURED_DIRECTORY_COUNT } from '@/lib/directories/automation';
+import { createCheckoutSessionUrl, signInUrlForCheckout } from '@/lib/stripe/checkout';
 
 export default function Paywall({
   open,
@@ -41,20 +42,14 @@ export default function Paywall({
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'pro', billingCycle: 'monthly', locale }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
-        url?: string;
-        error?: string;
-      };
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error ?? `Checkout failed (${response.status})`);
-      }
-      window.location.assign(payload.url);
+      const url = await createCheckoutSessionUrl({ locale });
+      window.location.assign(url);
     } catch (checkoutError) {
+      const code = (checkoutError as Error & { code?: string }).code;
+      if (code === 'unauthorized') {
+        window.location.assign(signInUrlForCheckout(locale, window.location.origin));
+        return;
+      }
       setError(
         checkoutError instanceof Error
           ? checkoutError.message
