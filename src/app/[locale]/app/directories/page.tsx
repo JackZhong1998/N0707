@@ -49,6 +49,7 @@ import {
   mergeGeneratedDirectoryMaterials,
   preflightDirectory,
 } from '@/lib/directories/materials';
+import DirectoryExplorer from '@/components/directories/DirectoryExplorer';
 
 type DirectoryFilter =
   | 'all'
@@ -131,7 +132,6 @@ export default function DirectoryWorkspacePage() {
   const [filter, setFilter] = useState<DirectoryFilter>(
     gtm.store.paid ? 'recommended' : 'all'
   );
-  const [catalogSearch, setCatalogSearch] = useState('');
   const [availability, setAvailability] =
     useState<PublisherAvailability | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -921,15 +921,6 @@ export default function DirectoryWorkspacePage() {
   }
 
   if (gtm.accessStatus === 'unpaid' || !gtm.store.paid) {
-    const query = catalogSearch.trim().toLowerCase();
-    const publicDirectories = launchDirectories.filter((item) =>
-      query
-        ? [item.name, item.domain, ...item.tags]
-            .join(' ')
-            .toLowerCase()
-            .includes(query)
-        : true
-    );
     return (
       <div className="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-7">
         <div className="mx-auto max-w-7xl pb-16">
@@ -952,32 +943,7 @@ export default function DirectoryWorkspacePage() {
             </button>
           </header>
 
-          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4">
-            <svg className="h-4 w-4 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg>
-            <input value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder={isZh ? '搜索平台、域名或标签' : 'Search platform, domain, or tag'} className="h-12 min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-zinc-700" />
-            <span className="text-[10px] text-zinc-600">{publicDirectories.length}</span>
-          </div>
-
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {publicDirectories.map((directory) => (
-              <a key={directory.domain} href={directory.url} target="_blank" rel="noreferrer" className="group rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 transition hover:border-white/[0.15] hover:bg-white/[0.045]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="truncate text-sm font-semibold text-zinc-200 group-hover:text-white">{directory.name}</h2>
-                    <p className="mt-1 truncate text-[10px] text-zinc-600">{directory.domain}</p>
-                  </div>
-                  <span className="rounded-full bg-white/[0.05] px-2 py-1 text-[9px] text-zinc-500">DR {directory.dr || '—'}</span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {directory.tags.slice(0, 3).map((tag) => <span key={tag} className="rounded-full border border-white/[0.06] px-2 py-0.5 text-[9px] text-zinc-600">{tag}</span>)}
-                </div>
-                <div className="mt-4 flex items-center justify-between text-[10px] text-zinc-600">
-                  <span>{directory.pricing}</span>
-                  <span className="opacity-0 transition group-hover:opacity-100">{isZh ? '查看平台 ↗' : 'Visit ↗'}</span>
-                </div>
-              </a>
-            ))}
-          </div>
+          <DirectoryExplorer locale={locale} variant="embedded" />
         </div>
       </div>
     );
@@ -996,12 +962,23 @@ export default function DirectoryWorkspacePage() {
               : 'Prepare materials, then pick and submit directories'}
           </span>
         </div>
-        <Link
-          href="/app/launch-kit"
-          className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-zinc-300 hover:bg-white hover:text-black"
-        >
-          {isZh ? '查看提交资料' : 'Review submission materials'}
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          {hasPersonalizedDirectoryMatches && filter !== 'all' && (
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-zinc-300 hover:bg-white hover:text-black"
+            >
+              {isZh ? '返回完整列表' : 'View full list'}
+            </button>
+          )}
+          <Link
+            href="/app/launch-kit"
+            className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-zinc-300 hover:bg-white hover:text-black"
+          >
+            {isZh ? '查看提交资料' : 'Review submission materials'}
+          </Link>
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
