@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { UserButton } from '@clerk/nextjs';
 import { Link, useRouter } from '@/i18n/navigation';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import Logo, { LogoMark } from '@/components/Logo';
 import AgentPanelView, {
   type AgentPanelMessage,
@@ -838,6 +839,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           })}
         </div>
         <div className="mt-2 flex items-center gap-3 border-t border-white/[0.07] px-2.5 pt-3 md:hidden">
+          <LanguageSwitcher dark />
           <div className="flex h-9 w-9 items-center justify-center">
             {isClerkConfigured ? (
               <UserButton afterSignOutUrl="/" />
@@ -923,6 +925,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
         <div className="mt-auto mb-2 h-px w-7 bg-white/[0.08]" />
         <div className="flex h-10 w-10 items-center justify-center">
+          <LanguageSwitcher dark variant="sidebar" />
+        </div>
+        <div className="mt-1.5 flex h-10 w-10 items-center justify-center">
           {isClerkConfigured ? <UserButton afterSignOutUrl="/" /> : <AvatarFallback />}
         </div>
       </aside>

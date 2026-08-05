@@ -30,7 +30,13 @@ function CheckIcon({ className }: { className?: string }) {
   );
 }
 
-export default function LanguageSwitcher({ dark = false }: { dark?: boolean }) {
+export default function LanguageSwitcher({
+  dark = false,
+  variant = 'default',
+}: {
+  dark?: boolean;
+  variant?: 'default' | 'sidebar';
+}) {
   const locale = useLocale() as Locale;
   const router = useRouter();
   const pathname = usePathname();
@@ -66,13 +72,19 @@ export default function LanguageSwitcher({ dark = false }: { dark?: boolean }) {
     router.replace(pathname, { locale: newLocale });
   }
 
-  const triggerCls = dark
-    ? 'inline-flex h-9 w-9 -mr-2 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white'
-    : 'inline-flex h-9 w-9 -mr-2 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-paper-dim hover:text-ink';
+  const triggerCls =
+    variant === 'sidebar'
+      ? 'inline-flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-white/10 hover:text-white'
+      : dark
+        ? 'inline-flex h-9 w-9 -mr-2 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white'
+        : 'inline-flex h-9 w-9 -mr-2 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-paper-dim hover:text-ink';
 
-  const panelCls = dark
-    ? 'absolute right-0 z-50 mt-2 min-w-[9.5rem] overflow-hidden rounded-xl border border-white/10 bg-night py-1 shadow-xl'
-    : 'absolute right-0 z-50 mt-2 min-w-[9.5rem] overflow-hidden rounded-xl border border-hairline bg-white py-1 shadow-lg';
+  const panelCls =
+    variant === 'sidebar'
+      ? 'absolute bottom-0 left-full z-50 ml-2 min-w-[9.5rem] overflow-hidden rounded-xl border border-white/10 bg-night py-1 shadow-xl'
+      : dark
+        ? 'absolute right-0 z-50 mt-2 min-w-[9.5rem] overflow-hidden rounded-xl border border-white/10 bg-night py-1 shadow-xl'
+        : 'absolute right-0 z-50 mt-2 min-w-[9.5rem] overflow-hidden rounded-xl border border-hairline bg-white py-1 shadow-lg';
 
   const optionBase = dark
     ? 'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors'

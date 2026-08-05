@@ -28,12 +28,9 @@ import {
 const RECOMMENDED_PROJECT_DOCUMENT_LENGTH = 5000;
 const MAX_PROJECT_DOCUMENT_LENGTH = 6000;
 
-type TargetMarketDraft = {
-  id: string;
-  region: string;
-  audience: string;
-  locale: string;
-};
+function marketIdFromLocale(outputLocale: string): string {
+  return `market-${outputLocale.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
 
 function validPublicUrl(raw: string): string | null {
   try {
@@ -91,13 +88,8 @@ export default function LaunchOnboarding() {
   const gtm = useGtm();
   const [mode, setMode] = useState<'document' | 'website'>('document');
   const [document, setDocument] = useState('');
-  const [targetMarketDrafts, setTargetMarketDrafts] = useState<TargetMarketDraft[]>([
-    {
-      id: 'market-1',
-      region: '',
-      audience: '',
-      locale: isZh ? 'zh-CN' : 'en-US',
-    },
+  const [selectedLocales, setSelectedLocales] = useState<string[]>([
+    isZh ? 'zh-CN' : 'en-US',
   ]);
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
@@ -105,49 +97,31 @@ export default function LaunchOnboarding() {
   const [copied, setCopied] = useState(false);
   const prompt = useMemo(() => projectDocumentPrompt(isZh), [isZh]);
 
-  const updateTargetMarketDraft = (
-    id: string,
-    patch: Partial<Omit<TargetMarketDraft, 'id'>>
-  ) => {
-    setTargetMarketDrafts((drafts) =>
-      drafts.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft))
-    );
+  const toggleOutputLocale = (outputLocale: string) => {
+    setSelectedLocales((current) => {
+      if (current.includes(outputLocale)) {
+        return current.filter((localeCode) => localeCode !== outputLocale);
+      }
+      return [...current, outputLocale];
+    });
     if (error) setError('');
   };
 
-  const addTargetMarketDraft = () => {
-    if (targetMarketDrafts.length >= 8) return;
-    setTargetMarketDrafts((drafts) => [
-      ...drafts,
-      {
-        id: `market-${crypto.randomUUID()}`,
-        region: '',
-        audience: '',
-        locale: isZh ? 'zh-CN' : 'en-US',
-      },
-    ]);
-  };
-
-  const removeTargetMarketDraft = (id: string) => {
-    setTargetMarketDrafts((drafts) => drafts.filter((draft) => draft.id !== id));
-  };
-
   const buildTargetMarkets = (): TargetMarket[] | null => {
-    if (
-      targetMarketDrafts.length === 0 ||
-      targetMarketDrafts.some((draft) => !draft.region.trim())
-    ) {
+    if (selectedLocales.length === 0) {
       return null;
     }
-    return targetMarketDrafts.map((draft, index) => ({
-      id: draft.id,
-      name: draft.region.trim(),
-      region: draft.region.trim(),
-      language: outputLanguageLabel(draft.locale, locale),
-      locale: draft.locale,
-      audience: draft.audience.trim() || undefined,
-      isDefault: index === 0,
-    }));
+    return selectedLocales.map((outputLocale, index) => {
+      const language = outputLanguageLabel(outputLocale, locale);
+      return {
+        id: marketIdFromLocale(outputLocale),
+        name: language,
+        region: language,
+        language,
+        locale: outputLocale,
+        isDefault: index === 0,
+      };
+    });
   };
 
   const copyPrompt = async () => {
@@ -189,7 +163,7 @@ export default function LaunchOnboarding() {
     }
     const targetMarkets = buildTargetMarkets();
     if (!targetMarkets) {
-      setError(isZh ? '请填写每个目标市场的地区。' : 'Add a region for every target market.');
+      setError(isZh ? '请至少选择一个发布语言。' : 'Select at least one publishing language.');
       return;
     }
     const enteredUrl = url.trim() ? validPublicUrl(url) : null;
@@ -199,8 +173,8 @@ export default function LaunchOnboarding() {
     }
     setError('');
     setStarting(true);
-    const marketSection = `${isZh ? '## 用户确认的目标市场' : '## User-confirmed target markets'}\n${targetMarkets
-      .map((market) => `- ${market.name} | ${market.language} (${market.locale})${market.audience ? ` | ${market.audience}` : ''}`)
+    const marketSection = `${isZh ? '## 用户确认的发布语言' : '## User-confirmed publishing languages'}\n${targetMarkets
+      .map((market) => `- ${market.language} (${market.locale})`)
       .join('\n')}`;
     const enrichedProjectDocument = `${projectDocument}\n\n${marketSection}`;
     const launch = createLaunchFromDocument(enrichedProjectDocument, isZh, enteredUrl ?? undefined);
@@ -251,7 +225,7 @@ export default function LaunchOnboarding() {
     }
     const targetMarkets = buildTargetMarkets();
     if (!targetMarkets) {
-      setError(isZh ? '请填写每个目标市场的地区。' : 'Add a region for every target market.');
+      setError(isZh ? '请至少选择一个发布语言。' : 'Select at least one publishing language.');
       return;
     }
     setError('');
@@ -262,8 +236,8 @@ export default function LaunchOnboarding() {
       ...storePatchForNewLaunch(launch),
       targetMarkets,
       targetMarketLocale: targetMarkets[0]?.locale.startsWith('zh') ? 'zh' : 'en',
-      projectProfileDoc: `${isZh ? '## 用户确认的目标市场' : '## User-confirmed target markets'}\n${targetMarkets
-        .map((market) => `- ${market.name} | ${market.language} (${market.locale})${market.audience ? ` | ${market.audience}` : ''}`)
+      projectProfileDoc: `${isZh ? '## 用户确认的发布语言' : '## User-confirmed publishing languages'}\n${targetMarkets
+        .map((market) => `- ${market.language} (${market.locale})`)
         .join('\n')}`,
     });
     gtm.addDirectorMessage({
@@ -288,125 +262,46 @@ export default function LaunchOnboarding() {
 
   const renderTargetMarkets = () => (
     <div className="mt-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-            {isZh ? '目标市场（必填）' : 'Target markets (required)'}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-zinc-600">
-            {isZh
-              ? '每个市场单独选择发布语言；后续每条 To-do 都可以使用不同市场。'
-              : 'Choose a publishing language for each market. Every Todo can target a different one.'}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={addTargetMarketDraft}
-          disabled={targetMarketDrafts.length >= 8}
-          className="rounded-full border border-white/[0.1] px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+        {isZh ? '目标市场（必填）' : 'Target markets (required)'}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-zinc-600">
+        {isZh
+          ? '多选对外发布语言；后续每条 To-do 可指定不同语言。'
+          : 'Select one or more publishing languages. Each Todo can target a different one.'}
+      </p>
+
+      <div className="mt-3 rounded-2xl border border-white/[0.08] bg-black/25 p-4">
+        <div
+          role="group"
+          aria-label={isZh ? '选择对外发布语言' : 'Choose publishing languages'}
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
         >
-          {isZh ? '+ 添加市场' : '+ Add market'}
-        </button>
-      </div>
-
-      <div className="mt-3 space-y-3">
-        {targetMarketDrafts.map((draft, index) => (
-          <div
-            key={draft.id}
-            className="rounded-2xl border border-white/[0.08] bg-black/25 p-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-white">
-                  {isZh ? `目标市场 ${index + 1}` : `Target market ${index + 1}`}
-                </span>
-                {index === 0 && (
-                  <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-medium text-brand-300">
-                    {isZh ? '默认' : 'Default'}
-                  </span>
-                )}
-              </div>
-              {targetMarketDrafts.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeTargetMarketDraft(draft.id)}
-                  className="text-[11px] text-zinc-600 transition hover:text-red-400"
-                >
-                  {isZh ? '移除' : 'Remove'}
-                </button>
-              )}
-            </div>
-
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label>
-                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-600">
-                  {isZh ? '国家 / 地区 / 市场' : 'Country / region / market'}
-                </span>
-                <input
-                  value={draft.region}
-                  maxLength={120}
-                  onChange={(event) =>
-                    updateTargetMarketDraft(draft.id, { region: event.target.value })
-                  }
-                  placeholder={isZh ? '例如：美国、加拿大法语区' : 'e.g. United States, Quebec'}
-                  className="mt-2 h-11 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-sm text-white outline-none placeholder:text-zinc-700 focus:border-white/25"
-                />
-              </label>
-              <label>
-                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-600">
-                  {isZh ? '目标人群（可选）' : 'Audience (optional)'}
-                </span>
-                <input
-                  value={draft.audience}
-                  maxLength={240}
-                  onChange={(event) =>
-                    updateTargetMarketDraft(draft.id, { audience: event.target.value })
-                  }
-                  placeholder={isZh ? '例如：SaaS 创始人' : 'e.g. SaaS founders'}
-                  className="mt-2 h-11 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-sm text-white outline-none placeholder:text-zinc-700 focus:border-white/25"
-                />
-              </label>
-            </div>
-
-            <fieldset className="mt-4">
-              <legend className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-600">
-                {isZh ? '对外发布语言' : 'Publishing language'}
-              </legend>
-              <div
-                role="radiogroup"
-                aria-label={isZh ? '选择对外发布语言' : 'Choose publishing language'}
-                className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+          {COMMON_OUTPUT_LOCALES.map((outputLocale) => {
+            const selected = selectedLocales.includes(outputLocale);
+            return (
+              <button
+                key={outputLocale}
+                type="button"
+                role="checkbox"
+                aria-checked={selected}
+                onClick={() => toggleOutputLocale(outputLocale)}
+                className={`min-h-14 rounded-xl border px-3 py-2 text-left transition ${
+                  selected
+                    ? 'border-brand-400/70 bg-brand-500/15 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]'
+                    : 'border-white/[0.07] bg-white/[0.025] text-zinc-500 hover:border-white/20 hover:text-zinc-300'
+                }`}
               >
-                {COMMON_OUTPUT_LOCALES.map((outputLocale) => {
-                  const selected = draft.locale === outputLocale;
-                  return (
-                    <button
-                      key={outputLocale}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() =>
-                        updateTargetMarketDraft(draft.id, { locale: outputLocale })
-                      }
-                      className={`min-h-14 rounded-xl border px-3 py-2 text-left transition ${
-                        selected
-                          ? 'border-brand-400/70 bg-brand-500/15 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]'
-                          : 'border-white/[0.07] bg-white/[0.025] text-zinc-500 hover:border-white/20 hover:text-zinc-300'
-                      }`}
-                    >
-                      <span className="block text-xs font-semibold">
-                        {outputLanguageLabel(outputLocale, locale)}
-                      </span>
-                      <span className={`mt-0.5 block font-mono text-[9px] ${selected ? 'text-brand-300' : 'text-zinc-700'}`}>
-                        {outputLocale}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-          </div>
-        ))}
+                <span className="block text-xs font-semibold">
+                  {outputLanguageLabel(outputLocale, locale)}
+                </span>
+                <span className={`mt-0.5 block font-mono text-[9px] ${selected ? 'text-brand-300' : 'text-zinc-700'}`}>
+                  {outputLocale}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -472,7 +367,7 @@ export default function LaunchOnboarding() {
               </label>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-zinc-600">{isZh ? `已输入 ${document.length} / ${MAX_PROJECT_DOCUMENT_LENGTH} 字 · 建议控制在 ${RECOMMENDED_PROJECT_DOCUMENT_LENGTH} 字内` : `${document.length} / ${MAX_PROJECT_DOCUMENT_LENGTH} characters · ${RECOMMENDED_PROJECT_DOCUMENT_LENGTH} recommended`}</p>
-                <button type="submit" disabled={starting || !document.trim() || targetMarketDrafts.some((draft) => !draft.region.trim())} className="h-11 rounded-full bg-brand-500 px-6 text-sm font-bold text-white transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-600">
+                <button type="submit" disabled={starting || !document.trim() || selectedLocales.length === 0} className="h-11 rounded-full bg-brand-500 px-6 text-sm font-bold text-white transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-600">
                   {starting ? (isZh ? '正在生成免费报告…' : 'Building your free report…') : (isZh ? '免费生成市场策略报告 →' : 'Generate my free report →')}
                 </button>
               </div>
@@ -483,7 +378,7 @@ export default function LaunchOnboarding() {
             <p className="text-sm leading-6 text-zinc-400">{isZh ? '没有现成项目文档时，我们也可以读取公开网站、调研竞品并生成报告。这个过程通常更慢，且无法看到代码库里的产品事实。' : 'If you do not have a project document, we can read the public website, research competitors, and build the report. This is usually slower and cannot see facts inside your codebase.'}</p>
             <div className={`mt-5 flex flex-col gap-2 rounded-2xl border bg-black/25 p-2.5 sm:flex-row ${error ? 'border-red-500/60' : 'border-white/10 focus-within:border-white/30'}`}>
               <input type="text" inputMode="url" value={url} onChange={(event) => { setUrl(event.target.value); if (error) setError(''); }} placeholder="https://yourproduct.com" className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-white outline-none placeholder:text-zinc-700" />
-              <button type="submit" disabled={starting || !url.trim() || targetMarketDrafts.some((draft) => !draft.region.trim())} className="h-12 shrink-0 rounded-xl bg-white px-6 text-sm font-bold text-black hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-600">
+              <button type="submit" disabled={starting || !url.trim() || selectedLocales.length === 0} className="h-12 shrink-0 rounded-xl bg-white px-6 text-sm font-bold text-black hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-600">
                 {starting ? (isZh ? '正在研究并生成报告…' : 'Researching…') : (isZh ? '分析链接并生成免费报告 →' : 'Analyze URL & generate report →')}
               </button>
             </div>
