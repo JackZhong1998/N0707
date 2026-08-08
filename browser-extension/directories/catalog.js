@@ -102,7 +102,7 @@
       pricing: 'Free + Paid',
       entryStage: 'full_form',
       blocker: '免费方案要求在产品官网放置 Findly 徽章；无徽章方案为一次性付费。',
-      notes: 'Google 登录已验证；表单包含名称、网址、分类、Logo、App Image、促销与出售开关和套餐。',
+      notes: 'Google 登录已验证；表单包含名称、网址、分类、Logo、App Image、促销与出售开关和套餐。插件按 placeholder 与祖先标签映射名称/网址，并处理自定义分类下拉。',
     },
     {
       id: 'saashub',

@@ -25,8 +25,8 @@ import {
   outputLanguageLabel,
 } from '@/lib/gtm/target-markets';
 
-const RECOMMENDED_PROJECT_DOCUMENT_LENGTH = 5000;
-const MAX_PROJECT_DOCUMENT_LENGTH = 6000;
+const RECOMMENDED_PROJECT_DOCUMENT_LENGTH = 2000;
+const MAX_PROJECT_DOCUMENT_LENGTH = 5000;
 
 function marketIdFromLocale(outputLocale: string): string {
   return `market-${outputLocale.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
@@ -62,7 +62,7 @@ Rules:
 - Inspect actual implementation before writing. Use repository/product evidence for product claims and web sources for competitor claims. Label every inference as an assumption.
 - Do not write the marketing plan yet.
 - Make the document self-contained so I can paste it into another platform.
-- Write at least 1,000 characters and no more than 5,000 characters, including Markdown headings and punctuation. Prefer useful specifics over generic descriptions.`;
+- Keep the full Markdown document under 2,000 characters, including headings and punctuation. Prefer useful specifics over generic descriptions.`;
   }
   return `请深入阅读这个产品的代码库、README、页面、路由、数据结构、配置以及已有产品上下文，生成一份可直接交给市场推广 Agent 的详细 Markdown《项目文档》。
 
@@ -78,7 +78,7 @@ Rules:
 - 写作前先检查实际实现。产品判断使用代码库/产品证据，竞品判断使用搜索来源；推断必须明确标为“假设”。
 - 现在不要生成市场推广计划。
 - 文档必须自包含，方便我完整复制到另一个平台。
-- 完整 Markdown 文档不少于 1000 字、不超过 5000 字，标题和标点也计入；优先保留具体事实、功能细节和对比信息，避免空泛描述。`;
+- 完整 Markdown 文档不超过 2000 字，标题和标点也计入；优先保留具体事实、功能细节和对比信息，避免空泛描述。`;
 }
 
 export default function LaunchOnboarding() {
@@ -158,7 +158,7 @@ export default function LaunchOnboarding() {
       return;
     }
     if (projectDocument.length > MAX_PROJECT_DOCUMENT_LENGTH) {
-      setError(isZh ? '项目文档不能超过 6000 字。' : 'The project document must be no longer than 6,000 characters.');
+      setError(isZh ? '项目文档不能超过 2000 字。' : 'The project document must be no longer than 2,000 characters.');
       return;
     }
     const targetMarkets = buildTargetMarkets();
@@ -271,11 +271,14 @@ export default function LaunchOnboarding() {
           : 'Select one or more publishing languages. Each Todo can target a different one.'}
       </p>
 
-      <div className="mt-3 rounded-2xl border border-white/[0.08] bg-black/25 p-4">
+      <fieldset className="mt-3 rounded-2xl border border-white/[0.08] bg-black/25 p-4">
+        <legend className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-600">
+          {isZh ? '对外发布语言' : 'Publishing languages'}
+        </legend>
         <div
           role="group"
           aria-label={isZh ? '选择对外发布语言' : 'Choose publishing languages'}
-          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+          className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
         >
           {COMMON_OUTPUT_LOCALES.map((outputLocale) => {
             const selected = selectedLocales.includes(outputLocale);
@@ -302,7 +305,7 @@ export default function LaunchOnboarding() {
             );
           })}
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 
@@ -378,7 +381,7 @@ export default function LaunchOnboarding() {
             <p className="text-sm leading-6 text-zinc-400">{isZh ? '没有现成项目文档时，我们也可以读取公开网站、调研竞品并生成报告。这个过程通常更慢，且无法看到代码库里的产品事实。' : 'If you do not have a project document, we can read the public website, research competitors, and build the report. This is usually slower and cannot see facts inside your codebase.'}</p>
             <div className={`mt-5 flex flex-col gap-2 rounded-2xl border bg-black/25 p-2.5 sm:flex-row ${error ? 'border-red-500/60' : 'border-white/10 focus-within:border-white/30'}`}>
               <input type="text" inputMode="url" value={url} onChange={(event) => { setUrl(event.target.value); if (error) setError(''); }} placeholder="https://yourproduct.com" className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-white outline-none placeholder:text-zinc-700" />
-              <button type="submit" disabled={starting || !url.trim() || selectedLocales.length === 0} className="h-12 shrink-0 rounded-xl bg-white px-6 text-sm font-bold text-black hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-600">
+              <button type="submit" disabled={starting || !url.trim()} className="h-12 shrink-0 rounded-xl bg-white px-6 text-sm font-bold text-black hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-600">
                 {starting ? (isZh ? '正在研究并生成报告…' : 'Researching…') : (isZh ? '分析链接并生成免费报告 →' : 'Analyze URL & generate report →')}
               </button>
             </div>

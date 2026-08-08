@@ -471,8 +471,10 @@ function createChannelPlan(channelId: string, channelName: string, productName: 
     whyItMatters: isZh ? `用该渠道最自然的方式让合适的人理解并验证 ${productName}。` : `Use this channel's native behavior to help the right people understand and validate ${productName}.`,
     targetAudience: isZh ? `${productName} 的高意向早期用户与相关社区成员` : `High-intent early users and relevant community members for ${productName}`,
     pillars: isZh ? ['问题洞察', 'Founder 经验', '真实场景', '证明与反馈'] : ['Problem insight', 'Founder experience', 'Real scenarios', 'Proof & feedback'],
-    formats: definition?.defaultTaskTypes ?? ['post', 'engage'],
-    cadence: isZh ? `每周 ${Math.max(1, definition?.postsPerWeek ?? 2)} 个主要交付，并配合必要互动` : `${Math.max(1, definition?.postsPerWeek ?? 2)} core deliverables per week plus necessary engagement`,
+    formats: definition?.defaultTaskTypes ?? ['post', 'reply'],
+    cadence: isZh
+      ? `每周 ${Math.max(1, definition?.postsPerWeek ?? 2)} 个可发布成稿（帖子/回复/制作包），互动也以可粘贴草稿交付`
+      : `${Math.max(1, definition?.postsPerWeek ?? 2)} publishable drafts per week (posts/replies/packages); engagement is also delivered as paste-ready copy`,
     productMentionRules: isZh ? '前两周以问题和经验为主；第三周增加场景；第四周使用明确但克制的 CTA。' : 'Lead with problems and experience in weeks 1–2, add scenarios in week 3, and use a clear but restrained CTA in week 4.',
     weeklyPlan: isZh ? ['建立问题认知', '建立可信度', '展示解决方案', '集中 Launch 与复盘'] : ['Problem awareness', 'Credibility', 'Solution demonstration', 'Concentrated launch and review'],
     successSignals: isZh ? ['高质量回复或评论', '目标用户访问', '收藏、分享或点击', '可验证的发布 URL'] : ['High-quality replies', 'Target-user visits', 'Saves, shares, or clicks', 'Verifiable published URLs'],

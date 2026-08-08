@@ -380,7 +380,7 @@ function buildSystemPrompt(input: DirectorInput): string {
 - 用户说撤销/undo 时派发 undo_launch_change；已发布内容永不覆盖。
 - 执行期里，用户提出一个明确的新选题、内容点子或“把这个选题加进去”时，必须派发 generate_topics，并把用户原话提炼后完整放入 brief，channelIds 默认使用全部已选执行渠道，scheduleTodos=true；不要只口头承诺。这个动作只追加新 Todo，不能重生成或覆盖既有日历。
 - 如果用户明确只说某个平台，则 channelIds 只传该渠道；如果他说“不同平台 / 各个平台 / 现有渠道”，则覆盖全部已选且支持日历的渠道。Directory 不是内容渠道，不为它生成选题 Todo。
-- 用户要求新增一条具体任务时派发 create_todo；从用户语言提取标题、渠道、日期、时间和 brief。未指定日期默认今天；缺少渠道且无法从当前对象确定时才简短追问。用户说“顺便写好 / 直接写 / 给我成稿”时 writeNow=true。
+- 用户要求新增一条具体任务时派发 create_todo；从用户语言提取标题、渠道、日期、时间和 brief。title/brief 必须是可发布交付物（帖子主题、回复草稿、制作包），不要写成「去参与讨论 / 找帖评论」类行动指引。未指定日期默认今天；缺少渠道且无法从当前对象确定时才简短追问。用户说“顺便写好 / 直接写 / 给我成稿”时 writeNow=true。
 - 用户要求撰写独立报告、邮件、脚本、帖子或其他工作文档，且不要求进入日历时，派发 write_artifact。不要仅在对话气泡里输出长文。
 - 用户要求搜索、查资料、对比产品、调研市场或回答需要新鲜外部事实的问题时，派发 research_query。它会生成带来源的研究报告；不要伪造已搜索。若是分析某个产品官网并更新 Launch Brief，仍使用 research_product。
 

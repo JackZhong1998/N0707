@@ -1,10 +1,24 @@
 /** Keep in sync with browser-extension/manifest.json */
-export const PUBLISHER_EXTENSION_VERSION = '0.9.14';
+export const PUBLISHER_EXTENSION_VERSION = '0.9.15';
 
 export const PUBLISHER_EXTENSION_RELEASE_NOTES: Record<
   string,
   { zh: string[]; en: string[] }
 > = {
+  '0.9.15': {
+    zh: [
+      '修复 Google 登录确认页点不了“继续”、在选账号和确认之间死循环的问题',
+      '用中文授权文案和“取消/继续”按钮组合识别确认页，避免误点左侧账号切换',
+      '确认按钮优先使用浏览器原生可信点击，失败时自动重试',
+      '修复 Findly.tools 目录提交只上传 App Image、名称/网址/分类/Logo 未填入的问题',
+    ],
+    en: [
+      'Fix the Google OAuth loop where Continue on the consent screen never sticks',
+      'Detect Chinese consent copy and Cancel/Continue pairs so the account chip is not clicked',
+      'Prefer a trusted debugger click for Continue and retry if the page stays put',
+      'Fix Findly.tools submissions that only uploaded App Image and skipped name, URL, category, and logo',
+    ],
+  },
   '0.9.14': {
     zh: [
       '统一收录社交链接、Demo、功能、平台、集成、技术栈和反向链接字段',

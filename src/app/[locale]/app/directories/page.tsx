@@ -123,6 +123,36 @@ function blockerLabel(blocker: string | undefined, isZh: boolean): string {
   return label?.[isZh ? 0 : 1] ?? (isZh ? '需要处理' : 'Action required');
 }
 
+function jobStatusLabel(
+  status: DirectorySubmissionJob['status'],
+  isZh: boolean
+): string {
+  const labels: Partial<Record<DirectorySubmissionJob['status'], [string, string]>> = {
+    checking: ['检查中', 'Checking'],
+    needs_materials: ['缺少资料', 'Missing info'],
+    queued: ['排队中', 'Queued'],
+    opening: ['正在打开', 'Opening'],
+    filling: ['正在填写', 'Filling'],
+    needs_action: ['需你操作', 'Needs you'],
+    prepared: ['已填好', 'Prepared'],
+    submitted: ['已提交', 'Submitted'],
+    under_review: ['审核中', 'Under review'],
+    published: ['已上线', 'Published'],
+    manual: ['人工提交', 'Manual'],
+    failed: ['失败', 'Failed'],
+    skipped: ['已跳过', 'Skipped'],
+  };
+  return labels[status]?.[isZh ? 0 : 1] ?? status.replaceAll('_', ' ');
+}
+
+function jobIsActive(status: DirectorySubmissionJob['status']): boolean {
+  return status === 'opening' || status === 'filling';
+}
+
+function jobIsQueued(status: DirectorySubmissionJob['status']): boolean {
+  return status === 'queued' || jobIsActive(status);
+}
+
 export default function DirectoryWorkspacePage() {
   const gtm = useGtm();
   const locale = useLocale();
@@ -137,6 +167,9 @@ export default function DirectoryWorkspacePage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [preparing, setPreparing] = useState(false);
   const [directoryMessage, setDirectoryMessage] = useState('');
+  // Reactive mirror of activeJobRef so the queue effect re-runs after a job
+  // finishes (refs alone do not trigger React effects).
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const launch = gtm.store.launch;
   // Stable empty fallbacks — `?? []` would allocate every render and retrigger
   // the view-context effect (clear → set → re-render → infinite loop).
@@ -235,13 +268,27 @@ export default function DirectoryWorkspacePage() {
     [persistLaunch]
   );
 
-  const finishActiveJob = useCallback((jobId: string, requestId?: string) => {
-    if (activeJobRef.current === jobId) activeJobRef.current = null;
-    if (!requestId) return;
-    const dispose = listenerDisposersRef.current.get(requestId);
-    if (dispose) dispose();
-    listenerDisposersRef.current.delete(requestId);
+  const clearActiveJob = useCallback((jobId?: string | null) => {
+    if (jobId && activeJobRef.current && activeJobRef.current !== jobId) return;
+    activeJobRef.current = null;
+    setActiveJobId(null);
   }, []);
+
+  const claimActiveJob = useCallback((jobId: string) => {
+    activeJobRef.current = jobId;
+    setActiveJobId(jobId);
+  }, []);
+
+  const finishActiveJob = useCallback(
+    (jobId: string, requestId?: string) => {
+      clearActiveJob(jobId);
+      if (!requestId) return;
+      const dispose = listenerDisposersRef.current.get(requestId);
+      if (dispose) dispose();
+      listenerDisposersRef.current.delete(requestId);
+    },
+    [clearActiveJob]
+  );
 
   const handleExtensionEvent = useCallback(
     (
@@ -289,12 +336,12 @@ export default function DirectoryWorkspacePage() {
           },
           { status: 'needs_action', proof }
         );
-        activeJobRef.current = null;
+        clearActiveJob(jobId);
         setDirectoryMessage(
           proof ||
             (isZh
-              ? '有目录需要你完成登录或验证。'
-              : 'A directory needs login or verification.')
+              ? '行动已暂停：请完成登录或验证后，点「继续执行」。'
+              : 'Paused for you: finish login or verification, then tap Continue.')
         );
         return;
       }
@@ -339,7 +386,7 @@ export default function DirectoryWorkspacePage() {
         });
       }
     },
-    [finishActiveJob, isZh, patchJob]
+    [clearActiveJob, finishActiveJob, isZh, patchJob]
   );
 
   const attachTaskListener = useCallback(
@@ -357,7 +404,7 @@ export default function DirectoryWorkspacePage() {
     async (job: DirectorySubmissionJob) => {
       const current = launchRef.current;
       if (!current || !job.adapterId || activeJobRef.current) return;
-      activeJobRef.current = job.id;
+      claimActiveJob(job.id);
       patchJob(job.id, { status: 'opening', attempt: job.attempt + 1 });
       try {
         const task = await submitDirectoryWithExtension(
@@ -383,11 +430,11 @@ export default function DirectoryWorkspacePage() {
           { status: 'failed', blocker: 'extension_error', blockerDetail: message },
           { status: 'unavailable', proof: message }
         );
-        activeJobRef.current = null;
+        clearActiveJob(job.id);
         setDirectoryMessage(message);
       }
     },
-    [attachTaskListener, isZh, patchJob]
+    [attachTaskListener, claimActiveJob, clearActiveJob, isZh, patchJob]
   );
 
   useEffect(() => {
@@ -420,7 +467,7 @@ export default function DirectoryWorkspacePage() {
           });
           attachTaskListener(job.id, task.requestId);
           if (task.lastStatus !== 'needs_user_action') {
-            activeJobRef.current = job.id;
+            claimActiveJob(job.id);
           }
         }
         for (const job of currentJobs) {
@@ -448,7 +495,7 @@ export default function DirectoryWorkspacePage() {
       for (const dispose of listenerDisposersRef.current.values()) dispose();
       listenerDisposersRef.current.clear();
     };
-  }, [attachTaskListener, isZh, patchJob]);
+  }, [attachTaskListener, claimActiveJob, isZh, patchJob]);
 
   useEffect(() => {
     if (
@@ -473,12 +520,14 @@ export default function DirectoryWorkspacePage() {
     if (
       !availability?.installed ||
       !nextQueuedJob ||
+      activeJobId ||
       activeJobRef.current
     ) {
       return;
     }
     void startQueuedJob(nextQueuedJob);
   }, [
+    activeJobId,
     availability?.installed,
     nextQueuedJob?.id,
     nextQueuedJob?.status,
@@ -791,17 +840,22 @@ export default function DirectoryWorkspacePage() {
       );
       return;
     }
-    activeJobRef.current = job.id;
+    claimActiveJob(job.id);
     patchJob(job.id, {
       status: 'filling',
       blocker: undefined,
       blockerDetail: undefined,
     });
+    setDirectoryMessage(
+      isZh
+        ? `继续执行：${job.directoryName}`
+        : `Continuing: ${job.directoryName}`
+    );
     attachTaskListener(job.id, job.requestId);
     try {
       await resumeExtensionTask(job.requestId);
     } catch (error) {
-      activeJobRef.current = null;
+      clearActiveJob(job.id);
       patchJob(job.id, {
         status: 'failed',
         blocker: 'resume_failed',
@@ -870,9 +924,7 @@ export default function DirectoryWorkspacePage() {
 
   const stats = {
     checked: jobs.length,
-    queued: jobs.filter((job) =>
-      ['queued', 'opening', 'filling'].includes(job.status)
-    ).length,
+    queued: jobs.filter((job) => jobIsQueued(job.status)).length,
     materials: jobs.filter((job) => job.status === 'needs_materials').length,
     action: jobs.filter(
       (job) => job.status === 'needs_action' || job.status === 'manual'
@@ -883,8 +935,45 @@ export default function DirectoryWorkspacePage() {
     published: directories.filter((item) => item.status === 'published').length,
   };
 
-  const actionJobs = jobs.filter((job) =>
-    ['needs_materials', 'needs_action', 'manual', 'failed'].includes(job.status)
+  // One pipeline: intervene-now → running → queued. Materials / manual /
+  // failed sit with intervene so the user never hunts across two cards.
+  const actionPipeline = useMemo(() => {
+    const intervene = jobs
+      .filter((job) =>
+        ['needs_action', 'needs_materials', 'manual', 'failed'].includes(
+          job.status
+        )
+      )
+      .sort((a, b) => {
+        // Live browser intervention first, then materials, then the rest.
+        const rank = (status: DirectorySubmissionJob['status']) =>
+          status === 'needs_action'
+            ? 0
+            : status === 'needs_materials'
+              ? 1
+              : status === 'failed'
+                ? 2
+                : 3;
+        return rank(a.status) - rank(b.status) || b.updatedAt - a.updatedAt;
+      });
+    const active = jobs
+      .filter((job) => jobIsActive(job.status))
+      .sort((a, b) => a.updatedAt - b.updatedAt);
+    const waiting = jobs
+      .filter((job) => job.status === 'queued')
+      .sort((a, b) => a.createdAt - b.createdAt);
+    return [...intervene, ...active, ...waiting];
+  }, [jobs]);
+
+  const pipelineNeedsIntervention = actionPipeline.some(
+    (job) =>
+      job.status === 'needs_action' ||
+      job.status === 'needs_materials' ||
+      job.status === 'manual' ||
+      job.status === 'failed'
+  );
+  const pipelineRunning = actionPipeline.some((job) =>
+    jobIsActive(job.status)
   );
 
   if (!launch) {
@@ -963,14 +1052,13 @@ export default function DirectoryWorkspacePage() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {hasPersonalizedDirectoryMatches && filter !== 'all' && (
-            <button
-              type="button"
-              onClick={() => setFilter('all')}
+          {hasPersonalizedDirectoryMatches && (
+            <Link
+              href="/directories"
               className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-zinc-300 hover:bg-white hover:text-black"
             >
               {isZh ? '返回完整列表' : 'View full list'}
-            </button>
+            </Link>
           )}
           <Link
             href="/app/launch-kit"
@@ -1028,9 +1116,9 @@ export default function DirectoryWorkspacePage() {
       <section className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-6">
         {[
           [isZh ? '已检查' : 'Checked', stats.checked],
-          [isZh ? '后台处理中' : 'In queue', stats.queued],
+          [isZh ? '行动中' : 'In progress', stats.queued],
           [isZh ? '缺少资料' : 'Missing info', stats.materials],
-          [isZh ? '需要操作' : 'Needs action', stats.action],
+          [isZh ? '待干预' : 'Intervene', stats.action],
           [isZh ? '已提交' : 'Submitted', stats.submitted],
           [isZh ? '已上线' : 'Published', stats.published],
         ].map(([label, value]) => (
@@ -1046,126 +1134,225 @@ export default function DirectoryWorkspacePage() {
         ))}
       </section>
 
-      {actionJobs.length > 0 && (
-        <section className="mt-4 rounded-3xl border border-amber-300/20 bg-amber-300/[0.04] p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200">
-            {isZh ? '需要你的操作' : 'Needs your action'}
-          </p>
-          <div className="mt-3 space-y-2">
-            {actionJobs.map((job) => {
+      {actionPipeline.length > 0 && (
+        <section
+          className={`mt-4 rounded-3xl border p-5 ${
+            pipelineNeedsIntervention
+              ? 'border-amber-300/25 bg-amber-300/[0.045]'
+              : 'border-sky-300/20 bg-sky-300/[0.04]'
+          }`}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <p
+                className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                  pipelineNeedsIntervention ? 'text-amber-200' : 'text-sky-200'
+                }`}
+              >
+                {isZh ? '行动队列' : 'Action queue'}
+              </p>
+              <p className="mt-1.5 text-xs text-zinc-400">
+                {pipelineNeedsIntervention
+                  ? isZh
+                    ? '先完成干预，再点「继续执行」；完成后会自动推进下一台。'
+                    : 'Finish the intervention, then tap Continue. The next directory starts automatically.'
+                  : pipelineRunning
+                    ? isZh
+                      ? '插件正在执行 · 需要登录或验证时会停在这里等你。'
+                      : 'Publisher is running · it will pause here if login or verification is needed.'
+                    : isZh
+                      ? '串行执行 · 开始后按顺序推进'
+                      : 'One at a time · starts in order'}
+              </p>
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              {isZh
+                ? `${actionPipeline.length} 个平台`
+                : `${actionPipeline.length} directories`}
+            </p>
+          </div>
+          <ol className="mt-4 space-y-2">
+            {actionPipeline.map((job) => {
+              const running = jobIsActive(job.status);
+              const intervening =
+                job.status === 'needs_action' ||
+                job.status === 'needs_materials' ||
+                job.status === 'manual' ||
+                job.status === 'failed';
+              const waiting = job.status === 'queued';
+              const queuePosition = waiting
+                ? actionPipeline
+                    .filter((item) => item.status === 'queued')
+                    .findIndex((item) => item.id === job.id) + 1
+                : null;
               const missing = job.preflight.checks.filter(
                 (check) => check.status !== 'ready'
               );
               const directory = directories.find(
                 (item) => item.id === job.directoryId
               );
+              const detail =
+                intervening
+                  ? job.blockerDetail ||
+                    job.proof ||
+                    missing
+                      .map(
+                        (item) =>
+                          `${item.label}${
+                            item.detail
+                              ? isZh
+                                ? `（${item.detail}）`
+                                : ` (${item.detail})`
+                              : ''
+                          }`
+                      )
+                      .join(' · ') ||
+                    (isZh
+                      ? '请打开平台页面完成当前步骤，完成后点「继续执行」。'
+                      : 'Open the platform, finish the step, then tap Continue.')
+                  : running
+                    ? isZh
+                      ? '正在由发布插件处理'
+                      : 'Publisher is working on this now'
+                    : isZh
+                      ? `等待中 · 第 ${queuePosition} 位`
+                      : `Waiting · #${queuePosition} in line`;
+
               return (
-                <div
+                <li
                   key={job.id}
-                  className="rounded-xl bg-black/10 p-3"
+                  className={`rounded-xl px-3 py-3 ${
+                    intervening
+                      ? 'bg-amber-300/10 ring-1 ring-amber-300/30'
+                      : running
+                        ? 'bg-sky-300/10 ring-1 ring-sky-300/25'
+                        : 'bg-black/10'
+                  }`}
                 >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm text-white">
-                      {job.directoryName}
-                    </strong>
-                    <span className="rounded-full bg-amber-200/10 px-2 py-0.5 text-[10px] text-amber-200">
-                      {blockerLabel(job.blocker, isZh)}
+                  <div className="flex flex-wrap items-start gap-3">
+                    <span
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                        intervening
+                          ? 'bg-amber-200 text-black'
+                          : running
+                            ? 'bg-sky-300 text-black'
+                            : 'bg-white/10 text-zinc-400'
+                      }`}
+                    >
+                      {intervening ? '!' : running ? '›' : queuePosition}
                     </span>
-                  </div>
-                  <p className="mt-2 text-xs leading-5 text-zinc-400">
-                    {job.blockerDetail ||
-                      job.proof ||
-                      missing
-                        .map(
-                          (item) =>
-                            `${item.label}${
-                              item.detail
-                                ? isZh
-                                  ? `（${item.detail}）`
-                                  : ` (${item.detail})`
-                                : ''
-                            }`
-                        )
-                        .join(' · ') ||
-                      (isZh
-                        ? '请打开平台页面完成当前步骤。'
-                        : 'Open the platform page and complete the current step.')}
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {job.status === 'needs_materials' && (
-                      <Link
-                        href="/app/launch-kit"
-                        className="rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-black"
-                      >
-                        {isZh ? '补充资料' : 'Add information'}
-                      </Link>
-                    )}
-                    {job.status === 'needs_action' && job.requestId && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void focusExtensionTask(job.requestId as string).catch(
-                              (error) =>
-                                setDirectoryMessage(
-                                  error instanceof Error
-                                    ? error.message
-                                    : isZh
-                                      ? '无法打开目录页面。'
-                                      : 'Could not open the directory page.'
-                                )
-                            )
-                          }
-                          className="rounded-full bg-amber-200 px-3 py-1.5 text-[10px] font-bold text-black"
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <strong className="text-sm text-white">
+                          {job.directoryName}
+                        </strong>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] ${
+                            intervening
+                              ? 'bg-amber-200/15 text-amber-100'
+                              : running
+                                ? 'bg-sky-300/15 text-sky-200'
+                                : 'bg-white/5 text-zinc-400'
+                          }`}
                         >
-                          {isZh ? '前往处理' : 'Open task'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void continueJob(job)}
-                          className="rounded-full border border-amber-200/30 px-3 py-1.5 text-[10px] text-amber-100"
-                        >
-                          {isZh ? '完成后继续' : 'Continue when done'}
-                        </button>
-                      </>
-                    )}
-                    {job.status === 'failed' && (
-                      <button
-                        type="button"
-                        onClick={() => retryJob(job)}
-                        title={isZh ? '重新提交' : 'Retry submission'}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-black hover:bg-zinc-200"
-                      >
-                        <svg
-                          className="h-3 w-3"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.2"
-                          aria-hidden
-                        >
-                          <path d="M21 12a9 9 0 1 1-2.6-6.3" />
-                          <path d="M21 3v6h-6" />
-                        </svg>
-                        {isZh ? '重试' : 'Retry'}
-                      </button>
-                    )}
-                    {(job.status === 'manual' || job.status === 'failed') &&
-                      directory && (
-                        <a
-                          href={directory.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-300"
-                        >
-                          {isZh ? '打开平台 ↗' : 'Open site ↗'}
-                        </a>
+                          {intervening && job.blocker
+                            ? blockerLabel(job.blocker, isZh)
+                            : jobStatusLabel(job.status, isZh)}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-[11px] leading-5 text-zinc-500">
+                        {detail}
+                      </p>
+                      {intervening && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {job.status === 'needs_materials' && (
+                            <Link
+                              href="/app/launch-kit"
+                              className="rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-black"
+                            >
+                              {isZh ? '补充资料' : 'Add information'}
+                            </Link>
+                          )}
+                          {job.status === 'needs_action' && job.requestId && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void focusExtensionTask(
+                                    job.requestId as string
+                                  ).catch((error) =>
+                                    setDirectoryMessage(
+                                      error instanceof Error
+                                        ? error.message
+                                        : isZh
+                                          ? '无法打开目录页面。'
+                                          : 'Could not open the directory page.'
+                                    )
+                                  )
+                                }
+                                className="rounded-full border border-amber-200/40 px-3 py-1.5 text-[10px] font-semibold text-amber-100"
+                              >
+                                {isZh ? '前往处理' : 'Open task'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void continueJob(job)}
+                                className="rounded-full bg-amber-200 px-3.5 py-1.5 text-[10px] font-bold text-black"
+                              >
+                                {isZh ? '继续执行' : 'Continue'}
+                              </button>
+                            </>
+                          )}
+                          {job.status === 'failed' && (
+                            <button
+                              type="button"
+                              onClick={() => retryJob(job)}
+                              title={isZh ? '重新提交' : 'Retry submission'}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-black hover:bg-zinc-200"
+                            >
+                              <svg
+                                className="h-3 w-3"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.2"
+                                aria-hidden
+                              >
+                                <path d="M21 12a9 9 0 1 1-2.6-6.3" />
+                                <path d="M21 3v6h-6" />
+                              </svg>
+                              {isZh ? '重试' : 'Retry'}
+                            </button>
+                          )}
+                          {(job.status === 'manual' ||
+                            job.status === 'failed') &&
+                            directory && (
+                              <a
+                                href={directory.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-300"
+                              >
+                                {isZh ? '打开平台 ↗' : 'Open site ↗'}
+                              </a>
+                            )}
+                          {job.status === 'manual' && (
+                            <button
+                              type="button"
+                              onClick={() => markSubmitted(job)}
+                              className="rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-black"
+                            >
+                              {isZh ? '我已提交，继续' : 'Mark submitted'}
+                            </button>
+                          )}
+                        </div>
                       )}
+                    </div>
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ol>
         </section>
       )}
 
@@ -1255,9 +1442,17 @@ export default function DirectoryWorkspacePage() {
                       </span>
                     )}
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[9px] ${statusTone[item.status]}`}
+                      className={`rounded-full px-2 py-0.5 text-[9px] ${
+                        job && jobIsQueued(job.status)
+                          ? jobIsActive(job.status)
+                            ? 'bg-sky-400/10 text-sky-300'
+                            : 'bg-zinc-500/10 text-zinc-300'
+                          : statusTone[item.status]
+                      }`}
                     >
-                      {statusLabels[item.status][isZh ? 0 : 1]}
+                      {job && jobIsQueued(job.status)
+                        ? jobStatusLabel(job.status, isZh)
+                        : statusLabels[item.status][isZh ? 0 : 1]}
                     </span>
                   </div>
                   <p className="mt-2 text-xs leading-5 text-zinc-500">
@@ -1313,7 +1508,7 @@ export default function DirectoryWorkspacePage() {
                     ? ` · ${missing.map((check) => check.label).join('、')}`
                     : ''}
                   <span className="ml-2 text-zinc-600">
-                    · {job.status.replaceAll('_', ' ')}
+                    · {jobStatusLabel(job.status, isZh)}
                   </span>
                 </div>
               )}
@@ -1334,7 +1529,7 @@ export default function DirectoryWorkspacePage() {
                     onClick={() => void continueJob(job)}
                     className="rounded-full bg-amber-200 px-3 py-1.5 text-[10px] font-bold text-black"
                   >
-                    {isZh ? '处理后继续' : 'Continue after action'}
+                    {isZh ? '继续执行' : 'Continue'}
                   </button>
                 )}
                 {job?.status === 'failed' && (

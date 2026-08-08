@@ -109,6 +109,44 @@ async function insertTextWithDebugger(tabId, text) {
   }
 }
 
+async function clickWithDebugger(tabId, x, y) {
+  const target = { tabId };
+  let attached = false;
+  const point = {
+    x: Number(x),
+    y: Number(y),
+    button: 'left',
+    clickCount: 1,
+  };
+  if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+    throw new Error('无效的点击坐标');
+  }
+  try {
+    await chrome.debugger.attach(target, '1.3');
+    attached = true;
+    await chrome.debugger.sendCommand(target, 'Input.dispatchMouseEvent', {
+      type: 'mousePressed',
+      ...point,
+    });
+    await chrome.debugger.sendCommand(target, 'Input.dispatchMouseEvent', {
+      type: 'mouseReleased',
+      ...point,
+    });
+  } catch (error) {
+    throw new Error(
+      `Chrome 原生点击失败：${error?.message || '无法连接当前标签页'}`
+    );
+  } finally {
+    if (attached) {
+      try {
+        await chrome.debugger.detach(target);
+      } catch {
+        // Tab may have navigated away during OAuth.
+      }
+    }
+  }
+}
+
 function publishUrl(channel, payload) {
   if (channel === 'twitter_x') return 'https://x.com/compose/post';
   if (channel === 'xiaohongshu') {
@@ -1207,6 +1245,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         ),
         directoryId: job?.directoryId || null,
       });
+    })();
+    return true;
+  }
+
+  if (request?.type === 'NOWBUILD_TRUSTED_CLICK' && sender.tab?.id) {
+    void (async () => {
+      try {
+        const job =
+          (await findJobByTargetTab(sender.tab.id)) ||
+          (sender.tab.openerTabId
+            ? await findJobByTargetTab(sender.tab.openerTabId)
+            : null);
+        if (
+          !job ||
+          (job.kind !== 'directory' && job.kind !== 'directory_record')
+        ) {
+          sendResponse({ ok: false, error: 'no_active_directory_job' });
+          return;
+        }
+        await clickWithDebugger(sender.tab.id, request.x, request.y);
+        sendResponse({ ok: true });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error?.message || 'trusted_click_failed',
+        });
+      }
     })();
     return true;
   }

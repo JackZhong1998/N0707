@@ -15,6 +15,11 @@ const FIELD_SELECTORS = {
     productName: 'input[placeholder="e.g. AI Content Generator"]',
     tagline: 'input[placeholder="A catchy one-line title for your AI project"]',
   },
+  findly_tools: {
+    productName: 'input[placeholder="My Awesome Tool"]',
+    productUrl:
+      'input[placeholder="https://yourtool.com"], input[placeholder*="yourtool.com"]',
+  },
   twelve_tools: {
     productUrl: '#iURL',
     productName: '#iName',
@@ -57,7 +62,7 @@ function emitDirectory(status, detail = {}) {
     type: 'NOWBUILD_CHANNEL_EVENT',
     requestId: activeDirectoryRequest.requestId,
     status,
-    adapterVersion: `${directoryAdapter.id}-directory-0.9.14`,
+    adapterVersion: `${directoryAdapter.id}-directory-0.9.15`,
     ...detail,
   });
 }
@@ -116,12 +121,40 @@ function controlLabel(element) {
     const label = document.querySelector(`label[for="${CSS.escape(element.id)}"]`);
     values.push(label?.textContent);
   }
-  values.push(element.closest('label')?.textContent);
-  const parent = element.parentElement;
-  if (parent?.querySelectorAll('input, textarea, select, [contenteditable="true"]').length === 1) {
-    values.push(parent.querySelector('label')?.textContent);
-    values.push(parent.textContent?.slice(0, 180));
+  const labelledBy = element.getAttribute('aria-labelledby');
+  if (labelledBy) {
+    for (const id of labelledBy.split(/\s+/).filter(Boolean)) {
+      values.push(document.getElementById(id)?.textContent);
+    }
   }
+  values.push(element.closest('label')?.textContent);
+
+  // Walk ancestors so wrapped controls (e.g. shadcn FormItem > relative > input)
+  // still pick up the sibling "Tool Name" / "Logo" label text.
+  let ancestor = element.parentElement;
+  for (let depth = 0; depth < 5 && ancestor && ancestor !== document.body; depth += 1) {
+    const childControls = [...ancestor.querySelectorAll(
+      'input:not([type="hidden"]), textarea, select, [contenteditable="true"]'
+    )];
+    if (!childControls.includes(element) || childControls.length !== 1) {
+      ancestor = ancestor.parentElement;
+      continue;
+    }
+    const labelText = ancestor.querySelector('label')?.textContent;
+    const siblingTexts = [];
+    for (const child of ancestor.children) {
+      if (child === element || child.contains(element)) continue;
+      if (!/^(LABEL|P|SPAN|LEGEND|DIV|H[1-6])$/i.test(child.tagName)) continue;
+      const text = directoryRuntime.normalizeText(child.textContent);
+      if (text && text.length <= 80) siblingTexts.push(text);
+    }
+    if (labelText || siblingTexts.length) {
+      values.push(labelText, ...siblingTexts);
+      break;
+    }
+    ancestor = ancestor.parentElement;
+  }
+
   return directoryRuntime.normalizeText(values.filter(Boolean).join(' ')).toLowerCase();
 }
 
@@ -432,33 +465,79 @@ async function uploadToolpilotWidgetLogo(kit) {
   return result?.ok ? [{ kind: 'logo', name: result.name || logo.name }] : [];
 }
 
+function escapeRegExp(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function chooseCustomCategory(
+  candidates,
+  { triggerPattern = /select a category/i, maxSelections = 1 } = {}
+) {
+  const selected = [];
+  const trigger =
+    directoryRuntime.byText(
+      ['button', '[role="combobox"]', '[role="button"]'],
+      triggerPattern
+    ) || directoryRuntime.firstVisible(['[role="combobox"]']);
+  if (!trigger || !candidates.length) return selected;
+  directoryRuntime.click(trigger);
+  await directoryRuntime.sleep(200);
+  for (const candidate of candidates) {
+    if (selected.length >= maxSelections) break;
+    const exact = new RegExp(`^${escapeRegExp(candidate)}$`, 'i');
+    const fuzzy = new RegExp(escapeRegExp(candidate), 'i');
+    const option =
+      directoryRuntime.byText(
+        ['[role="option"]', '[data-radix-collection-item]', 'button', '[role="menuitem"]'],
+        exact
+      ) ||
+      directoryRuntime.byText(
+        ['[role="option"]', '[data-radix-collection-item]', 'button', '[role="menuitem"]'],
+        fuzzy
+      );
+    if (!option) continue;
+    directoryRuntime.click(option);
+    selected.push(`category:${candidate}`);
+    await directoryRuntime.sleep(120);
+    if (maxSelections > 1 && selected.length < maxSelections) {
+      // Re-open multi-select menus that close after each pick.
+      const stillOpen = directoryRuntime.firstVisible([
+        '[role="listbox"]',
+        '[role="option"]',
+        '[data-radix-collection-item]',
+      ]);
+      if (!stillOpen) {
+        directoryRuntime.click(trigger);
+        await directoryRuntime.sleep(150);
+      }
+    }
+  }
+  return selected;
+}
+
 async function chooseSiteSpecificOptions(kit) {
   const selected = [];
   if (directoryAdapter.id === 'earlyhunt') {
-    const categoryMenu = directoryRuntime.byText(
-      ['button', '[role="button"]'],
-      /select a category/i
+    selected.push(
+      ...(await chooseCustomCategory([...kit.categories, ...kit.tags].slice(0, 3), {
+        maxSelections: 3,
+      }))
     );
-    if (categoryMenu) {
-      directoryRuntime.click(categoryMenu);
-      await directoryRuntime.sleep(150);
-    }
-    for (const candidate of [...kit.categories, ...kit.tags].slice(0, 3)) {
-      const pattern = new RegExp(`^${candidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
-      const option = directoryRuntime.byText(['button'], pattern);
-      if (!option) continue;
-      directoryRuntime.click(option);
-      selected.push(`category:${candidate}`);
-      await directoryRuntime.sleep(120);
-    }
     const pricing = directoryRuntime.byText(
       ['label', 'span', 'div'],
-      new RegExp(`^${kit.pricing.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+      new RegExp(`^${escapeRegExp(kit.pricing)}$`, 'i')
     );
     if (pricing) {
       directoryRuntime.click(pricing);
       selected.push(`pricing:${kit.pricing}`);
     }
+  }
+  if (directoryAdapter.id === 'findly_tools') {
+    selected.push(
+      ...(await chooseCustomCategory([...kit.categories, ...kit.tags].slice(0, 8), {
+        maxSelections: 1,
+      }))
+    );
   }
   return selected;
 }
@@ -583,10 +662,20 @@ async function uploadAssets(kit) {
     const wantsLogo = input === logoInput || /logo|icon|avatar|brand/.test(label);
     const wantsScreenshot =
       input === screenshotInput ||
-      /screenshot|thumbnail|cover|product image|preview/.test(label);
-    const kind = wantsLogo ? 'logo' : 'screenshot';
+      /screenshot|thumbnail|cover|product image|preview|app image|gallery|media/.test(
+        label
+      );
+    // Prefer logo for the first unmatched file input when a logo asset exists;
+    // Findly's "App Image" must not steal the only screenshot from Logo.
+    const kind = wantsLogo
+      ? 'logo'
+      : wantsScreenshot
+        ? 'screenshot'
+        : !screenshotIndex && logos.length && !uploaded.some((item) => item.kind === 'logo')
+          ? 'logo'
+          : 'screenshot';
     const spec = assetSpecForInput(input, kind);
-    let selected = wantsLogo
+    let selected = kind === 'logo'
       ? logos.slice(0, 1)
       : input.multiple && wantsScreenshot
         ? screenshots
@@ -611,7 +700,7 @@ async function uploadAssets(kit) {
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
     uploaded.push(...preparedFiles);
-    if (!wantsLogo) screenshotIndex += selected.length;
+    if (kind !== 'logo') screenshotIndex += selected.length;
     await directoryRuntime.sleep(400);
   }
   return uploaded;
@@ -978,13 +1067,13 @@ async function fillLaunchKit(kit) {
   const assignments = [
     {
       key: 'productName', value: kit.productName, label: '产品名称',
-      positive: [/product name|startup name|tool name|website name|project name|your product name|name of/i],
+      positive: [/product name|startup name|tool name|website name|project name|your product name|name of|my awesome tool/i],
       negative: [/founder|first name|last name|user|company contact/i],
     },
     {
       key: 'productUrl', value: kit.productUrl, label: '产品网址',
-      positive: [/product url|website url|website address|product address|project url|startup url|tool.?s? url|your url|website/i],
-      negative: [/twitter|linkedin|founder|profile|demo|video|logo|screenshot/i],
+      positive: [/product url|website url|website address|product address|project url|startup url|tool.?s? url|your url|yourtool\.com|website/i],
+      negative: [/twitter|linkedin|founder|profile|demo|video|logo|screenshot|app image/i],
     },
     {
       key: 'tagline', value: kit.tagline, label: '一句话介绍',
