@@ -18,7 +18,7 @@ NowBuild is not a general-purpose copywriting box and does not promise fully aut
 - Community and launch capabilities for Reddit, Hacker News, Indie Hackers, Product Hunt, GitHub, and developer publishing.
 - Video and visual production packages for TikTok, YouTube, Instagram, Shorts, Reels, carousels, and memes.
 - Website conversion, SEO topic clusters, product-blog content, and long-form repurposing.
-- Intelligent matching across 100+ product-launch directories, with automated form filling for 20 high-value destinations.
+- Intelligent matching across 123 product-launch directories, with automated form filling for 76 supported destinations.
 - Human review, conversational editing, publishing handoff, status tracking, and weekly adjustment.
 
 ## Pricing and availability

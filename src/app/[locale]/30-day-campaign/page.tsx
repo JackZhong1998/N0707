@@ -54,11 +54,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       type: 'article',
       url: localePath(locale, '/30-day-campaign'),
+      images: [buildAbsoluteUrl('/og.png')],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [buildAbsoluteUrl('/og.png')],
     },
   };
 }

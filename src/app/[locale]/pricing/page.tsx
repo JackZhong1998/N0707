@@ -23,11 +23,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: t('description'),
       url: localePath(locale, '/pricing'),
       type: 'website',
+      images: [buildAbsoluteUrl('/og.png')],
     },
     twitter: {
       title: t('title'),
       description: t('description'),
       card: 'summary_large_image',
+      images: [buildAbsoluteUrl('/og.png')],
     },
   };
 }

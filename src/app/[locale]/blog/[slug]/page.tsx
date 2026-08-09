@@ -96,11 +96,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: post.date,
       authors: [post.author],
       url: localePath(locale, `/blog/${slug}`),
+      images: [buildAbsoluteUrl('/og.png')],
     },
     twitter: {
       title: post.title,
       description: post.excerpt,
       card: 'summary_large_image',
+      images: [buildAbsoluteUrl('/og.png')],
     },
   };
 }

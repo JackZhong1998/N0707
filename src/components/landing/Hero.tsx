@@ -80,16 +80,16 @@ export default async function Hero() {
               {isZh ? (
                 '接下来，让市场看见它。'
               ) : (
-                <span aria-label="Now build the market.">
-                  <span aria-hidden="true">Now </span>
+                <span>
+                  <span>Now </span>
                   <span
                     className="inline-flex items-baseline whitespace-nowrap"
-                    aria-hidden="true"
                   >
+                    <span className="sr-only">B</span>
                     <LogoLetterB className="mr-[0.015em] inline-block h-[0.72em] w-[0.84em] shrink-0 translate-y-[0.02em]" />
                     <span>uild</span>
                   </span>
-                  <span aria-hidden="true"> the market.</span>
+                  <span> the market.</span>
                 </span>
               )}
             </span>
