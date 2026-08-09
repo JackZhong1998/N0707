@@ -1,13 +1,16 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { getAdminAccess } from '@/lib/admin-access';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
+  const access = await getAdminAccess();
+  if (!access.authenticated) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (!access.admin || !access.userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const url = new URL(request.url);
@@ -20,9 +23,8 @@ export async function GET(request: Request) {
   let query = getServiceSupabase()
     .from('ai_usage_events')
     .select(
-      'id,request_id,model,provider,prompt_tokens,completion_tokens,cached_tokens,cache_write_tokens,duration_ms,agent_name,operation,trace_id,session_id,prompt_hash,system_chars,user_chars,message_count,json_attempt,model_attempt,trace_metadata,provider_cost_usd,billed_cost_usd,created_at'
+      'id,user_id,request_id,model,provider,prompt_tokens,completion_tokens,cached_tokens,cache_write_tokens,duration_ms,agent_name,operation,trace_id,session_id,prompt_hash,system_chars,user_chars,message_count,json_attempt,model_attempt,trace_metadata,provider_cost_usd,billed_cost_usd,created_at'
     )
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
   if (agent) query = query.eq('agent_name', agent);

@@ -391,6 +391,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [mobileAgentOpen, setMobileAgentOpen] = useState(false);
   const [input, setInput] = useState('');
   const [extensionNeedsUpdate, setExtensionNeedsUpdate] = useState(false);
+  const [isTraceAdmin, setIsTraceAdmin] = useState(false);
   const [glowPos, setGlowPos] = useState({ x: 42, y: 28 });
   const autoReviewStarted = useRef(false);
   const glowRaf = useRef(0);
@@ -429,6 +430,24 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           isOlderExtensionVersion(publisher.version, PUBLISHER_EXTENSION_VERSION)
       );
     });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/agents/traces/access', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return { admin: false };
+        return (await response.json()) as { admin?: boolean };
+      })
+      .then((result) => {
+        if (!cancelled) setIsTraceAdmin(result.admin === true);
+      })
+      .catch(() => {
+        if (!cancelled) setIsTraceAdmin(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -515,8 +534,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         iconTone: 'bg-violet-500/12 text-violet-300',
         lowFrequency: true,
       },
-    ],
-    [isZh]
+    ].filter((item) => item.key !== 'traces' || isTraceAdmin) as NavigationItem[],
+    [isTraceAdmin, isZh]
   );
 
   const activeKey = getActiveKey(pathname);

@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 
 type TraceRow = {
   id: string;
+  user_id: string;
   model: string;
   provider?: string | null;
   prompt_tokens: number;
@@ -67,6 +68,7 @@ export default function AgentTracesPage() {
     const cached = rows.reduce((sum, row) => sum + number(row.cached_tokens), 0);
     return {
       calls: rows.length,
+      users: new Set(rows.map((row) => row.user_id)).size,
       averageMs: rows.length
         ? Math.round(rows.reduce((sum, row) => sum + number(row.duration_ms), 0) / rows.length)
         : 0,
@@ -93,7 +95,7 @@ export default function AgentTracesPage() {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-4">
         {[
-          [isZh ? '调用次数' : 'Calls', summary.calls],
+          [isZh ? '调用次数' : 'Calls', `${summary.calls} / ${summary.users} ${isZh ? '个用户' : 'users'}`],
           [isZh ? '平均模型耗时' : 'Average latency', duration(summary.averageMs)],
           [isZh ? '缓存 Token 占比' : 'Cached token rate', `${summary.cacheRate}%`],
           [isZh ? '记录内成本' : 'Recorded cost', `$${summary.cost.toFixed(4)}`],
@@ -110,11 +112,12 @@ export default function AgentTracesPage() {
 
       {!loading && !error && (
         <div className="mt-6 overflow-x-auto rounded-2xl border border-white/[0.08]">
-          <table className="min-w-[1120px] w-full text-left text-xs">
+          <table className="min-w-[1260px] w-full text-left text-xs">
             <thead className="bg-white/[0.04] text-zinc-500">
               <tr>
                 {[
                   isZh ? '时间 / Agent' : 'Time / Agent',
+                  isZh ? '用户' : 'User',
                   isZh ? '动作' : 'Operation',
                   'Skill',
                   isZh ? '上下文' : 'Context',
@@ -149,6 +152,9 @@ export default function AgentTracesPage() {
                     <td className="px-4 py-4">
                       <p className="font-semibold text-white">{row.agent_name || '—'}</p>
                       <p className="mt-1 text-zinc-600">{new Date(row.created_at).toLocaleString()}</p>
+                    </td>
+                    <td className="max-w-[180px] px-4 py-4">
+                      <p className="break-all font-mono text-[11px] text-zinc-400">{row.user_id}</p>
                     </td>
                     <td className="px-4 py-4">
                       <p>{row.operation || '—'}</p>
