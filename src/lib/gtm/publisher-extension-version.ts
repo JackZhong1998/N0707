@@ -1,10 +1,30 @@
 /** Keep in sync with browser-extension/manifest.json */
-export const PUBLISHER_EXTENSION_VERSION = '0.9.15';
+export const PUBLISHER_EXTENSION_VERSION = '0.9.17';
 
 export const PUBLISHER_EXTENSION_RELEASE_NOTES: Record<
   string,
   { zh: string[]; en: string[] }
 > = {
+  '0.9.17': {
+    zh: [
+      '小红书未登录时暂停发布并提示先登录，登录成功后自动继续填写',
+      '登录等待时发送桌面通知，点击可切回平台页',
+    ],
+    en: [
+      'Pause Xiaohongshu publishing when signed out; resume automatically after login',
+      'Show a desktop notification during login wait so you can jump back to the platform tab',
+    ],
+  },
+  '0.9.16': {
+    zh: [
+      '小红书超长标题自动截断至 20 字，不再直接报错中断发布',
+      '正文与标签合计超过 1000 字时自动截断并继续填写',
+    ],
+    en: [
+      'Auto-truncate Xiaohongshu titles to 20 characters instead of failing publish',
+      'Auto-truncate note body and hashtags when they exceed 1000 characters',
+    ],
+  },
   '0.9.15': {
     zh: [
       '修复 Google 登录确认页点不了“继续”、在选账号和确认之间死循环的问题',

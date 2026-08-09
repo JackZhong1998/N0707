@@ -5,6 +5,7 @@ const MAX_EVIDENCE_SOURCES = 8;
 export type ChannelResearchStatus =
   | 'grounded'
   | 'no_results'
+  | 'skipped'
   | 'unavailable';
 
 export interface ChannelEvidenceSource {
@@ -56,14 +57,50 @@ function safePublicUrl(value: unknown): string | null {
   }
 }
 
-function buildQueries(input: {
+interface ChannelResearchInput {
   channelId: string;
   title: string;
   brief: string;
   market?: string;
   audience?: string;
   taskType?: string;
-}): string[] {
+}
+
+const ALWAYS_RESEARCH_CHANNELS = new Set(['seo', 'competitor_research']);
+const ALWAYS_RESEARCH_TASK_TYPES = new Set(['research', 'comparison']);
+
+/**
+ * Search only when the deliverable depends on facts outside the project.
+ * Personal stories, product copy, social posts and ordinary revisions should
+ * use the confirmed project context without paying the search latency.
+ */
+export function shouldResearchChannelContent(
+  input: ChannelResearchInput
+): boolean {
+  const channelId = input.channelId.trim().toLowerCase();
+  const taskType = (input.taskType ?? '').trim().toLowerCase();
+  if (ALWAYS_RESEARCH_CHANNELS.has(channelId)) return true;
+  if (ALWAYS_RESEARCH_TASK_TYPES.has(taskType)) return true;
+
+  const request = `${input.title}\n${input.brief}`;
+  const currentFactSignals = [
+    /\b(today|this week|this month|news|trend(?:ing)?|market share)\b/i,
+    /\b(latest|recent|current)\b.{0,30}\b(market|industry|platform|competitor|pricing|rules?|polic(?:y|ies)|trend(?:s|ing)?|data|statistics?)\b/i,
+    /\b(industry (?:data|statistics?)|benchmark|citation|cite sources?|according to)\b/i,
+    /\b(platform (?:rules?|polic(?:y|ies)|requirements?)|eligibility|field limits?|algorithm changes?|ranking factors?)\b/i,
+    /\b(competitor|competitive|alternatives?)\b.{0,40}\b(pricing|price|features?|positioning|comparison|compare)\b/i,
+    /\b(pricing|price|features?|positioning|comparison|compare)\b.{0,40}\b(competitor|competitive|alternatives?)\b/i,
+    /(?:今天|本周|本月|新闻|热点|趋势|市场份额)/,
+    /(?:最新|近期|当前).{0,15}(?:市场|行业|平台|竞品|竞争对手|定价|规则|政策|趋势|数据|统计)/,
+    /(?:行业数据|行业统计|基准数据|引用来源|标注来源|据.{0,12}报告)/,
+    /(?:平台规则|版规|平台政策|发布要求|资格要求|字段限制|算法变化|排名因素)/,
+    /(?:竞品|竞争对手|替代产品).{0,24}(?:价格|定价|功能|定位|对比|比较)/,
+    /(?:价格|定价|功能|定位|对比|比较).{0,24}(?:竞品|竞争对手|替代产品)/,
+  ];
+  return currentFactSignals.some((pattern) => pattern.test(request));
+}
+
+function buildQueries(input: ChannelResearchInput): string[] {
   const subject = [
     compact(input.title, 180),
     compact(input.brief, 260),
@@ -86,25 +123,7 @@ function buildQueries(input: {
   const prefix = platformPrefix[input.channelId] ?? '';
   const primary = compact(`${prefix} ${subject}`, 480);
 
-  const researchHeavy = new Set([
-    'research',
-    'article',
-    'optimize',
-    'comparison',
-    'show_hn',
-    'launch',
-    'founder_story',
-    'experiment',
-    'short_script',
-    'screen_demo',
-    'long_video',
-    'tutorial',
-    'carousel',
-    'meme',
-    'reel_script',
-  ]).has((input.taskType ?? '').toLowerCase());
-
-  if (!researchHeavy) return primary ? [primary] : [];
+  if (!shouldResearchChannelContent(input)) return [];
   const corroboration = compact(
     `${subject} official documentation data study case study`,
     480
@@ -171,22 +190,20 @@ async function tavilySearch(
   }
 }
 
-/**
- * Content generation is the point where facts become public claims, so every
- * channel worker attempts a lightweight search. Missing search credentials do
- * not block personal or low-claim drafts; the prompt explicitly degrades to a
- * no-invention mode.
- */
-export async function researchChannelContent(input: {
-  channelId: string;
-  title: string;
-  brief: string;
-  market?: string;
-  audience?: string;
-  taskType?: string;
-}): Promise<ChannelResearchPack> {
+export async function researchChannelContent(
+  input: ChannelResearchInput
+): Promise<ChannelResearchPack> {
   const searchedAt = Date.now();
   const queries = buildQueries(input);
+  if (queries.length === 0) {
+    return {
+      status: 'skipped',
+      queries: [],
+      sources: [],
+      searchedAt,
+      note: 'This draft only needs confirmed project facts, so external search was skipped.',
+    };
+  }
   const apiKey = process.env.TAVILY_API_KEY?.trim();
   if (!apiKey) {
     return {

@@ -21,7 +21,7 @@ type PatchResult = {
   impact: 'local' | 'week' | 'channel' | 'global';
 };
 
-const allowedTypes = new Set(['brief', 'blueprint', 'channel_plan', 'calendar']);
+const allowedTypes = new Set(['brief', 'channel_plan', 'calendar']);
 
 export async function POST(request: Request) {
   const access = await getSessionAccess();
@@ -60,8 +60,8 @@ export async function POST(request: Request) {
           {
             error:
               locale === 'en'
-                ? 'Unlock the Agent Team to edit Blueprint, channel plans, or the calendar.'
-                : '解锁 Agent Team 后才能修改 Blueprint、渠道计划或日历。',
+                ? 'Unlock the Agent Team to edit channel plans or the calendar.'
+                : '解锁 Agent Team 后才能修改渠道计划或日历。',
           },
           { status: 402 }
         );
@@ -93,7 +93,7 @@ Brief-only correction rules:
 - Do NOT re-crawl the website, re-search competitors, or invent external sources.
 - Change only fields required by the user correction, using existing research plus the user-provided facts.
 - When the user corrects audience or competitors, mark related evidence confidence as "confirmed" and phrase the label as user correction / AI adjusted from user input — never keep those fields labeled as from the website if the user overrode them.
-- Pre-payment corrections update the Brief only; never invent Blueprint, channel plans, or tasks.`
+- Pre-payment corrections update the Brief only; never invent market strategy, channel plans, or tasks.`
         : '';
     const result = await callOpenRouterJson<PatchResult>([
       {
@@ -107,8 +107,7 @@ You are editing a ${entityType}. Return the COMPLETE updated JSON object/array i
 
 Editing boundaries:
 - brief: product facts, audience, evidence, positioning, and directly dependent fields only.
-- blueprint: shared campaign goal, positioning, pillars, four-week narrative, channel roles, and guardrails only.
-- channel_plan: only the requested channel's native execution plan; preserve the shared blueprint.
+- channel_plan: only the requested channel's native execution plan; preserve the confirmed market strategy.
 - calendar: only future unfinished tasks. Keep every existing task ID and return the full array.
 
 Rules:

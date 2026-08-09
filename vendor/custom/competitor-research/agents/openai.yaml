@@ -1,0 +1,4 @@
+interface:
+  display_name: "Competitor Research"
+  short_description: "Research competitors with traceable evidence"
+  default_prompt: "Use $competitor-research to plan or produce an evidence-traceable competitor analysis."

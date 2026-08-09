@@ -28,7 +28,7 @@ export default function PricingPageClient() {
       ]
     : [
         ['Save hours every day', 'Research, topics, content, and publishing materials arrive prepared for about 30 minutes of review, refinement, and approval'],
-        ['One 30-day Launch Blueprint', 'Product position, audience, channel priorities, and a four-week direction'],
+        ['One 30-day market strategy report', 'Product position, audience, channel priorities, and a four-week direction'],
         ['Ready-to-review work every day', 'Content drafts, video production briefs, community launch packages, and clear channel tasks'],
         ['Coverage across the market', 'Social, owned reach, communities, launches, video, SEO, and website conversion'],
         [`Automated submission to ${CONFIGURED_DIRECTORY_COUNT} directories`, 'Matched from 100+ opportunities, with submission and publishing status tracked'],

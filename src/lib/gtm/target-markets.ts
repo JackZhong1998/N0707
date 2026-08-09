@@ -152,3 +152,75 @@ export function resolveTodoMarket<T extends {
     audience: todo.audience || selected?.audience,
   };
 }
+
+/**
+ * Resolve publishing market fields for a newly created Todo.
+ * Prefer explicit action fields (id → locale → market name → audience text), then project default.
+ */
+export function resolveCreateTodoMarket(
+  input: {
+    targetMarketId?: string;
+    market?: string;
+    outputLocale?: string;
+    audience?: string;
+  },
+  markets: TargetMarket[] | undefined
+): Pick<Todo, 'market' | 'targetMarketId' | 'outputLocale' | 'audience'> {
+  const byId = input.targetMarketId
+    ? markets?.find((market) => market.id === input.targetMarketId)
+    : undefined;
+  const locale = normalizeOutputLocale(input.outputLocale);
+  const byLocale =
+    !byId && locale
+      ? markets?.find(
+          (market) =>
+            normalizeOutputLocale(market.locale) === locale ||
+            market.locale.toLowerCase() === locale.toLowerCase()
+        )
+      : undefined;
+  const byName =
+    !byId && !byLocale && input.market
+      ? markets?.find(
+          (market) =>
+            market.name.toLowerCase() === input.market!.toLowerCase() ||
+            market.region.toLowerCase() === input.market!.toLowerCase() ||
+            market.language.toLowerCase() === input.market!.toLowerCase()
+        )
+      : undefined;
+  const byAudienceHint =
+    !byId && !byLocale && !byName && input.audience
+      ? markets?.find((market) => {
+          const haystack = [
+            market.name,
+            market.region,
+            market.language,
+            market.locale,
+            market.audience ?? '',
+          ]
+            .join(' ')
+            .toLowerCase();
+          const needle = input.audience!.toLowerCase();
+          return (
+            haystack.includes(needle) ||
+            needle.includes(market.name.toLowerCase()) ||
+            needle.includes(market.region.toLowerCase()) ||
+            (market.audience ? needle.includes(market.audience.toLowerCase()) : false)
+          );
+        })
+      : undefined;
+  const selected =
+    byId ?? byLocale ?? byName ?? byAudienceHint ?? defaultTargetMarket(markets);
+
+  const outputLocale =
+    locale ||
+    selected?.locale ||
+    (input.market ? inferOutputLocale(input.market) : undefined) ||
+    (input.audience ? inferOutputLocale(input.audience) : undefined);
+
+  return {
+    market: input.market || selected?.name,
+    targetMarketId: selected?.id || input.targetMarketId,
+    outputLocale,
+    audience: input.audience || selected?.audience,
+  };
+}

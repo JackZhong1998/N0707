@@ -455,27 +455,24 @@ async function executeStep(
     if (channelPlansOnly) {
       throw new Error('Channel-plan jobs do not run blueprint steps');
     }
-    const spine = await runStrategist({
-      channelIds,
-      userProfileDoc: store.userProfileDoc,
-      projectProfileDoc: store.projectProfileDoc,
-      conversationDigest: conversationDigest(store),
-      performanceContext: buildPerformanceContext(store.todos),
-      campaignContext: buildAgentContextEnvelope(store),
-      locale: job.locale,
-      phase: 'blueprint',
-    });
+    // Compatibility for jobs created by the retired campaign endpoint. Do not
+    // spend another model call: derive the old snapshot from the project brief
+    // and the market strategy report that already exists.
     const blueprint = buildLaunchBlueprint(
       launch,
       launch.brief,
-      spine,
+      null,
       job.locale === 'zh'
     );
+    const overviewMarkdown =
+      launch.channelRecommendations?.reportMarkdown ||
+      launch.channelRecommendations?.summaryMarkdown ||
+      store.projectProfileDoc;
     return {
       blueprint,
       strategy: {
-        goal: spine.goal || blueprint.campaignGoal,
-        overviewMarkdown: spine.overviewMarkdown,
+        goal: blueprint.campaignGoal,
+        overviewMarkdown,
         updatedAt: Date.now(),
       },
     } satisfies BlueprintResult;

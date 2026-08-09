@@ -4,23 +4,20 @@
  * 合并产品启动判断、30 天发布计划、渠道推荐与 Directory 提交计划，
  * 同时从 channelId 白名单输出结构化优先级供产品界面使用。
  *
- * Skill 加载策略：
- * 1. 固定 Router：gingiris-growth-finder + go-to-market-playbook + channel-recommender 契约
- * 2. 按产品诊断动态加载 1–2 个专家 Skill
+ * Skill 加载策略：固定使用已审核的证据契约与渠道组合判断 Skill。
+ * 产品诊断与推荐在同一次生成中完成，避免额外选择调用和未审核 Skill 漂移。
  */
 
 import { callOpenRouterJson, type OpenRouterMessage } from '@/lib/openrouter';
 import {
-  CHANNEL_ROUTER_SKILL_IDS,
+  CHANNEL_RECOMMENDER_SKILL_IDS,
 } from './skills/channel-map';
 import {
   RECOMMENDABLE_LAUNCH_CHANNELS,
 } from '@/lib/gtm/launch';
 import {
   formatChannelCatalog,
-  formatSkillCatalog,
   getChannelCatalog,
-  getSkillCatalog,
   loadSkillContents,
 } from './catalog';
 import { isMockMode, mockChannelRecommendations } from './mock';
@@ -36,19 +33,6 @@ export interface ChannelRecommenderInput {
   feedback?: string;
 }
 
-const CHANNEL_RECOMMENDER_CONTRACT_SKILL = 'custom/channel-recommender';
-
-const SPECIALIST_SKILL_MAP: Record<string, string[]> = {
-  dev_tool: ['gingiris-opensource', 'developer-marketing-playbook'],
-  oss: ['gingiris-opensource', 'github-stars-playbook'],
-  b2b_saas: ['gingiris-b2b-growth', 'gingiris-go-global'],
-  mobile_app: ['gingiris-aso-growth', 'gingiris-seo-geo'],
-  consumer_2c: ['gingiris-seo-geo', 'gingiris-ugc-matrix'],
-  ecommerce: ['gingiris-aso-growth', 'gingiris-ugc-matrix'],
-  launch_focused: ['gingiris-launch', 'product-hunt-playbook'],
-  china_market: ['gingiris-go-global', 'gingiris-seo-geo'],
-};
-
 function text(value: unknown, maxLength: number, fallback = ''): string {
   return typeof value === 'string'
     ? value.trim().slice(0, maxLength) || fallback
@@ -61,56 +45,87 @@ function allowedChannelIds(): Set<string> {
   );
 }
 
-async function pickSpecialistSkills(
-  input: ChannelRecommenderInput
-): Promise<string[]> {
-  const catalog = getSkillCatalog();
-  const defaults = [
-    ...CHANNEL_ROUTER_SKILL_IDS,
-    CHANNEL_RECOMMENDER_CONTRACT_SKILL,
-  ];
+type ReportSource = Pick<
+  ChannelRecommendationResponse,
+  | 'summaryMarkdown'
+  | 'diagnosis'
+  | 'recommendations'
+  | 'launchPlan'
+  | 'directoryPlan'
+>;
 
-  try {
-    const out = await callOpenRouterJson<{
-      productCategory?: string;
-      skillIds?: string[];
-    }>(
-      [
-        {
-          role: 'system',
-          content: `你是 GTM 诊断专家。根据项目与用户档案，判断产品类别并挑选最多 2 个需要精读的渠道推荐专家 Skill。
+/**
+ * Keep prose presentation deterministic. Asking the model to return both the
+ * full report and the same facts as structured JSON roughly doubles completion
+ * size and makes a single truncated Markdown string invalidate the whole JSON.
+ */
+function buildReportMarkdown(source: ReportSource, isZh: boolean): string {
+  const activeRecommendations = source.recommendations.filter(
+    (item) => item.priority !== 'skip'
+  );
+  const skippedRecommendations = source.recommendations.filter(
+    (item) => item.priority === 'skip'
+  );
+  const recommendationSections = activeRecommendations
+    .map(
+      (item) =>
+        `### ${item.channelName} · ${item.priority.toUpperCase()} · ${item.fitScore}/100\n\n` +
+        `${item.rationale}\n\n` +
+        `- **${isZh ? '市场匹配' : 'Market fit'}：${item.marketFit}\n` +
+        `- **${isZh ? '投入强度' : 'Effort'}：${item.effortLevel}\n` +
+        `- **${isZh ? '建议频率' : 'Suggested cadence'}：${item.suggestedCadence}`
+    )
+    .join('\n\n');
+  const launchSections = source.launchPlan
+    .map(
+      (phase) =>
+        `### ${phase.days} · ${phase.phase}\n\n${phase.objective}\n\n` +
+        `${phase.actions.map((action) => `- ${action}`).join('\n')}\n\n` +
+        `**${isZh ? '成功信号' : 'Success signal'}：** ${phase.successSignal}`
+    )
+    .join('\n\n');
+  const directorySections = source.directoryPlan.schedule
+    .map(
+      (phase) =>
+        `### ${phase.days}\n\n${phase.objective}\n\n${phase.actions
+          .map((action) => `- ${action}`)
+          .join('\n')}`
+    )
+    .join('\n\n');
+  const decisionGates = source.launchPlan
+    .map((phase) => `- **${phase.days}**：${phase.successSignal}`)
+    .join('\n');
+  const immediateActions = source.launchPlan[0]?.actions
+    .slice(0, 3)
+    .map((action) => `- ${action}`)
+    .join('\n');
+  const diagnosis = source.diagnosis;
 
-可选 productCategory：
-dev_tool | oss | b2b_saas | mobile_app | consumer_2c | ecommerce | launch_focused | china_market
-
-Skill 目录：
-${formatSkillCatalog(catalog)}
-
-只输出 JSON：{"productCategory":"...","skillIds":["..."]}`,
-        },
-        {
-          role: 'user',
-          content: `项目档案：\n${input.projectProfileDoc.slice(0, 6000) || '（无）'}\n\n用户档案：\n${input.userProfileDoc.slice(0, 1500) || '（无）'}`,
-        },
-      ],
-      { temperature: 0.2, maxTokens: 512 }
-    );
-
-    const categorySkills =
-      SPECIALIST_SKILL_MAP[out.productCategory ?? ''] ?? [];
-    const valid = (Array.isArray(out.skillIds) ? out.skillIds : []).filter(
-      (id): id is string =>
-        typeof id === 'string' && catalog.some((entry) => entry.skillId === id)
-    );
-    const merged = [
-      ...new Set([...defaults, ...categorySkills, ...valid]),
-    ].slice(0, 6);
-    if (merged.length > defaults.length) return merged;
-  } catch {
-    // fall through to defaults
-  }
-
-  return [...new Set(defaults)].slice(0, 6);
+  return [
+    isZh ? '# 30 天市场策略报告' : '# 30-Day Market Strategy Report',
+    `## ${isZh ? '执行摘要' : 'Executive Summary'}\n\n${source.summaryMarkdown}`,
+    `## ${isZh ? '产品与启动判断' : 'Product and Launch Diagnosis'}\n\n` +
+      `- **${isZh ? '产品类型' : 'Product type'}：** ${diagnosis.productType}\n` +
+      `- **${isZh ? '增长阶段' : 'Growth stage'}：** ${diagnosis.growthStage}\n` +
+      `- **${isZh ? '主要市场' : 'Primary market'}：** ${diagnosis.primaryMarket}\n` +
+      `- **${isZh ? '当前瓶颈' : 'Current bottleneck'}：** ${diagnosis.bottleneck}`,
+    `## ${isZh ? '渠道组合与理由' : 'Channel Portfolio and Rationale'}\n\n` +
+      (recommendationSections || (isZh ? '本轮暂无执行渠道。' : 'No execution channels this round.')) +
+      (skippedRecommendations.length > 0
+        ? `\n\n### ${isZh ? '本轮跳过' : 'Skipped this round'}\n\n${skippedRecommendations
+            .map((item) => `- ${item.channelName}：${item.rationale}`)
+            .join('\n')}`
+        : ''),
+    `## ${isZh ? '30 天发布计划' : '30-Day Launch Plan'}\n\n${launchSections}`,
+    `## ${isZh ? 'Directory 提交计划' : 'Directory Submission Plan'}\n\n` +
+      `${source.directoryPlan.strategy}\n\n` +
+      `**${isZh ? '优先级标准' : 'Priority criteria'}：** ${source.directoryPlan.priorityCriteria.join(' / ')}\n\n` +
+      directorySections,
+    `## ${isZh ? '指标与决策门槛' : 'Metrics and Decision Gates'}\n\n${decisionGates}`,
+    `## ${isZh ? '立即开始的 3 个动作' : 'Three Actions to Start Now'}\n\n${
+      immediateActions || (isZh ? '- 确认核心定位' : '- Confirm the core positioning')
+    }`,
+  ].join('\n\n');
 }
 
 function fallbackRecommendations(
@@ -255,7 +270,7 @@ function fallbackRecommendations(
     ],
     launchPlan,
     directoryPlan,
-    specialistSkillsUsed: CHANNEL_ROUTER_SKILL_IDS,
+    specialistSkillsUsed: [...CHANNEL_RECOMMENDER_SKILL_IDS],
     updatedAt: Date.now(),
   };
 }
@@ -281,10 +296,7 @@ function normalizeResponse(
       const priority = text(row.priority, 20);
       return {
         channelId,
-        channelName:
-          text(row.channelName, 120) ||
-          (isZh ? def?.name : def?.nameEn) ||
-          channelId,
+        channelName: (isZh ? def?.name : def?.nameEn) || channelId,
         priority: priorities.has(priority)
           ? (priority as 'primary' | 'secondary' | 'explore' | 'skip')
           : ('explore' as const),
@@ -364,8 +376,7 @@ function normalizeResponse(
     }),
   };
 
-  return {
-    reportMarkdown: text(raw.reportMarkdown, 60_000, summaryMarkdown),
+  const normalized: ReportSource = {
     summaryMarkdown,
     diagnosis: {
       productType: text(diagnosisRaw.productType, 120, 'unknown'),
@@ -376,7 +387,12 @@ function normalizeResponse(
     recommendations,
     launchPlan,
     directoryPlan,
-    specialistSkillsUsed: CHANNEL_ROUTER_SKILL_IDS,
+  };
+
+  return {
+    ...normalized,
+    reportMarkdown: buildReportMarkdown(normalized, isZh),
+    specialistSkillsUsed: [...CHANNEL_RECOMMENDER_SKILL_IDS],
     updatedAt: Date.now(),
   };
 }
@@ -389,7 +405,8 @@ export async function runChannelRecommender(
   }
 
   const isZh = input.locale !== 'en';
-  const skillIds = await pickSpecialistSkills(input);
+  const traceId = crypto.randomUUID();
+  const skillIds = [...CHANNEL_RECOMMENDER_SKILL_IDS];
   const skillContent = loadSkillContents(skillIds);
   const channelCatalog = formatChannelCatalog(
     getChannelCatalog().filter((c) =>
@@ -415,14 +432,17 @@ ${channelCatalog}
 3. 对推荐渠道给出产品相关的理由、市场适配、投入强度和具体频率，避免通用套话。
 4. 输出覆盖 Day 1–30 的 launchPlan，必须有四个连续阶段，每阶段包括目标、渠道、具体动作和成功信号。
 5. 输出 directoryPlan：统一资料、筛选标准、分批提交排期与 Launch 节点配合。报告可以讲策略和排期；产品内 Directory 页的个性化平台排名由付费权限控制。
-6. reportMarkdown 是完整、排版清楚的最终报告，至少包含：执行摘要、产品与启动判断、30 天发布计划、渠道组合与理由、Directory 提交计划、指标与决策门槛、立即开始的 3 个动作。
+6. 不要返回 reportMarkdown。summaryMarkdown 只写 3–6 段执行摘要，包含产品判断、关键假设、当前瓶颈和启动原则；最终 Markdown 由服务端根据结构化字段组装。
 7. 用户档案为空时，根据项目文档做合理假设并明确标注，不得因此拒绝输出。
-8. ${isZh ? '全部用中文输出' : 'Output in English'}
-${input.feedback ? `7. 用户反馈（必须纳入）：${input.feedback}` : ''}
+8. 渠道数量必须匹配用户每周可用时间。如果是每周约 5 小时的单人团队，通常只选 1–2 个 primary、1–2 个 secondary 和最多 1 个 explore；其余 skip。
+9. Product Hunt、Hacker News 这类集中发布节点不得因为“产品是技术工具”就默认 primary；要同时说明准备程度、用户重合、转化路径和投入。
+10. 禁止用“最理想渠道”“成功发布将带来曝光”等无项目证据的套话。
+11. 目标市场语言与渠道 locales 不匹配时，默认 skip；除非项目或用户档案明确说明已有该语言内容能力、本地受众或渠道资源。
+12. ${isZh ? '全部用中文输出' : 'Output in English'}
+${input.feedback ? `13. 用户反馈（必须纳入）：${input.feedback}` : ''}
 
 # 输出格式（严格 JSON，字段见 channel-recommender 契约）
 {
-  "reportMarkdown": "# 完整市场策略报告...",
   "summaryMarkdown": "...",
   "diagnosis": { "productType": "...", "growthStage": "...", "primaryMarket": "...", "bottleneck": "..." },
   "recommendations": [{ "channelId": "...", "channelName": "...", "priority": "primary|secondary|explore|skip", "fitScore": 0-100, "rationale": "...", "marketFit": "...", "effortLevel": "low|medium|high", "suggestedCadence": "..." }],
@@ -450,7 +470,14 @@ ${boundedBusinessContext(input.campaignContext)}`;
   try {
     const out = await callOpenRouterJson<Record<string, unknown>>(messages, {
       temperature: 0.35,
-      maxTokens: 10_000,
+      maxTokens: 5_500,
+      promptCache: true,
+      trace: {
+        agentName: 'channel_recommender',
+        operation: 'generate_market_report',
+        traceId,
+        metadata: { skillIds },
+      },
     });
     const normalized = normalizeResponse(out, isZh);
     return { ...normalized, specialistSkillsUsed: skillIds };

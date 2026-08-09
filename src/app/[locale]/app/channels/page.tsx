@@ -20,7 +20,7 @@ export default function ChannelAgentsPage() {
     () => Object.values(store.launch?.channelPlans ?? {}),
     [store.launch?.channelPlans]
   );
-  const roles = store.launch?.blueprint?.channelRoles ?? [];
+  const roles = store.launch?.channelRecommendations?.recommendations ?? [];
   const plansRevision = plans.reduce((sum, plan) => sum + plan.revision, 0);
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function ChannelAgentsPage() {
                     {plan.channelName}{isZh ? ' 专员' : ' Agent'}
                   </strong>
                   <span className="mt-0.5 block truncate text-[11px] text-zinc-500">
-                    {role?.role || plan.mission}
+                    {role?.rationale || plan.mission}
                   </span>
                 </span>
                 {role?.priority && (

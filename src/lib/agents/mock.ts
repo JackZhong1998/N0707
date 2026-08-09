@@ -12,6 +12,7 @@ import type {
   DirectorResponse,
   StrategyResponse,
 } from '@/lib/gtm/types';
+import { clampChannelContent } from '@/lib/gtm/channel-content-limits';
 import { channelName, getChannelCatalog } from './catalog';
 import { getChannelDefinition } from './skills/channel-map';
 import { SUPPORTED_LAUNCH_CHANNELS } from '@/lib/gtm/launch';
@@ -45,6 +46,7 @@ export async function mockDirector(input: {
     const channelId = channelIds.find((id) => id !== 'directory') ?? getChannelCatalog()[0]?.channelId;
     if (channelId) {
       const date = new Date().toLocaleDateString('en-CA');
+      const wantsZh = /中文|中国|简体|zh-?cn/i.test(msg);
       return {
         reply: '我会把这条任务直接加到行动日历。',
         actions: [{
@@ -54,6 +56,13 @@ export async function mockDirector(input: {
           brief: msg,
           date,
           writeNow: /(直接写|写好|成稿|write now|draft it)/i.test(msg),
+          ...(wantsZh
+            ? {
+                outputLocale: 'zh-CN',
+                market: '中国大陆',
+                audience: '中文用户',
+              }
+            : {}),
         }],
       };
     }
@@ -98,7 +107,7 @@ export async function mockDirector(input: {
 
   if (input.hasStrategy && !input.hasTodos) {
     return {
-      reply: '渠道计划已经就绪。要我现在为这些渠道生成 30 天 Todo 吗？',
+      reply: '渠道计划已经就绪。要我现在为这些渠道生成未来 7 天 Todo 吗？',
       actions: [{ type: 'generate_todos', channelIds: channelIds.length > 0 ? channelIds : getChannelCatalog().slice(0, 4).map((c) => c.channelId) }],
     };
   }
@@ -112,7 +121,7 @@ export async function mockDirector(input: {
     }
     return {
       reply:
-        '计划正在按同一套 Campaign Blueprint 推进。你可以直接告诉我要改哪一部分，我只会更新未来未完成的工作；发布记录保持不变。',
+        '计划正在按已确认的市场策略和渠道计划推进。你可以直接告诉我要改哪一部分，我只会更新未来未完成的工作；发布记录保持不变。',
     };
   }
 
@@ -489,13 +498,19 @@ function channelMarketInfo(channelId: string): { market: string; audience: strin
 
 export async function mockChannelTodos(input: {
   channelId: string;
+  windowStartDay?: number;
+  windowEndDay?: number;
 }): Promise<ChannelTodosResponse> {
   await delay(1800);
   const pattern = TODO_PATTERNS[input.channelId] ?? GENERIC_PATTERN;
+  const startDay = input.windowStartDay ?? 1;
+  const endDay = input.windowEndDay ?? Math.min(30, startDay + 6);
   const definition = getChannelDefinition(input.channelId);
   const { market, audience } = channelMarketInfo(input.channelId);
   return {
-    todos: pattern.map((p) => ({
+    todos: pattern
+      .filter((p) => p.day >= startDay && p.day <= endDay)
+      .map((p) => ({
       dayIndex: p.day,
       title: p.title,
       brief: p.brief,
@@ -506,8 +521,8 @@ export async function mockChannelTodos(input: {
       purpose: p.phase,
       pillar: p.phase,
       taskType: definition?.defaultTaskTypes[0] ?? 'content',
-      launchStatus: p.day <= 7 ? 'draft' : 'planned',
-    })),
+        launchStatus: 'draft',
+      })),
   };
 }
 
@@ -517,7 +532,7 @@ export async function mockChannelWrite(input: {
   channelId: string;
 }): Promise<ChannelWriteResponse> {
   await delay(1500);
-  return {
+  const drafted = {
     title: input.title.replace(/^发布/, '').replace(/帖$/, ''),
     body: `【安全演示草稿 · 发布前请补充真实细节】
 
@@ -529,6 +544,7 @@ export async function mockChannelWrite(input: {
 
 补充材料后，再按当前渠道的原生格式完成开头、正文和行动邀请。`,
   };
+  return clampChannelContent(input.channelId, drafted);
 }
 
 export async function mockChannelChat(input: {

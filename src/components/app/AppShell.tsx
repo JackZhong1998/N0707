@@ -48,7 +48,8 @@ type NavigationKey =
   | 'documents'
   | 'directory'
   | 'posts'
-  | 'publisher';
+  | 'publisher'
+  | 'traces';
 
 type NavigationItem = {
   key: NavigationKey;
@@ -154,6 +155,7 @@ function AvatarFallback() {
 }
 
 function getActiveKey(pathname: string): NavigationKey {
+  if (pathname.includes('/app/agent-traces')) return 'traces';
   if (pathname.includes('/app/posts')) return 'posts';
   if (pathname.includes('/app/directories') || pathname.includes('/app/launch-kit')) {
     return 'directory';
@@ -230,7 +232,7 @@ function getRouteViewContext(
     return {
       view: 'launch_blueprint',
       entityType: 'launch_blueprint',
-      title: isZh ? '推广蓝图' : 'Campaign Blueprint',
+      title: isZh ? '市场策略报告' : 'Market Strategy Report',
     };
   }
   if (pathname.includes('/app/posts')) {
@@ -461,7 +463,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         key: 'todo',
         href: '/app/calendar',
         label: 'Todo',
-        description: isZh ? '按渠道查看 30 天任务' : '30-day tasks by channel',
+        description: isZh ? '按渠道查看滚动 7 天任务' : 'Rolling 7-day tasks by channel',
         icon: 'calendar',
         iconTone: 'bg-amber-400/12 text-amber-300',
       },
@@ -500,6 +502,17 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         description: isZh ? '安装、检测与连接状态' : 'Install and connection status',
         icon: 'plugin',
         iconTone: 'bg-orange-500/12 text-orange-300',
+        lowFrequency: true,
+      },
+      {
+        key: 'traces',
+        href: '/app/agent-traces',
+        label: isZh ? '调用记录' : 'Agent traces',
+        description: isZh
+          ? '耗时、Skill、搜索与缓存'
+          : 'Latency, Skills, search, and cache',
+        icon: 'data',
+        iconTone: 'bg-violet-500/12 text-violet-300',
         lowFrequency: true,
       },
     ],

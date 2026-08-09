@@ -25,7 +25,10 @@ import type { ViewContext } from './view-context';
 import type { ProductResearchResult } from '@/lib/agents/researcher';
 import type { WeeklyReflectionResult } from '@/lib/agents/reflection';
 import type { TopicPlanResponse } from '@/lib/agents/topic-planner';
-import { buildAgentContextEnvelope } from './agent-context';
+import {
+  buildAgentContextEnvelope,
+  buildTodoEditContextEnvelope,
+} from './agent-context';
 
 async function post<T>(
   url: string,
@@ -93,7 +96,7 @@ export function callStrategist(input: {
   store: GtmStore;
   feedback?: string;
   locale: string;
-  phase?: 'blueprint' | 'channel' | 'full';
+  phase?: 'channel' | 'full';
   existingOverview?: string;
 }): Promise<StrategyResponse> {
   const digest = input.store.directorChat
@@ -179,6 +182,9 @@ export function callChannelTodos(input: {
   locale: string;
   /** 策略刚生成、React 状态尚未刷新时的最新文档 */
   strategyMarkdownOverride?: string;
+  windowStartDay?: number;
+  windowEndDay?: number;
+  planningNote?: string;
 }): Promise<ChannelTodosResponse> {
   return post('/api/agents/channel-todos', {
     channelId: input.channelId,
@@ -192,6 +198,9 @@ export function callChannelTodos(input: {
       channelId: input.channelId,
     }),
     targetMarkets: input.store.targetMarkets ?? [],
+    windowStartDay: input.windowStartDay,
+    windowEndDay: input.windowEndDay,
+    planningNote: input.planningNote,
     locale: input.locale,
   });
 }
@@ -203,6 +212,7 @@ export function callChannelWrite(input: {
 }): Promise<ChannelWriteResponse> {
   return post('/api/agents/channel-write', {
     todo: {
+      id: input.todo.id,
       channelId: input.todo.channelId,
       title: input.todo.title,
       brief: input.todo.brief,
@@ -224,6 +234,11 @@ export function callChannelWrite(input: {
       channelId: input.todo.channelId,
       todoId: input.todo.id,
     }),
+    sessionId: [
+      input.store.launch?.project.id ?? 'project',
+      input.todo.channelId,
+      input.todo.id,
+    ].join(':'),
     locale: input.locale,
   });
 }
@@ -265,10 +280,11 @@ export function callChannelChat(input: {
   message: string;
   store: GtmStore;
   locale: string;
+  contentOnly?: boolean;
 }): Promise<ChannelChatResponse> {
-  const channelTodos = input.store.todos.filter(
-    (t) => t.channelId === input.todo.channelId
-  );
+  const channelTodos = input.contentOnly
+    ? []
+    : input.store.todos.filter((t) => t.channelId === input.todo.channelId);
   return post('/api/agents/channel-chat', {
     todo: {
       id: input.todo.id,
@@ -292,10 +308,18 @@ export function callChannelChat(input: {
       .join('\n'),
     userProfileDoc: input.store.userProfileDoc,
     projectProfileDoc: input.store.projectProfileDoc,
-    campaignContext: buildAgentContextEnvelope(input.store, {
-      channelId: input.todo.channelId,
-      todoId: input.todo.id,
-    }),
+    campaignContext: input.contentOnly
+      ? buildTodoEditContextEnvelope(input.store, input.todo.id)
+      : buildAgentContextEnvelope(input.store, {
+          channelId: input.todo.channelId,
+          todoId: input.todo.id,
+        }),
+    contentOnly: input.contentOnly === true,
+    sessionId: [
+      input.store.launch?.project.id ?? 'project',
+      input.todo.channelId,
+      input.todo.id,
+    ].join(':'),
     locale: input.locale,
   });
 }

@@ -1,5 +1,6 @@
 let activeRequest = null;
-const ADAPTER_VERSION = 'xhs-0.4.0';
+const ADAPTER_VERSION = 'xhs-0.4.2';
+let loginWatchTimer = null;
 
 function emit(status, detail = {}) {
   if (!activeRequest) return;
@@ -48,13 +49,86 @@ function normalizeText(value) {
     .trim();
 }
 
+function loginRequiredError(
+  message = '请先在小红书网页端完成登录；登录成功后插件会自动继续填写'
+) {
+  const error = new Error(message);
+  error.blocker = 'login_required';
+  return error;
+}
+
+/** Creator-center login wall (QR / phone login) during publish. */
+function isPublishLoginWall() {
+  try {
+    if (/\/(?:login|signin|sign-in|passport|account)(?:\/|$)/i.test(location.pathname)) {
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  // Already inside the note editor — not a login wall.
+  if (findUploadImageTab() || findTitleInput() || findTextCoverButton() || findBodyEditor()) {
+    return false;
+  }
+  const text = document.body?.innerText || '';
+  return /扫码登录|手机号登录|验证码登录|请先登录|登录后即可|马上登录|登录创作中心|登录后发布|微信扫码登录/.test(
+    text
+  );
+}
+
+function stopLoginWatch() {
+  if (loginWatchTimer) {
+    window.clearInterval(loginWatchTimer);
+    loginWatchTimer = null;
+  }
+}
+
+function watchLoginThenReady() {
+  if (loginWatchTimer) return;
+  const started = Date.now();
+  loginWatchTimer = window.setInterval(() => {
+    if (!activeRequest) {
+      stopLoginWatch();
+      return;
+    }
+    if (!isPublishLoginWall()) {
+      stopLoginWatch();
+      chrome.runtime.sendMessage({
+        type: 'NOWBUILD_CHANNEL_READY',
+        channel: 'xiaohongshu',
+      });
+      return;
+    }
+    if (Date.now() - started > 10 * 60 * 1000) {
+      stopLoginWatch();
+      emit('failed', {
+        error: '等待小红书登录超时，请登录后重新点击准备发布',
+        adapterVersion: ADAPTER_VERSION,
+      });
+    }
+  }, 1000);
+}
+
+function pauseForLogin(message) {
+  emit('blocked', {
+    message:
+      message ||
+      '请先在小红书网页端完成登录；登录成功后插件会自动继续填写',
+    blocker: 'login_required',
+    adapterVersion: ADAPTER_VERSION,
+  });
+  watchLoginThenReady();
+}
+
 async function waitForValue(factory, errorMessage, timeout = 30000) {
   const started = Date.now();
   while (Date.now() - started < timeout) {
+    if (isPublishLoginWall()) throw loginRequiredError();
     const value = factory();
     if (value) return value;
     await sleep(250);
   }
+  if (isPublishLoginWall()) throw loginRequiredError();
   throw new Error(errorMessage);
 }
 
@@ -290,21 +364,38 @@ function watchForPublish() {
 
 async function start(request) {
   activeRequest = request;
+  stopLoginWatch();
   try {
-    const content = request.content || {};
-    const title = String(content.title || '').trim();
-    if ([...title].length > 20) {
-      throw new Error('小红书标题不能超过 20 个字符');
+    if (isPublishLoginWall()) {
+      pauseForLogin();
+      return;
     }
+
+    const content = request.content || {};
+    let title = String(content.title || '').trim();
+    const titleChars = [...title];
+    if (titleChars.length > 20) {
+      title = titleChars.slice(0, 20).join('');
+      emit('filling', {
+        message: `小红书标题已截断至 20 字：${title}`,
+        adapterVersion: ADAPTER_VERSION,
+      });
+    }
+    if (!title) throw new Error('没有可以填写的小红书标题');
     const hashtags = uniqueHashtags(content.hashtags)
       .map((tag) => `#${tag}`)
       .join(' ');
-    const body = [String(content.body || '').trim(), hashtags]
+    let body = [String(content.body || '').trim(), hashtags]
       .filter(Boolean)
       .join('\n\n');
     if (!body) throw new Error('没有可以填写的小红书正文');
-    if ([...body].length > 1000) {
-      throw new Error('小红书正文和标签合计不能超过 1000 个字符');
+    const bodyChars = [...body];
+    if (bodyChars.length > 1000) {
+      body = bodyChars.slice(0, 1000).join('');
+      emit('filling', {
+        message: '小红书正文和标签已截断至 1000 字',
+        adapterVersion: ADAPTER_VERSION,
+      });
     }
 
     const editors = await openFinalEditor(content);
@@ -319,6 +410,10 @@ async function start(request) {
       adapterVersion: ADAPTER_VERSION,
     });
   } catch (error) {
+    if (error?.blocker === 'login_required' || isPublishLoginWall()) {
+      pauseForLogin(error?.message);
+      return;
+    }
     emit('failed', {
       error: error?.message || '无法填写小红书发布页面',
       adapterVersion: ADAPTER_VERSION,

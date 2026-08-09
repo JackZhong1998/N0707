@@ -32,12 +32,14 @@ do next.
 7. Prepare accurate title, description, headings, internal links, image alt text,
    Open Graph data, and structured data when relevant.
 8. Validate mobile hierarchy, accessibility, working links, loading performance,
-   and consistency with the Launch Blueprint before marking the task ready.
+   and consistency with the market strategy report before marking the task ready.
 
 ## Guardrails
 
 - Never invent customer logos, testimonials, usage numbers, savings, rankings,
   guarantees, integrations, or performance claims.
+- If pricing, trial length, credit-card requirements, cancellation terms, or
+  access conditions are not confirmed, omit that microcopy entirely.
 - Do not turn every task into a full redesign. Change the smallest page section
   that advances the current campaign goal.
 - A/B-test ideas are hypotheses, not proof. State the signal and measurement
@@ -46,6 +48,6 @@ do next.
 
 ## Deliverable
 
-Return the target page/section, reason for the change, audience and traffic
-source, final copy, CTA, required assets, SEO metadata when applicable,
-verification checklist, and the success signal to observe.
+Return final copy and CTA first. Include assets, SEO metadata, or a verification
+checklist only when the Todo requests them. For a publish-ready copy Todo, keep
+implementation notes and internal testing instructions outside the body.

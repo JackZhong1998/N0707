@@ -1,4 +1,5 @@
 import { getAiBudget, recordAiUsage } from '@/lib/ai-budget';
+import { createHash } from 'node:crypto';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -18,6 +19,37 @@ export interface OpenRouterOptions {
   maxTokens?: number;
   jsonMode?: boolean;
   reasoningEffort?: 'none' | 'minimal' | 'low' | 'medium' | 'high';
+  /** Stable workflow key used only for OpenRouter provider stickiness. */
+  sessionId?: string;
+  /** Enables provider prompt caching for repeatable Anthropic workflows. */
+  promptCache?: boolean;
+  /** Lightweight observability metadata; never contains raw prompt content. */
+  trace?: {
+    agentName: string;
+    operation: string;
+    traceId?: string;
+    jsonAttempt?: number;
+    metadata?: Record<string, unknown>;
+  };
+}
+
+function boundedSessionId(value: string | undefined): string | undefined {
+  const normalized = value?.trim().replace(/[^a-zA-Z0-9:_-]+/g, '_');
+  return normalized ? normalized.slice(0, 256) : undefined;
+}
+
+function promptMetrics(messages: OpenRouterMessage[]) {
+  const serialized = JSON.stringify(messages);
+  return {
+    promptHash: createHash('sha256').update(serialized).digest('hex'),
+    systemChars: messages
+      .filter((message) => message.role === 'system')
+      .reduce((sum, message) => sum + message.content.length, 0),
+    userChars: messages
+      .filter((message) => message.role === 'user')
+      .reduce((sum, message) => sum + message.content.length, 0),
+    messageCount: messages.length,
+  };
 }
 
 function getModelCandidates(preferred?: string): string[] {
@@ -80,8 +112,11 @@ export async function callOpenRouter(
     budget.shouldDowngrade ? budgetModel : options.model
   );
   let lastError = 'No models available';
+  const metrics = promptMetrics(messages);
+  const sessionId = boundedSessionId(options.sessionId);
 
-  for (const model of models) {
+  for (const [modelIndex, model] of models.entries()) {
+    const requestStartedAt = Date.now();
     const response = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
       headers: {
@@ -99,6 +134,10 @@ export async function callOpenRouter(
         // Explicitly disabling it also prevents reasoning-first models from
         // exhausting max_tokens before producing message.content.
         reasoning: { effort: options.reasoningEffort ?? 'none' },
+        ...(sessionId ? { session_id: sessionId } : {}),
+        ...(options.promptCache && model.startsWith('anthropic/')
+          ? { cache_control: { type: 'ephemeral' } }
+          : {}),
         ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
     });
@@ -107,6 +146,7 @@ export async function callOpenRouter(
       const data = (await response.json()) as {
         id?: string;
         model?: string;
+        provider?: string;
         choices?: Array<{
           finish_reason?: string;
           message?: {
@@ -117,6 +157,10 @@ export async function callOpenRouter(
           prompt_tokens?: number;
           completion_tokens?: number;
           cost?: number;
+          prompt_tokens_details?: {
+            cached_tokens?: number;
+            cache_write_tokens?: number;
+          };
         };
       };
       const rawContent = data.choices?.[0]?.message?.content;
@@ -131,21 +175,83 @@ export async function callOpenRouter(
         lastError =
           `OpenRouter (${model}) returned empty response` +
           ` (finish_reason=${data.choices?.[0]?.finish_reason ?? 'unknown'})`;
+        await recordAiUsage(budget, {
+          requestId: data.id,
+          model: data.model ?? model,
+          provider: data.provider,
+          promptTokens: data.usage?.prompt_tokens ?? 0,
+          completionTokens: data.usage?.completion_tokens ?? 0,
+          cachedTokens: data.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+          cacheWriteTokens:
+            data.usage?.prompt_tokens_details?.cache_write_tokens ?? 0,
+          providerCostUsd: data.usage?.cost ?? 0,
+          durationMs: Date.now() - requestStartedAt,
+          agentName: options.trace?.agentName,
+          operation: options.trace?.operation,
+          traceId: options.trace?.traceId,
+          sessionId,
+          ...metrics,
+          jsonAttempt: options.trace?.jsonAttempt ?? 1,
+          modelAttempt: modelIndex + 1,
+          metadata: {
+            ...options.trace?.metadata,
+            promptCacheRequested: options.promptCache === true,
+            outcome: 'empty_response',
+            finishReason: data.choices?.[0]?.finish_reason ?? 'unknown',
+          },
+        });
         console.warn(lastError);
         continue;
       }
       await recordAiUsage(budget, {
         requestId: data.id,
         model: data.model ?? model,
+        provider: data.provider,
         promptTokens: data.usage?.prompt_tokens ?? 0,
         completionTokens: data.usage?.completion_tokens ?? 0,
+        cachedTokens: data.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+        cacheWriteTokens:
+          data.usage?.prompt_tokens_details?.cache_write_tokens ?? 0,
         providerCostUsd: data.usage?.cost ?? 0,
+        durationMs: Date.now() - requestStartedAt,
+        agentName: options.trace?.agentName,
+        operation: options.trace?.operation,
+        traceId: options.trace?.traceId,
+        sessionId,
+        ...metrics,
+        jsonAttempt: options.trace?.jsonAttempt ?? 1,
+        modelAttempt: modelIndex + 1,
+        metadata: {
+          ...options.trace?.metadata,
+          promptCacheRequested: options.promptCache === true,
+          outcome: 'success',
+        },
       });
       return content;
     }
 
     const errorText = await response.text();
     lastError = formatOpenRouterError(response.status, errorText);
+    await recordAiUsage(budget, {
+      model,
+      promptTokens: 0,
+      completionTokens: 0,
+      providerCostUsd: 0,
+      durationMs: Date.now() - requestStartedAt,
+      agentName: options.trace?.agentName,
+      operation: options.trace?.operation,
+      traceId: options.trace?.traceId,
+      sessionId,
+      ...metrics,
+      jsonAttempt: options.trace?.jsonAttempt ?? 1,
+      modelAttempt: modelIndex + 1,
+      metadata: {
+        ...options.trace?.metadata,
+        promptCacheRequested: options.promptCache === true,
+        outcome: 'http_error',
+        httpStatus: response.status,
+      },
+    });
     console.warn(`OpenRouter model ${model} failed: ${lastError}`);
 
     if (!isRetryableOpenRouterError(response.status, errorText)) {
@@ -258,7 +364,13 @@ export async function callOpenRouterJson<T>(
       attempt === 0
         ? messages
         : [...messages, { role: 'user' as const, content: JSON_RETRY_NUDGE }];
-    const raw = await callOpenRouter(attemptMessages, { ...options, jsonMode: true });
+    const raw = await callOpenRouter(attemptMessages, {
+      ...options,
+      jsonMode: true,
+      trace: options.trace
+        ? { ...options.trace, jsonAttempt: attempt + 1 }
+        : undefined,
+    });
     try {
       return parseJsonFromLlm<T>(raw);
     } catch (err) {

@@ -7,5 +7,5 @@ export default async function LegacyStrategyPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  redirect(`/${locale}/app/blueprint`);
+  redirect(`/${locale}/app/documents/recommendations`);
 }

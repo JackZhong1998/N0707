@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "NowBuild Publisher",
   "description": "Fill publishing and product-directory forms in your existing browser sessions, then collect public performance data.",
-  "version": "0.9.15",
+  "version": "0.9.17",
   "icons": {
     "16": "assets/nowbuild-logo-16.png",
     "32": "assets/nowbuild-logo-32.png",

@@ -45,7 +45,7 @@ remain in the Directory Workspace.
 - Form submission, third-party data transfer, OAuth/login, CAPTCHA, and payment
   require explicit user confirmation at execution time.
 - Default to free, editorially reviewed, product-relevant directories unless the
-  Blueprint or user says otherwise.
+  market strategy report or user says otherwise.
 - Never claim traffic, authority, approval speed, or pricing without a current
   retrieved source. Label unknown values as unknown.
 - Never fabricate testimonials, customer counts, founder details, addresses,

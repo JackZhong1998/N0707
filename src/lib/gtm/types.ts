@@ -5,7 +5,7 @@
  * 1. 市场总监（Director）— 对话主入口，通过工具调用驱动其他 Agent
  * 2. 策略生成（Strategist）— 输出市场策略 + 各渠道方向性文档
  * 3. 上下文管理（Context）— 累积用户个人档案 / 项目档案
- * 4. 渠道专员（Channel Specialist）— 生成 30 天 To-Do、单条内容撰写、对话修改
+ * 4. 渠道专员（Channel Specialist）— 滚动生成未来 7 天 To-Do、单条内容撰写、对话修改
  */
 
 export type ChatRole = 'user' | 'assistant';
@@ -38,6 +38,27 @@ export interface MemoryFact {
   confirmed: boolean;
   sourceMessageIds: string[];
   updatedAt: number;
+  /** Optional targeting for reusable writing preferences. */
+  scope?: 'global' | 'channel';
+  channelId?: string;
+  sourceTodoId?: string;
+}
+
+export type RewritePreferenceKind =
+  | 'length'
+  | 'tone'
+  | 'wording'
+  | 'structure'
+  | 'format'
+  | 'emoji'
+  | 'cta'
+  | 'claims'
+  | 'other';
+
+export interface RewritePreference {
+  scope: 'global' | 'channel';
+  kind: RewritePreferenceKind;
+  rule: string;
 }
 
 export interface PendingAgentRequest {
@@ -330,12 +351,16 @@ export interface TodoContent {
   title: string;
   body: string;
   research?: {
-    status: 'grounded' | 'no_results' | 'unavailable';
+    status: 'grounded' | 'no_results' | 'skipped' | 'unavailable';
     searchedAt: number;
+    queries?: string[];
     sources: Array<{
       title: string;
       url: string;
       publishedAt?: string;
+      /** Stored so copy edits can preserve the original evidence without searching again. */
+      excerpt?: string;
+      score?: number;
     }>;
   };
 }
@@ -946,6 +971,12 @@ export type DirectorAction =
       date: string;
       time?: string;
       writeNow?: boolean;
+      /** Campaign day 1–30; used when date is omitted or to align with startDate. */
+      dayIndex?: number;
+      targetMarketId?: string;
+      market?: string;
+      outputLocale?: string;
+      audience?: string;
     }
   | {
       type: 'write_artifact';
@@ -985,7 +1016,12 @@ export type DirectorAction =
       cta?: string;
     }
   | { type: 'generate_todo_content'; todoId: string }
-  | { type: 'rewrite_todo_content'; todoId: string; feedback: string }
+  | {
+      type: 'rewrite_todo_content';
+      todoId: string;
+      feedback: string;
+      preferences?: RewritePreference[];
+    }
   | { type: 'optimize_plan'; channelIds: string[]; feedback: string }
   | {
       type: 'update_launch_artifact';

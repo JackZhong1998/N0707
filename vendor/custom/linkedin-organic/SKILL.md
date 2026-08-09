@@ -19,7 +19,7 @@ LinkedIn is not a corporate press-release feed and not a copy of X.
 
 ## Planning rules
 
-- Start from the Launch Blueprint's audience, pillars, weekly narrative, and
+- Start from the market strategy report's audience and the channel plan's weekly direction and
   product-intensity level.
 - Choose a native format deliberately: concise text post, story/lesson, opinion
   with reasoning, case breakdown, document/carousel brief, poll, or public

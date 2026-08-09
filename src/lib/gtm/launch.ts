@@ -93,9 +93,9 @@ export function createBriefResearchSteps(isZh: boolean): ResearchProgressStep[] 
 
 export function createCampaignBuildSteps(isZh: boolean): ResearchProgressStep[] {
   return [
-    { id: 'blueprint', label: isZh ? '建立 30 天 Campaign Blueprint' : 'Building the campaign blueprint', status: 'pending' },
+    { id: 'blueprint', label: isZh ? '确认市场策略与渠道优先级' : 'Confirming market strategy and channel priorities', status: 'pending' },
     { id: 'channels', label: isZh ? '组建全部 Channel Agents' : 'Building every channel plan', status: 'pending' },
-    { id: 'calendar', label: isZh ? '安排 30 天全渠道任务' : 'Scheduling the 30-day calendar', status: 'pending' },
+    { id: 'calendar', label: isZh ? '安排首批 7 天全渠道任务' : 'Scheduling the first 7 days', status: 'pending' },
     { id: 'day1', label: isZh ? '安排 Day 1 任务' : 'Scheduling Day 1 tasks', status: 'pending' },
   ];
 }

@@ -467,7 +467,16 @@ async function extractProduct(
         content: `产品官网：${website}\n\n${formatDocuments(documents).slice(0, 70_000)}`,
       },
     ],
-    { temperature: 0.2, maxTokens: 5_000 }
+    {
+      temperature: 0.2,
+      maxTokens: 5_000,
+      trace: {
+        agentName: 'product_research',
+        operation: 'extract_product_profile',
+        traceId: crypto.randomUUID(),
+        metadata: { sourceDocumentCount: documents.length },
+      },
+    }
   );
 }
 
@@ -700,7 +709,16 @@ ${JSON.stringify(
 ${digest.slice(0, 18_000)}`,
       },
     ],
-    { temperature: 0.2, maxTokens: 2_500 }
+    {
+      temperature: 0.2,
+      maxTokens: 2_500,
+      trace: {
+        agentName: 'product_research',
+        operation: 'shortlist_competitors',
+        traceId: crypto.randomUUID(),
+        metadata: { searchHitCount: input.searchHits.length },
+      },
+    }
   );
 
   const allowedOrigins = new Set(
@@ -842,7 +860,16 @@ async function analyzeCompetitors(input: {
         )}`,
       },
     ],
-    { temperature: 0.25, maxTokens: 7_000 }
+    {
+      temperature: 0.25,
+      maxTokens: 7_000,
+      trace: {
+        agentName: 'product_research',
+        operation: 'analyze_competitors',
+        traceId: crypto.randomUUID(),
+        metadata: { candidateCount: input.candidates.length },
+      },
+    }
   );
 }
 
@@ -999,7 +1026,16 @@ ${input.competitorAnalysis.competitorAnalysisMarkdown.slice(0, 30_000)}
 ${sourceUrls.join('\n') || input.websiteUrl}`,
       },
     ],
-    { temperature: 0.15, maxTokens: 6_000 }
+    {
+      temperature: 0.15,
+      maxTokens: 6_000,
+      trace: {
+        agentName: 'product_research',
+        operation: 'synthesize_launch_brief',
+        traceId: crypto.randomUUID(),
+        metadata: { sourceUrlCount: sourceUrls.length },
+      },
+    }
   );
 
   return normalizeSynthesizedBrief({

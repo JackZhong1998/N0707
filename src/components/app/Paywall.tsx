@@ -22,7 +22,7 @@ export default function Paywall({
   const benefits = isZh
     ? [
         ['每天约 30 分钟审核', '研究、内容和发布材料提前准备好'],
-        ['30 天 Launch Blueprint', '定位、目标用户、渠道优先级与四周方向'],
+        ['30 天市场策略报告', '定位、目标用户、渠道优先级与四周方向'],
         ['每日可审核的交付', '内容草稿、制作 Brief、发布包和渠道任务'],
         ['完整渠道执行', '社交、社区、视频、SEO、官网与产品发布'],
         [`${CONFIGURED_DIRECTORY_COUNT} 个目录自动提交`, '从 100+ 机会中匹配并跟踪提交状态'],
@@ -30,7 +30,7 @@ export default function Paywall({
       ]
     : [
         ['About 30 minutes of review a day', 'Research, content, and publishing materials arrive prepared'],
-        ['30-day Launch Blueprint', 'Position, audience, channel priorities, and four-week direction'],
+        ['30-day Market Strategy Report', 'Position, audience, channel priorities, and four-week direction'],
         ['Ready-to-review daily work', 'Drafts, production briefs, launch packages, and channel tasks'],
         ['Complete channel execution', 'Social, community, video, SEO, website, and product launches'],
         [`Automated submission to ${CONFIGURED_DIRECTORY_COUNT} directories`, 'Matched from 100+ opportunities with submission status tracked'],

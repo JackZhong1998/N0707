@@ -18,9 +18,24 @@ export interface AiBudget {
 export interface AiUsageEvent {
   requestId?: string;
   model: string;
+  provider?: string;
   promptTokens: number;
   completionTokens: number;
+  cachedTokens?: number;
+  cacheWriteTokens?: number;
   providerCostUsd: number;
+  durationMs?: number;
+  agentName?: string;
+  operation?: string;
+  traceId?: string;
+  sessionId?: string;
+  promptHash?: string;
+  systemChars?: number;
+  userChars?: number;
+  messageCount?: number;
+  jsonAttempt?: number;
+  modelAttempt?: number;
+  metadata?: Record<string, unknown>;
 }
 
 function positiveNumber(value: string | undefined, fallback: number): number {
@@ -107,7 +122,7 @@ export async function recordAiUsage(
   const providerCostUsd = Math.max(0, usage.providerCostUsd);
   const billedCostUsd = providerCostUsd * (1 + feeRate);
 
-  const { error } = await getServiceSupabase().from('ai_usage_events').insert({
+  const legacyRow = {
     user_id: budget.userId,
     request_id: usage.requestId || null,
     model: usage.model,
@@ -115,7 +130,35 @@ export async function recordAiUsage(
     completion_tokens: Math.max(0, Math.trunc(usage.completionTokens)),
     provider_cost_usd: providerCostUsd,
     billed_cost_usd: billedCostUsd,
-  });
+  };
+  const traceRow = {
+    ...legacyRow,
+    provider: usage.provider || null,
+    cached_tokens: Math.max(0, Math.trunc(usage.cachedTokens ?? 0)),
+    cache_write_tokens: Math.max(0, Math.trunc(usage.cacheWriteTokens ?? 0)),
+    duration_ms: Math.max(0, Math.trunc(usage.durationMs ?? 0)),
+    agent_name: usage.agentName || null,
+    operation: usage.operation || null,
+    trace_id: usage.traceId || null,
+    session_id: usage.sessionId || null,
+    prompt_hash: usage.promptHash || null,
+    system_chars: Math.max(0, Math.trunc(usage.systemChars ?? 0)),
+    user_chars: Math.max(0, Math.trunc(usage.userChars ?? 0)),
+    message_count: Math.max(0, Math.trunc(usage.messageCount ?? 0)),
+    json_attempt: Math.max(1, Math.trunc(usage.jsonAttempt ?? 1)),
+    model_attempt: Math.max(1, Math.trunc(usage.modelAttempt ?? 1)),
+    trace_metadata: usage.metadata ?? {},
+  };
+  const table = getServiceSupabase().from('ai_usage_events');
+  let { error } = await table.insert(traceRow);
+  if (
+    error &&
+    /column|schema cache|cached_tokens|trace_metadata|duration_ms/i.test(error.message)
+  ) {
+    // Deploys may run briefly against the previous schema. Preserve billing
+    // accounting until the additive trace migration is applied.
+    ({ error } = await getServiceSupabase().from('ai_usage_events').insert(legacyRow));
+  }
   if (error) {
     // The user already received the model output, so accounting failure should
     // be observable without turning a successful generation into a 500.

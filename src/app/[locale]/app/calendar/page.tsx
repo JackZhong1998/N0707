@@ -5,7 +5,7 @@
  *
  * - 未支付：展示预写好的模拟日历（整个产品区由 AppShell 的蒙层 + 支付墙接管）
  * - 已支付未生成：仍展示模拟日历 + 引导横幅（去和市场总监对话）
- * - 计划就绪：展示专属真实 30 天 To-Do 日历（默认全部日期）
+ * - 计划就绪：展示按周复盘、滚动生成的 7 天 To-Do
  */
 
 import { Suspense, useCallback, useEffect, useMemo } from 'react';

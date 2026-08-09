@@ -98,7 +98,7 @@ export default function HeroBlueprint({ isZh, weeks, channels }: HeroBlueprintPr
         >
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-              {isZh ? '产品推广蓝图' : 'Product launch blueprint'}
+              {isZh ? '市场策略与执行计划' : 'Market strategy and execution plan'}
             </p>
             <h2 className="mt-1 text-lg font-semibold text-white">
               {isZh ? '从产品定位到 30 天分发' : 'From positioning to 30 days of distribution'}

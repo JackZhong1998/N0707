@@ -1,6 +1,7 @@
 'use client';
 
 import { sanitizeDirectoryLaunchKitForExtension } from '@/lib/directories/materials';
+import { clampChannelContent } from '@/lib/gtm/channel-content-limits';
 import type {
   DirectoryAssetSpec,
   DirectoryLaunchKit,
@@ -267,6 +268,15 @@ export function publishWithExtension(
 ): { requestId: string; completion: Promise<PublisherEvent>; cancel: () => Promise<void> } {
   const requestId = crypto.randomUUID();
   let settled = false;
+  const clamped = clampChannelContent(channel, {
+    title: content.title,
+    body: content.body,
+  });
+  const publishContent: PublisherContent = {
+    ...content,
+    title: clamped.title,
+    body: clamped.body,
+  };
 
   const completion = new Promise<PublisherEvent>((resolve, reject) => {
     function onMessage(event: MessageEvent) {
@@ -305,7 +315,7 @@ export function publishWithExtension(
       'PUBLISH',
       {
         requestId,
-        payload: { requestId, channel, content, options },
+        payload: { requestId, channel, content: publishContent, options },
       },
       5000
     ).catch((error) => {

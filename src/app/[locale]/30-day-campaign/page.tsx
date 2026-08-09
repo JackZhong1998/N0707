@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : 'How the 30-Day Campaign Works | NowBuild Product Tour';
   const description = isZh
     ? '从输入产品网址开始，了解 NowBuild 如何研究市场、制定 30 天推广蓝图、规划渠道、准备每日内容，并根据反馈完成每周复盘。'
-    : 'See how NowBuild turns one product URL into a Launch Brief, shared Campaign Blueprint, channel-native plans, daily deliverables, and weekly reviews.';
+    : 'See how NowBuild turns one product URL into a project document, market strategy report, channel-native plans, daily deliverables, and weekly reviews.';
   return {
     title,
     description,
@@ -78,7 +78,7 @@ export default async function CampaignExperiencePage({ params }: Props) {
     : [
         ['01', 'Research the product and market', 'Read the product site, public capabilities, business model, audiences, competitors, and alternatives—then label the confidence of every important input.'],
         ['02', 'Build the Launch Brief', 'Bring together what the product is, who it serves, the problem it solves, how it should be positioned, and what still needs verification.'],
-        ['03', 'Create the Campaign Blueprint', 'Define one 30-day goal, core position, campaign pillars, four-week narrative, and the factual guardrails shared by every channel.'],
+        ['03', 'Create the market strategy report', 'Recommend channels, define priorities, and set a focused four-week direction from the confirmed project information.'],
         ['04', 'Assemble the channel team', 'Give every channel its own jobs, native formats, cadence, and success signals instead of copying one announcement everywhere.'],
       ];
 
@@ -93,7 +93,7 @@ export default async function CampaignExperiencePage({ params }: Props) {
       ]
     : [
         ['Launch Brief', 'One source of truth for the product, audience, position, competitors, and evidence.'],
-        ['Campaign Blueprint', 'The 30-day goal, three to five campaign pillars, four-week narrative, and channel roles.'],
+        ['Market strategy report', 'Recommended channels, their priorities and rationale, plus a focused four-week direction.'],
         ['Channel Plans', 'A native audience, format mix, cadence, product-mention rules, and risks for every channel.'],
         ['Launch Calendar', 'An executable week one and a connected—but never artificially filled—skeleton for days 8–30.'],
         ['Daily Deliverables', 'Open a task to generate review-ready copy or a script, storyboard, slide plan, and art direction.'],

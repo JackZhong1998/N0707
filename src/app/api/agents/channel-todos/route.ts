@@ -9,6 +9,12 @@ function text(value: unknown, maxLength: number): string {
   return typeof value === 'string' ? value.slice(0, maxLength) : '';
 }
 
+function day(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.trunc(value)
+    : undefined;
+}
+
 export async function POST(request: Request) {
   if (!(await checkAuth())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -45,6 +51,9 @@ export async function POST(request: Request) {
           if (!id || !name || !region || !language || !locale) return [];
           return [{ id, name, region, language, locale, audience: text(market.audience, 500) || undefined, isDefault: market.isDefault === true }];
         }),
+      windowStartDay: day(body.windowStartDay),
+      windowEndDay: day(body.windowEndDay),
+      planningNote: text(body.planningNote, 8_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
     });
     return NextResponse.json(result);

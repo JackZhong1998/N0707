@@ -5,6 +5,7 @@ import {
 } from './channel-capabilities';
 import { resolvePendingChannelPlanIds } from './launch';
 import type { AgentWorkStepDraft } from './agent-work-jobs';
+import { todoWindowAfterWeek } from './todo-window';
 
 /** Expand Director actions into durable, preferably sub-5-minute steps. */
 export function expandDirectorActionsToSteps(
@@ -78,14 +79,8 @@ export function expandDirectorActionsToSteps(
       }
 
       case 'generate_strategy': {
-        // Blueprint-sized overview first when missing, then per-channel.
-        if (!store.strategy?.overviewMarkdown) {
-          push({
-            stepKey: `${prefix}:strategy_blueprint`,
-            stepType: 'strategy_blueprint',
-            actionPayload: action as unknown as Record<string, unknown>,
-          });
-        }
+        // Older Director responses used this action name. It now means the
+        // same thing as regenerating the requested channel plans.
         for (const channelId of action.channelIds) {
           push({
             stepKey: `${prefix}:strategy_channel:${channelId}`,
@@ -112,7 +107,12 @@ export function expandDirectorActionsToSteps(
             stepKey: `${prefix}:todos:${channelId}`,
             stepType: 'channel_todos',
             channelId,
-            actionPayload: { type: 'generate_todos', channelId },
+            actionPayload: {
+              type: 'generate_todos',
+              channelId,
+              windowStartDay: 1,
+              windowEndDay: 7,
+            },
           });
         }
         if (requested.some((channelId) => !channelHasCalendarTodos(channelId))) {
@@ -167,13 +167,41 @@ export function expandDirectorActionsToSteps(
         });
         break;
 
-      case 'generate_weekly_review':
+      case 'generate_weekly_review': {
+        const dueWeek = store.launch
+          ? Math.max(
+              1,
+              Math.min(4, Math.floor(store.launch.project.currentDay / 7))
+            )
+          : 0;
+        const alreadyApplied = Boolean(
+          store.launch?.weeklyReviews.some(
+            (review) => review.week === dueWeek && review.status === 'applied'
+          )
+        );
         push({
           stepKey: `${prefix}:weekly_review`,
           stepType: 'weekly_review',
           actionPayload: action as unknown as Record<string, unknown>,
         });
+        const nextWindow = todoWindowAfterWeek(dueWeek);
+        if (nextWindow && !alreadyApplied) {
+          for (const channelId of filterCalendarChannelIds(store.channels)) {
+            push({
+              stepKey: `${prefix}:next_week_todos:${nextWindow.startDay}:${channelId}`,
+              stepType: 'channel_todos',
+              channelId,
+              actionPayload: {
+                type: 'weekly_review_followup',
+                channelId,
+                windowStartDay: nextWindow.startDay,
+                windowEndDay: nextWindow.endDay,
+              },
+            });
+          }
+        }
         break;
+      }
 
       case 'generate_todo_content':
         push({

@@ -1,0 +1,4 @@
+interface:
+  display_name: "User Interview"
+  short_description: "Plan credible interviews and synthesize evidence"
+  default_prompt: "Use $user-interview to plan an interview study or produce an interview deliverable."

@@ -83,6 +83,7 @@ export default function TaskDetailPage({
   const [pendingPublishingContext, setPendingPublishingContext] =
     useState<PublishingContextPatch | null>(null);
   const writeRequestedRef = useRef<string | null>(null);
+  const loginPromptedRef = useRef(false);
   const { setViewContext, clearViewContext } = useViewContext();
 
   const todo = store.todos.find((t) => t.id === id);
@@ -390,6 +391,7 @@ export default function TaskDetailPage({
 
     const text = getContentText();
     setPublishing(true);
+    loginPromptedRef.current = false;
     setPublishMessage(isZh ? '正在连接发布插件…' : 'Connecting to the publisher…');
 
     const latestPublisher = publisher ?? (await detectPublisherExtension());
@@ -411,6 +413,20 @@ export default function TaskDetailPage({
             publishError: event.error,
           });
           if (event.postUrl) setManualUrl(event.postUrl);
+          if (event.status === 'waiting_login' && !loginPromptedRef.current) {
+            loginPromptedRef.current = true;
+            gtm.addAgentNotification({
+              title: isZh
+                ? `请先登录${todo.channelName}`
+                : `Sign in to ${todo.channelName}`,
+              summary:
+                event.message ||
+                (isZh
+                  ? '请在打开的平台页完成登录；成功后插件会自动继续，无需重新点击发布。'
+                  : 'Finish signing in on the open platform tab. The extension will continue automatically.'),
+              priority: 'important',
+            });
+          }
         }
       );
       try {
@@ -471,10 +487,17 @@ export default function TaskDetailPage({
         const message = error instanceof Error ? error.message : isZh ? '发布未完成' : 'Publishing did not finish';
         gtm.updateTodo(id, { publishStatus: 'failed', publishError: message });
         setPublishMessage(message);
+        const looksLikeDetection =
+          /未响应|timeout|did not finish|未完成|detection/i.test(message) &&
+          !/标题|字符|正文|登录|填写/i.test(message);
         gtm.addAgentNotification({
           title: isZh
-            ? `${todo.channelName} 发布检测未完成`
-            : `${todo.channelName} publish detection did not finish`,
+            ? looksLikeDetection
+              ? `${todo.channelName} 发布检测未完成`
+              : `${todo.channelName} 发布失败`
+            : looksLikeDetection
+              ? `${todo.channelName} publish detection did not finish`
+              : `${todo.channelName} publishing failed`,
           summary: message,
           priority: 'important',
         });
@@ -636,6 +659,28 @@ export default function TaskDetailPage({
               ))}
             </select>
           </label>
+          <label className="sm:col-span-2">
+            <span className="index-label">{isZh ? '这条 To-do 的目标人群' : 'Audience for this Todo'}</span>
+            <input
+              type="text"
+              value={todo.audience ?? ''}
+              disabled={Boolean(todo.publishedUrl)}
+              placeholder={
+                isZh
+                  ? '例如：中国市场独立开发者、中文推特早期用户'
+                  : 'e.g. Chinese indie builders on X'
+              }
+              onChange={(event) =>
+                updatePublishingContext({
+                  targetMarketId: todo.targetMarketId,
+                  market: todo.market,
+                  outputLocale: effectiveOutputLocale,
+                  audience: event.target.value.slice(0, 500) || undefined,
+                })
+              }
+              className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-zinc-950 px-3 text-xs text-ink outline-none placeholder:text-zinc-600 focus:border-white/25 disabled:opacity-50"
+            />
+          </label>
           <p className="text-[11px] leading-5 text-zinc-500 sm:col-span-2">
             {todo.publishedUrl
               ? isZh
@@ -766,6 +811,21 @@ export default function TaskDetailPage({
               </a>
             </div>
             )}
+            {todo.publishStatus === 'waiting_login' && (
+              <div className="rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] px-4 py-3">
+                <p className="text-sm font-medium text-ink">
+                  {isZh
+                    ? `请先在打开的${todo.channelName}页面完成登录`
+                    : `Sign in on the open ${todo.channelName} tab first`}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-zinc-400">
+                  {publishMessage ||
+                    (isZh
+                      ? '登录成功后插件会自动继续填写，无需重新点击发布。可点浏览器通知切回平台页。'
+                      : 'After you sign in, the extension continues automatically — no need to click publish again. Use the browser notification to jump back to the platform tab.')}
+                </p>
+              </div>
+            )}
             {showPublishButton ? (
               <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -778,9 +838,13 @@ export default function TaskDetailPage({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                   </svg>
                   {publishing
-                    ? isZh
-                      ? '发布处理中…'
-                      : 'Publishing…'
+                    ? todo.publishStatus === 'waiting_login'
+                      ? isZh
+                        ? '等待平台登录…'
+                        : 'Waiting for login…'
+                      : isZh
+                        ? '发布处理中…'
+                        : 'Publishing…'
                     : isZh
                       ? `准备发布到${todo.channelName}`
                       : `Prepare for ${todo.channelName}`}

@@ -32,17 +32,22 @@ import {
   pollAgentWork,
 } from './api-client';
 import { addDays, parseDateStr, todayStr } from './dates';
-import { defaultTargetMarket, resolveTodoMarket } from './target-markets';
+import {
+  resolveCreateTodoMarket,
+  resolveTodoMarket,
+} from './target-markets';
 import { buildAgentContextEnvelope } from './agent-context';
 import { filterCalendarChannelIds } from './channel-capabilities';
 import {
-  chooseTopicScheduleDay,
+  chooseTopicScheduleDays,
   chooseTopicScheduleTime,
 } from './topic-scheduling';
 import { applyStrategyToChannelPlans, resolvePendingChannelPlanIds } from './launch';
 import { buildDirectoryLaunchKit } from '@/lib/directories/materials';
 import { applyDirectoryMaterialValues } from '@/lib/directories/material-card';
 import { defaultWorkLabel } from './agent-work-expand';
+import { saveRewritePreferences } from './content-preferences';
+import { normalizeTodoWindow, todoWindowAfterWeek } from './todo-window';
 import { formatKickoffAnswers } from './kickoff';
 import {
   buildChannelSelectOptionCard,
@@ -581,8 +586,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
         await publishDirectorMessage({
           role: 'assistant',
           content: isZh
-            ? `Campaign Blueprint 和各渠道打法已经更新：\n\n${channelSummary}\n\n系统会继续生成或重排未来未完成任务；已发布内容和历史数据保持不变。你随时可以直接指出要改的部分。`
-            : `The Campaign Blueprint and channel plays are updated:\n\n${channelSummary}\n\nThe system will continue generating or replanning future unfinished work. Published content and history stay unchanged, and you can request a correction at any time.`,
+            ? `各渠道计划已经更新：\n\n${channelSummary}\n\n系统会继续生成或重排未来未完成任务；已发布内容和历史数据保持不变。你随时可以直接指出要改的部分。`
+            : `The channel plans are updated:\n\n${channelSummary}\n\nThe system will continue generating or replanning future unfinished work. Published content and history stay unchanged, and you can request a correction at any time.`,
         });
         return true;
       } catch (err) {
@@ -834,10 +839,12 @@ export function useDirector(defaultViewContext?: ViewContext) {
           if (!/unauthorized|401|403/i.test(message)) throw err;
 
           const existingOverview =
+            launch?.channelRecommendations?.reportMarkdown ||
+            launch?.channelRecommendations?.summaryMarkdown ||
             storeRef.current.strategy?.overviewMarkdown ||
             (launch?.brief
               ? [
-                  `# ${isZh ? 'Campaign 主线' : 'Campaign spine'}`,
+                  `# ${isZh ? '市场策略摘要' : 'Market strategy summary'}`,
                   launch.brief.positioning.statement,
                   launch.brief.audience.primary,
                   ...launch.brief.positioning.sellingPoints.map((d) => `- ${d}`),
@@ -1028,11 +1035,21 @@ export function useDirector(defaultViewContext?: ViewContext) {
   const runGenerateTodos = useCallback(
     async (
       requestedChannelIds: string[],
-      options?: { preservePublished?: boolean; storeOverride?: GtmStore }
+      options?: {
+        preservePublished?: boolean;
+        storeOverride?: GtmStore;
+        windowStartDay?: number;
+        windowEndDay?: number;
+        planningNote?: string;
+      }
     ) => {
       const channelIds = filterCalendarChannelIds(requestedChannelIds);
       if (channelIds.length === 0) return;
       const isZh = locale !== 'en';
+      const window = normalizeTodoWindow(
+        options?.windowStartDay,
+        options?.windowEndDay
+      );
       const taskId = `todos-${Date.now()}`;
       setBackgroundTasks((t) => [...t, taskId]);
       const startDate =
@@ -1049,8 +1066,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
         card: {
           kind: 'agent-task',
           label: isZh
-            ? `渠道专员正在编写 To-Do（0/${channelIds.length}）…`
-            : `Writing todos (0/${channelIds.length})…`,
+            ? `渠道专员正在编写 Day ${window.startDay}–${window.endDay} To-Do（0/${channelIds.length}）…`
+            : `Writing Day ${window.startDay}–${window.endDay} todos (0/${channelIds.length})…`,
           status: 'running',
         },
       });
@@ -1068,6 +1085,9 @@ export function useDirector(defaultViewContext?: ViewContext) {
               locale,
               strategyMarkdownOverride:
                 freshStrategiesRef.current[channelId]?.markdown,
+              windowStartDay: window.startDay,
+              windowEndDay: window.endDay,
+              planningNote: options?.planningNote,
             });
             const channelDoc = executionStore.channelStrategies[channelId];
             const channelName =
@@ -1090,22 +1110,44 @@ export function useDirector(defaultViewContext?: ViewContext) {
               ...resolveTodoMarket(t, executionStore.targetMarkets),
               status: 'pending',
               launchStatus:
-                t.launchStatus ?? (t.dayIndex <= 7 ? 'draft' : 'planned'),
+                t.launchStatus ?? 'draft',
               contentStatus: 'none',
               revision: 1,
             }));
             if (todos.length === 0) {
               throw new Error(isZh ? '任务为空' : 'No todos returned');
             }
-            const preserved = options?.preservePublished
-              ? storeRef.current.todos.filter(
-                  (todo) => todo.channelId === channelId && todo.publishedUrl
-                )
-              : [];
-            const publishedDays = new Set(preserved.map((todo) => todo.dayIndex));
+            const existing = storeRef.current.todos.filter(
+              (todo) => todo.channelId === channelId
+            );
+            const outsideWindow = existing.filter(
+              (todo) =>
+                todo.dayIndex < window.startDay ||
+                todo.dayIndex > window.endDay
+            );
+            const lockedInWindow = existing.filter(
+              (todo) =>
+                todo.dayIndex >= window.startDay &&
+                todo.dayIndex <= window.endDay &&
+                (Boolean(todo.publishedUrl) ||
+                  todo.status === 'done' ||
+                  todo.launchStatus === 'published' ||
+                  todo.launchStatus === 'completed')
+            );
+            const lockedKeys = new Set(
+              lockedInWindow.map(
+                (todo) => `${todo.dayIndex}:${todo.title.trim().toLowerCase()}`
+              )
+            );
             gtm.replaceChannelTodos(channelId, [
-              ...preserved,
-              ...todos.filter((todo) => !publishedDays.has(todo.dayIndex)),
+              ...outsideWindow,
+              ...lockedInWindow,
+              ...todos.filter(
+                (todo) =>
+                  !lockedKeys.has(
+                    `${todo.dayIndex}:${todo.title.trim().toLowerCase()}`
+                  )
+              ),
             ]);
             succeeded += 1;
             await publishDirectorMessage({
@@ -1131,8 +1173,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
               card: {
                 kind: 'agent-task',
                 label: isZh
-                  ? `渠道专员正在编写 To-Do（${finished}/${channelIds.length}）…`
-                  : `Writing todos (${finished}/${channelIds.length})…`,
+                  ? `渠道专员正在编写 Day ${window.startDay}–${window.endDay} To-Do（${finished}/${channelIds.length}）…`
+                  : `Writing Day ${window.startDay}–${window.endDay} todos (${finished}/${channelIds.length})…`,
                 status:
                   finished === channelIds.length
                     ? succeeded > 0
@@ -1171,7 +1213,9 @@ export function useDirector(defaultViewContext?: ViewContext) {
           content: '',
           card: {
             kind: 'calendar',
-            title: isZh ? '30 天行动日历已就绪' : 'Your 30-day calendar is ready',
+            title: isZh
+              ? `Day ${window.startDay}–${window.endDay} 行动日历已就绪`
+              : `Your Day ${window.startDay}–${window.endDay} calendar is ready`,
           },
         });
       } else if (succeeded > 0) {
@@ -1201,14 +1245,29 @@ export function useDirector(defaultViewContext?: ViewContext) {
       action: Extract<DirectorAction, { type: 'create_todo' }>,
       agentJobId?: string
     ) => {
-      const startDate = storeRef.current.startDate ?? action.date;
-      const dayIndex = Math.max(
-        1,
-        Math.floor(
-          (parseDateStr(action.date).getTime() - parseDateStr(startDate).getTime()) /
-            86_400_000
-        ) + 1
-      );
+      const startDate =
+        storeRef.current.startDate ??
+        storeRef.current.launch?.project.startDate ??
+        action.date;
+      const dayIndexFromAction =
+        typeof action.dayIndex === 'number' &&
+        Number.isFinite(action.dayIndex) &&
+        action.dayIndex >= 1 &&
+        action.dayIndex <= 30
+          ? Math.trunc(action.dayIndex)
+          : undefined;
+      const date = dayIndexFromAction
+        ? addDays(startDate, dayIndexFromAction - 1)
+        : action.date;
+      const dayIndex =
+        dayIndexFromAction ??
+        Math.max(
+          1,
+          Math.floor(
+            (parseDateStr(date).getTime() - parseDateStr(startDate).getTime()) /
+              86_400_000
+          ) + 1
+        );
       let todo: Todo = {
         id: crypto.randomUUID(),
         channelId: action.channelId,
@@ -1216,7 +1275,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
           storeRef.current.channelStrategies[action.channelId]?.channelName ??
           action.channelId,
         dayIndex,
-        date: action.date,
+        date,
         time: action.time,
         title: action.title,
         brief: action.brief,
@@ -1226,12 +1285,15 @@ export function useDirector(defaultViewContext?: ViewContext) {
         launchStatus: action.writeNow ? 'generating' : 'planned',
         contentStatus: action.writeNow ? 'writing' : 'none',
         revision: 1,
-        ...(() => {
-          const market = defaultTargetMarket(storeRef.current.targetMarkets);
-          return market
-            ? { market: market.name, targetMarketId: market.id, outputLocale: market.locale, audience: market.audience }
-            : {};
-        })(),
+        ...resolveCreateTodoMarket(
+          {
+            targetMarketId: action.targetMarketId,
+            market: action.market,
+            outputLocale: action.outputLocale,
+            audience: action.audience,
+          },
+          storeRef.current.targetMarkets
+        ),
       };
       if (action.writeNow) {
         const written = await callChannelWrite({
@@ -1256,8 +1318,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
         agentJobId,
         content:
           locale !== 'en'
-            ? `已新增 Todo「${todo.title}」，安排在 ${todo.date}${todo.time ? ` ${todo.time}` : ''}${action.writeNow ? '，可发布初稿也已写好' : ''}。`
-            : `Created “${todo.title}” for ${todo.date}${todo.time ? ` at ${todo.time}` : ''}${action.writeNow ? ' and prepared the publish-ready draft' : ''}.`,
+            ? `已新增 Todo「${todo.title}」，安排在 ${todo.date}${todo.time ? ` ${todo.time}` : ''}${todo.outputLocale ? `，发布语言 ${todo.outputLocale}` : ''}${todo.audience ? `，面向 ${todo.audience}` : ''}${action.writeNow ? '，可发布初稿也已写好' : ''}。`
+            : `Created “${todo.title}” for ${todo.date}${todo.time ? ` at ${todo.time}` : ''}${todo.outputLocale ? ` in ${todo.outputLocale}` : ''}${todo.audience ? ` for ${todo.audience}` : ''}${action.writeNow ? ' and prepared the publish-ready draft' : ''}.`,
         card: {
           kind: 'calendar',
           title: locale !== 'en' ? '新 Todo 已进入日历' : 'New todo added to the calendar',
@@ -1405,11 +1467,13 @@ export function useDirector(defaultViewContext?: ViewContext) {
               : 'Topic planning returned no usable topics'
           );
         }
-        const scheduleDay = options?.scheduleTodos
-          ? chooseTopicScheduleDay(storeRef.current)
-          : null;
+        const scheduleDays = options?.scheduleTodos
+          ? chooseTopicScheduleDays(storeRef.current, result.topics.length)
+          : [];
         let scheduledCount = 0;
-        for (const planned of result.topics) {
+        const scheduledDates = new Set<string>();
+        for (const [topicIndex, planned] of result.topics.entries()) {
+          const scheduleDay = scheduleDays[topicIndex] ?? null;
           const topic = gtm.createTopic({
             title: planned.title,
             source: planned.source,
@@ -1448,16 +1512,24 @@ export function useDirector(defaultViewContext?: ViewContext) {
                   .join('\n'),
                 purpose: topic.corePoint,
                 taskType: 'content',
-                audience: topic.targetAudience,
+                ...resolveCreateTodoMarket(
+                  { audience: topic.targetAudience },
+                  storeRef.current.targetMarkets
+                ),
                 status: 'pending',
                 launchStatus: 'draft',
                 contentStatus: 'none',
                 revision: 1,
               });
               scheduledCount += 1;
+              scheduledDates.add(scheduleDay.date);
             }
           }
         }
+        const scheduleSummary =
+          scheduledDates.size > 1
+            ? `${[...scheduledDates].sort()[0]} … ${[...scheduledDates].sort().at(-1)}`
+            : [...scheduledDates][0];
         const artifact = gtm.createArtifact({
           kind: 'topic_plan',
           title: result.title || '7 天选题计划',
@@ -1475,7 +1547,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
         gtm.patchDirectorMessage(cardMessage.id, {
           card: {
             kind: 'agent-task',
-            label: scheduleDay
+            label: scheduleDays.length > 0
               ? locale !== 'en'
                 ? `新选题已新增 ${scheduledCount} 个渠道 Todo`
                 : `New topic added as ${scheduledCount} channel todos`
@@ -1486,10 +1558,10 @@ export function useDirector(defaultViewContext?: ViewContext) {
         await publishDirectorMessage({
           role: 'assistant',
           content:
-            scheduleDay && locale !== 'en'
-              ? `已把「${result.topics[0]?.title ?? options?.brief ?? '新选题'}」拆成 ${scheduledCount} 个渠道版本，并追加到 ${scheduleDay.date} 的 Todo。原有日历没有被覆盖。`
-              : scheduleDay
-                ? `Added “${result.topics[0]?.title ?? options?.brief ?? 'New topic'}” as ${scheduledCount} channel-specific todos on ${scheduleDay.date}. The existing calendar was preserved.`
+            scheduleDays.length > 0 && locale !== 'en'
+              ? `已把「${result.topics[0]?.title ?? options?.brief ?? '新选题'}」拆成 ${scheduledCount} 个渠道版本，并分散排到 ${scheduleSummary}（共 ${scheduledDates.size} 天）。原有日历没有被覆盖。`
+              : scheduleDays.length > 0
+                ? `Added “${result.topics[0]?.title ?? options?.brief ?? 'New topic'}” as ${scheduledCount} channel-specific todos across ${scheduleSummary} (${scheduledDates.size} day${scheduledDates.size === 1 ? '' : 's'}). The existing calendar was preserved.`
                 : locale !== 'en'
               ? `${result.summary}\n\n完整选题计划已经放到左侧工作区，所有渠道版本也已进入选题库并可继续排期。哪里不对味直接告诉我，我会只修改未来未发布的内容。`
               : `${result.summary}\n\nThe full plan is in the workspace and every channel variant is in the topic library, ready for scheduling. Tell me what feels off and I will change only future unpublished work.`,
@@ -1690,6 +1762,18 @@ export function useDirector(defaultViewContext?: ViewContext) {
         store: storeRef.current,
         locale,
       });
+      const launchAtReviewStart = storeRef.current.launch;
+      const dueWeek = launchAtReviewStart
+        ? Math.max(
+            1,
+            Math.min(4, Math.floor(launchAtReviewStart.project.currentDay / 7))
+          )
+        : 0;
+      const reviewWasAlreadyApplied = Boolean(
+        launchAtReviewStart?.weeklyReviews.some(
+          (review) => review.week === dueWeek && review.status === 'applied'
+        )
+      );
       const safeProposals = result.evidenceSufficient
         ? result.proposals.filter((proposal) => !proposal.requiresConfirmation)
         : [];
@@ -1763,10 +1847,6 @@ export function useDirector(defaultViewContext?: ViewContext) {
 
       const currentLaunch = storeRef.current.launch;
       if (currentLaunch) {
-        const dueWeek = Math.max(
-          1,
-          Math.min(4, Math.floor(currentLaunch.project.currentDay / 7))
-        );
         const calendarRevision: LaunchRevision | undefined =
           appliedChanges.length > 0
             ? {
@@ -1871,6 +1951,28 @@ export function useDirector(defaultViewContext?: ViewContext) {
           },
         });
       }
+      const nextWindow = todoWindowAfterWeek(dueWeek);
+      if (
+        nextWindow &&
+        !reviewWasAlreadyApplied &&
+        storeRef.current.channels.length > 0
+      ) {
+        const planningNote = [
+          result.summary,
+          safeProposals.length > 0
+            ? `${locale !== 'en' ? '下周已采用的调整' : 'Adjustments to apply next week'}:\n${safeProposals
+                .map((proposal) => `- ${proposal.title}: ${proposal.reason}`)
+                .join('\n')}`
+            : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n');
+        await runGenerateTodos(storeRef.current.channels, {
+          windowStartDay: nextWindow.startDay,
+          windowEndDay: nextWindow.endDay,
+          planningNote,
+        });
+      }
     } catch (error) {
       if (cardMessage) {
         gtm.patchDirectorMessage(cardMessage.id, {
@@ -1898,10 +2000,14 @@ export function useDirector(defaultViewContext?: ViewContext) {
     } finally {
       setBackgroundTasks((tasks) => tasks.filter((id) => id !== taskId));
     }
-  }, [gtm, locale, publishDirectorMessage]);
+  }, [gtm, locale, publishDirectorMessage, runGenerateTodos]);
 
   const runRewriteTodoContent = useCallback(
-    async (todoId: string, feedback: string) => {
+    async (
+      action: Extract<DirectorAction, { type: 'rewrite_todo_content' }>,
+      sourceMessageIds: string[] = []
+    ) => {
+      const { todoId, feedback } = action;
       const todo = storeRef.current.todos.find((item) => item.id === todoId);
       if (!todo) {
         await publishDirectorMessage({
@@ -1928,14 +2034,16 @@ export function useDirector(defaultViewContext?: ViewContext) {
           message: feedback,
           store: storeRef.current,
           locale,
+          contentOnly: true,
         });
-        const content =
-          result.rewriteContent ??
-          (await callChannelWrite({
-            todo: { ...todo, brief: `${todo.brief}\n用户最新意见：${feedback}` },
-            store: storeRef.current,
-            locale,
-          }));
+        const content = result.rewriteContent;
+        if (!content) {
+          throw new Error(
+            locale !== 'en'
+              ? '改稿 Agent 未返回可用正文'
+              : 'The editor did not return usable content'
+          );
+        }
         const latest = storeRef.current.todos.find((item) => item.id === todo.id);
         const previousVersion = latest?.contentRevision ?? 1;
         const history = latest?.content
@@ -1956,8 +2064,27 @@ export function useDirector(defaultViewContext?: ViewContext) {
           contentRevision: previousVersion + 1,
           contentHistory: history,
         });
+        if (action.preferences?.length) {
+          gtm.setMemoryState(
+            storeRef.current.conversationSummary,
+            saveRewritePreferences({
+              memoryFacts: storeRef.current.memoryFacts,
+              preferences: action.preferences,
+              channelId: todo.channelId,
+              todoId: todo.id,
+              sourceMessageIds,
+            }),
+            0
+          );
+        }
         gtm.patchDirectorMessage(cardMessage.id, {
-          card: { kind: 'agent-task', label: '内容已更新到左侧', status: 'done' },
+          card: {
+            kind: 'agent-task',
+            label: action.preferences?.length
+              ? '内容已更新，这次的写作偏好会用于后续内容'
+              : '内容已更新到左侧',
+            status: 'done',
+          },
         });
       } catch (error) {
         gtm.patchDirectorMessage(cardMessage.id, {
@@ -2131,6 +2258,10 @@ export function useDirector(defaultViewContext?: ViewContext) {
         time,
         title: topic.title,
         brief,
+        ...resolveCreateTodoMarket(
+          { audience: topic.targetAudience },
+          storeRef.current.targetMarkets
+        ),
         status: 'pending',
         contentStatus: 'none',
       });
@@ -2218,8 +2349,8 @@ export function useDirector(defaultViewContext?: ViewContext) {
           role: 'assistant',
           content:
             locale !== 'en'
-              ? '支付前只能修改 Launch Brief。完整 Blueprint、渠道计划和任务会在解锁 Agent Team 后生成。'
-              : 'Before payment you can only edit the Launch Brief. Blueprint, channel plans, and tasks generate after unlocking the Agent Team.',
+              ? '支付前只能修改项目文档。市场策略报告、渠道计划和任务会在解锁 Agent Team 后生成。'
+              : 'Before payment you can only edit the project document. The market strategy report, channel plans, and tasks generate after unlocking the Agent Team.',
         });
         return;
       }
@@ -2532,7 +2663,7 @@ export function useDirector(defaultViewContext?: ViewContext) {
         } else if (action.type === 'generate_todo_content') {
           await runGenerateTodoContent(action.todoId, executionId);
         } else if (action.type === 'rewrite_todo_content') {
-          await runRewriteTodoContent(action.todoId, action.feedback);
+          await runRewriteTodoContent(action, sourceMessageIds);
         } else if (action.type === 'optimize_plan') {
           const ids =
             action.channelIds.length > 0

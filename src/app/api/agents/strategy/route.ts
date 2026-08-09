@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       campaignContext: text(body.campaignContext, 60_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
       phase:
-        body.phase === 'blueprint' || body.phase === 'channel' || body.phase === 'full'
+        body.phase === 'channel' || body.phase === 'full'
           ? body.phase
           : 'full',
     });

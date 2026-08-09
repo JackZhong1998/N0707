@@ -44,8 +44,8 @@ export default async function FlowSteps() {
             <p className="text-base font-bold text-ink">{isZh ? '想先看完整产品体验？' : 'Want the complete product walkthrough first?'}</p>
             <p className="mt-2 text-sm leading-6 text-ink-muted">
               {isZh
-                ? '查看从产品研究、Campaign Blueprint、渠道计划到每日交付和每周复盘的完整流程。'
-                : 'Walk through product research, the campaign blueprint, channel plans, daily deliverables, and weekly reviews.'}
+                ? '查看从产品研究、市场策略报告、渠道计划到每日交付和每周复盘的完整流程。'
+                : 'Walk through product research, the market strategy report, channel plans, daily deliverables, and weekly reviews.'}
             </p>
           </div>
           <Link href="/30-day-campaign" className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-ink px-6 text-sm font-semibold text-white transition hover:bg-zinc-800">

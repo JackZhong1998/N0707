@@ -1,0 +1,4 @@
+interface:
+  display_name: "Twitter / X"
+  short_description: "Plan and write evidence-grounded X content"
+  default_prompt: "Use $twitter-x to plan or write an evidence-grounded X post for this campaign."

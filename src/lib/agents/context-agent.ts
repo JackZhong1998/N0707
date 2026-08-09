@@ -71,9 +71,9 @@ export async function runContextAgent(input: ContextInput): Promise<ContextRespo
 6. 推测不得标记 confirmed；用户明确说过或确认过的才可以 confirmed=true
 7. 如果新信息推翻旧事实，输出同 category+key 的新值；系统会保留稳定 id 并替换旧值
 8. sourceMessageIds 只能使用新增对话中提供的 message_id
-9. 区分一次性修改与长期偏好：“这篇/今天/当前任务”不写入长期偏好；“以后/始终/所有渠道/从现在开始”才写入 preference 或 decision，并保留作用域
+9. 不要等用户专门说“以后都这样”。对长度、语气、用词、Emoji 和格式的稳定评价，可记为 preference；改数字、删某段、换本次 CTA 等具体操作不记偏好
 10. 已发布结果、Published URL 和历史复盘属于不可改写历史；只记录，不用后来的计划覆盖
-11. 不把某个渠道的局部偏好升级为全局规则，除非用户明确要求；memory value 中写清 global/channel/task scope
+11. 改稿产生的可复用偏好默认 scope=channel，并从界面引用或对话对象中带上 channelId；只有用户明确表达个人一贯的表达习惯才记 scope=global
 12. 每份 Markdown 档案不超过 1200 字；没有新信息的部分保持原样；${isZh ? '用中文输出（跟界面语言）' : 'Output in English (match UI locale)'}
 
 # 输出格式（严格 JSON）
@@ -88,6 +88,8 @@ export async function runContextAgent(input: ContextInput): Promise<ContextRespo
       "value": "事实或结论",
       "confidence": 0.0,
       "confirmed": true,
+      "scope": "global|channel（仅 preference 需要）",
+      "channelId": "渠道 id（scope=channel 时需要）",
       "sourceMessageIds": ["..."]
     }
   ]
@@ -131,6 +133,8 @@ ${transcript}
         value?: string;
         confidence?: number;
         confirmed?: boolean;
+        scope?: 'global' | 'channel';
+        channelId?: string;
         sourceMessageIds?: string[];
       }>;
     }
@@ -177,6 +181,23 @@ ${transcript}
         ...new Set([...(previous?.sourceMessageIds ?? []), ...newSourceIds]),
       ].slice(-24),
       updatedAt: Date.now(),
+      ...(candidate.category === 'preference' &&
+      (candidate.scope === 'global' || candidate.scope === 'channel')
+        ? {
+            scope: candidate.scope,
+            ...(candidate.scope === 'channel' && candidate.channelId?.trim()
+              ? { channelId: candidate.channelId.trim().slice(0, 120) }
+              : {}),
+          }
+        : previous?.scope
+          ? {
+              scope: previous.scope,
+              ...(previous.channelId ? { channelId: previous.channelId } : {}),
+            }
+          : {}),
+      ...(previous?.sourceTodoId
+        ? { sourceTodoId: previous.sourceTodoId }
+        : {}),
     });
   }
 

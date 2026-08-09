@@ -1,5 +1,5 @@
 /**
- * 渠道 → Gingiris Skill 映射
+ * 渠道 → Skill 映射
  * skillIds 数组按优先级排列，Agent 注入时会合并全部 SKILL.md 原文
  */
 export interface ChannelDefinition {
@@ -25,11 +25,15 @@ export interface ChannelDefinition {
 export const CHANNEL_SHARED_SKILL_IDS = [
   'custom/research-grounded-writing',
   'custom/authentic-editorial-voice',
-  'custom/creative-atom-repurposing',
 ] as const;
 
 export function getResolvedChannelSkillIds(def: ChannelDefinition): string[] {
   return [...new Set([...CHANNEL_SHARED_SKILL_IDS, ...def.skillIds])];
+}
+
+/** Strategy and Todo planning need the platform method, not writing-only rules. */
+export function getChannelPlanningSkillIds(def: ChannelDefinition): string[] {
+  return [...new Set(def.skillIds)];
 }
 
 export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
@@ -50,7 +54,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'user_outreach',
-    skillIds: ['gingiris-kol-outreach', 'kol-outreach'],
+    skillIds: ['custom/private-outreach'],
     name: '私域 / 朋友圈',
     nameEn: 'Private Outreach',
     description: '朋友圈信任建设 + 精准私信触达，转化路径最短的渠道',
@@ -65,7 +69,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'website_copy',
-    skillIds: ['custom/website-conversion', 'gingiris-seo-geo-agent'],
+    skillIds: ['custom/website-conversion'],
     name: '官网 / 落地页',
     nameEn: 'Website Copy',
     description: 'Day1 落地页 Hero 优化，所有渠道流量的转化枢纽',
@@ -95,7 +99,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'user_interview',
-    skillIds: ['gingiris-user-interview'],
+    skillIds: ['custom/user-interview'],
     name: '用户访谈',
     nameEn: 'User Interview',
     description: 'PMF 验证与用户发现，验证不足时的 Phase 0 核心',
@@ -110,10 +114,10 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'product_hunt',
-    skillIds: ['product-hunt-playbook', 'gingiris-launch', 'product-hunt-launch-guide'],
+    skillIds: ['custom/product-hunt'],
     name: 'Product Hunt',
     nameEn: 'Product Hunt',
-    description: '海外产品发布集中曝光节点，冲榜有完整 SOP',
+    description: '海外产品集中发布与反馈节点，用清晰产品叙事和真实互动获得曝光',
     medium: 'community',
     outputMode: 'production_package',
     deliverables: ['tagline', '产品描述', 'Maker Comment', '发布素材 brief'],
@@ -125,7 +129,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'twitter_x',
-    skillIds: ['gingiris-twitter-agent-ops'],
+    skillIds: ['custom/twitter-x'],
     name: 'Twitter / X',
     nameEn: 'Twitter / X',
     description: 'Build in public，海外 builder 社区主阵地',
@@ -140,7 +144,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'linkedin',
-    skillIds: ['custom/linkedin-organic', 'b2b-marketing-playbook'],
+    skillIds: ['custom/linkedin-organic'],
     name: 'LinkedIn',
     nameEn: 'LinkedIn',
     description: 'B2B 专业内容与决策者触达',
@@ -170,7 +174,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'hacker_news',
-    skillIds: ['custom/hacker-news', 'external/blog-writing-guide'],
+    skillIds: ['custom/hacker-news'],
     name: 'Hacker News',
     nameEn: 'Hacker News',
     description: 'Show HN、技术深挖与工程师社区对话，以可验证细节和取舍而非营销话术取得信任',
@@ -185,7 +189,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'indie_hackers',
-    skillIds: ['custom/indie-hackers', 'external/blog-writing-guide'],
+    skillIds: ['custom/indie-hackers'],
     name: 'Indie Hackers',
     nameEn: 'Indie Hackers',
     description: '用真实决策、实验和复盘写出可发布的 builder 内容，建立信任而非投放式曝光',
@@ -245,7 +249,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'seo',
-    skillIds: ['gingiris-seo-geo-agent', 'gr-blog-post', 'gr-backlinks'],
+    skillIds: ['custom/seo-content'],
     name: 'SEO 内容',
     nameEn: 'SEO',
     description: '围绕用户问题建立可持续被搜索、引用和复用的内容集群',
@@ -275,7 +279,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'github_growth',
-    skillIds: ['gingiris-opensource', 'github-stars-playbook'],
+    skillIds: ['custom/github-growth'],
     name: 'GitHub 增长',
     nameEn: 'GitHub Growth',
     description: '开源项目 GitHub Stars 增长系统',
@@ -290,7 +294,7 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
   {
     channelId: 'competitor_research',
-    skillIds: ['competitor-research-playbook'],
+    skillIds: ['custom/competitor-research'],
     name: '竞品研究',
     nameEn: 'Competitor Research',
     description: '增长飞轮拆解与竞品传播链分析',
@@ -305,14 +309,10 @@ export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
   },
 ];
 
-export const CHANNEL_ROUTER_SKILL_IDS = ['gingiris-growth-finder', 'go-to-market-playbook'];
-
 export const CHANNEL_RECOMMENDER_SKILL_IDS = [
-  ...CHANNEL_ROUTER_SKILL_IDS,
+  'custom/research-grounded-writing',
   'custom/channel-recommender',
 ] as const;
-
-export const KICKOFF_SKILL_IDS = ['go-to-market-playbook', 'startup-launch-playbook'];
 
 export function getChannelDefinition(channelId: string): ChannelDefinition | undefined {
   return CHANNEL_DEFINITIONS.find((c) => c.channelId === channelId);

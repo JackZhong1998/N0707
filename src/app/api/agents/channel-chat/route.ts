@@ -57,6 +57,29 @@ export async function POST(request: Request) {
           },
         ];
       });
+    const currentResearch =
+      current?.research && typeof current.research === 'object'
+        ? (current.research as Record<string, unknown>)
+        : undefined;
+    const currentSources = (Array.isArray(currentResearch?.sources)
+      ? currentResearch.sources
+      : []
+    ).flatMap((source) => {
+      if (!source || typeof source !== 'object') return [];
+      const item = source as Record<string, unknown>;
+      const url = text(item.url, 2_048);
+      if (!url) return [];
+      return [{
+        title: text(item.title, 300),
+        url,
+        publishedAt: text(item.publishedAt, 80) || undefined,
+        excerpt: text(item.excerpt, 1_200) || undefined,
+        score:
+          typeof item.score === 'number' && Number.isFinite(item.score)
+            ? item.score
+            : undefined,
+      }];
+    });
     const result = await runChannelChat({
       todo: {
         id: text(todo.id, 160) || crypto.randomUUID(),
@@ -77,6 +100,30 @@ export async function POST(request: Request) {
         ? {
             title: text(current.title, 1_000),
             body: text(current.body, 60_000),
+            ...(currentResearch
+              ? {
+                  research: {
+                    status: ['grounded', 'no_results', 'skipped', 'unavailable'].includes(
+                      String(currentResearch.status)
+                    )
+                      ? currentResearch.status as 'grounded' | 'no_results' | 'skipped' | 'unavailable'
+                      : 'unavailable' as const,
+                    searchedAt:
+                      typeof currentResearch.searchedAt === 'number' &&
+                      Number.isFinite(currentResearch.searchedAt)
+                        ? currentResearch.searchedAt
+                        : Date.now(),
+                    queries: (Array.isArray(currentResearch.queries)
+                      ? currentResearch.queries
+                      : []
+                    )
+                      .filter((query): query is string => typeof query === 'string')
+                      .map((query) => query.slice(0, 480))
+                      .slice(0, 4),
+                    sources: currentSources,
+                  },
+                }
+              : {}),
           }
         : undefined,
       history,
@@ -87,6 +134,8 @@ export async function POST(request: Request) {
       projectProfileDoc: text(body.projectProfileDoc, 24_000),
       campaignContext: text(body.campaignContext, 60_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
+      contentOnly: body.contentOnly === true,
+      sessionId: text(body.sessionId, 256) || undefined,
     });
     return NextResponse.json(result);
   } catch (err) {

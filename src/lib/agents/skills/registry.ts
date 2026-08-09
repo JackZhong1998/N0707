@@ -3,8 +3,6 @@ import path from 'path';
 import type { ChannelSkill, GingirisSkillMeta, SkillPlaybook } from './types';
 import {
   CHANNEL_DEFINITIONS,
-  CHANNEL_ROUTER_SKILL_IDS,
-  KICKOFF_SKILL_IDS,
   getChannelDefinition,
   getResolvedChannelSkillIds,
 } from './channel-map';
@@ -114,14 +112,6 @@ export function getAllGingirisSkills(): GingirisSkillMeta[] {
       onWebsite: onWebsite.get(skillId),
     };
   });
-}
-
-export function getRouterSkillContent(): string {
-  return getCombinedSkillContent(CHANNEL_ROUTER_SKILL_IDS);
-}
-
-export function getKickoffSkillContent(): string {
-  return getCombinedSkillContent(KICKOFF_SKILL_IDS);
 }
 
 export interface PlaybookDisplay {

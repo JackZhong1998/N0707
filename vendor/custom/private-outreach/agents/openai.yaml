@@ -1,0 +1,4 @@
+interface:
+  display_name: "Private Outreach"
+  short_description: "Plan and write respectful private outreach"
+  default_prompt: "Use $private-outreach to plan or write a credible private outreach message."

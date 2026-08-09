@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     }
     const result = await runChannelWrite({
       todo: {
+        id: text(todo.id, 160) || crypto.randomUUID(),
         channelId,
         title,
         brief,
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
       projectProfileDoc: text(body.projectProfileDoc, 24_000),
       campaignContext: text(body.campaignContext, 60_000),
       locale: body.locale === 'en' ? 'en' : 'zh',
+      sessionId: text(body.sessionId, 256) || undefined,
     });
     return NextResponse.json(result);
   } catch (err) {

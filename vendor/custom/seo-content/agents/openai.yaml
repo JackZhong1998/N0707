@@ -1,0 +1,4 @@
+interface:
+  display_name: "SEO Content"
+  short_description: "Plan and write people-first search content"
+  default_prompt: "Use $seo-content to plan or write a people-first search page for this project."

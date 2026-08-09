@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Hunt"
+  short_description: "Plan credible Product Hunt launches and copy"
+  default_prompt: "Use $product-hunt to plan this launch and draft its Product Hunt copy."

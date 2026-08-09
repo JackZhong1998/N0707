@@ -4,11 +4,21 @@ import { runChannelRecommender } from '@/lib/agents/channel-recommender';
 import { runArtifactWriter, runResearchQuery } from '@/lib/agents/general-work';
 import { runProductResearch } from '@/lib/agents/researcher';
 import { runWeeklyReflection } from '@/lib/agents/reflection';
-import { runChannelTodos, runChannelWrite } from '@/lib/agents/specialist';
-import { defaultTargetMarket, resolveTodoMarket } from './target-markets';
+import {
+  runChannelChat,
+  runChannelTodos,
+  runChannelWrite,
+} from '@/lib/agents/specialist';
+import {
+  resolveCreateTodoMarket,
+  resolveTodoMarket,
+} from './target-markets';
 import { runStrategist } from '@/lib/agents/strategist';
 import { runTopicPlanner } from '@/lib/agents/topic-planner';
-import { buildAgentContextEnvelope } from './agent-context';
+import {
+  buildAgentContextEnvelope,
+  buildTodoEditContextEnvelope,
+} from './agent-context';
 import {
   claimAgentWorkJob,
   claimAgentWorkStep,
@@ -24,7 +34,7 @@ import { loadGtmStore, saveGtmStoreWithConflictRetry } from './database';
 import { addDays, parseDateStr, todayStr } from './dates';
 import { channelHasCalendarTodos } from './channel-capabilities';
 import {
-  chooseTopicScheduleDay,
+  chooseTopicScheduleDays,
   chooseTopicScheduleTime,
 } from './topic-scheduling';
 import {
@@ -45,6 +55,11 @@ import type {
   Todo,
 } from './types';
 import { channelName } from '@/lib/agents/catalog';
+import {
+  normalizeRewritePreferences,
+  saveRewritePreferences,
+} from './content-preferences';
+import { normalizeTodoWindow } from './todo-window';
 
 function conversationDigest(store: GtmStore): string {
   return store.directorChat
@@ -336,24 +351,11 @@ async function executeStep(
     return { result: { recommendationCount: result.recommendations.length }, store };
   }
 
-  if (
-    step.step_type === 'channel_strategy' ||
-    step.step_type === 'strategy_blueprint'
-  ) {
+  if (step.step_type === 'channel_strategy') {
     const channelId =
       step.channel_id ||
       (typeof payload.channelId === 'string' ? payload.channelId : '');
-    const channelIds =
-      step.step_type === 'strategy_blueprint'
-        ? (store.launch?.selectedChannelIds?.length
-            ? store.launch.selectedChannelIds
-            : store.channels.length
-              ? store.channels
-              : SUPPORTED_LAUNCH_CHANNELS.map((c) => c.channelId)
-          ).slice(0, 8)
-        : channelId
-          ? [channelId]
-          : [];
+    const channelIds = channelId ? [channelId] : [];
     if (channelIds.length === 0) {
       throw new Error('channel strategy step missing channel id');
     }
@@ -363,14 +365,17 @@ async function executeStep(
       projectProfileDoc: store.projectProfileDoc,
       conversationDigest: conversationDigest(store),
       performanceContext: buildPerformanceContext(store.todos),
-      existingOverview: store.strategy?.overviewMarkdown,
+      existingOverview:
+        store.launch?.channelRecommendations?.reportMarkdown ||
+        store.launch?.channelRecommendations?.summaryMarkdown ||
+        store.strategy?.overviewMarkdown,
       feedback:
         typeof payload.feedback === 'string' ? payload.feedback : undefined,
       campaignContext: buildAgentContextEnvelope(store, {
         channelId: channelId || undefined,
       }),
       locale: job.locale,
-      phase: step.step_type === 'strategy_blueprint' ? 'blueprint' : 'channel',
+      phase: 'channel',
     });
     if (strategy.overviewMarkdown) {
       store = {
@@ -464,6 +469,14 @@ async function executeStep(
       (channel) => channel.channelId === channelId
     );
     if (!definition) throw new Error(`Unsupported channel ${channelId}`);
+    const window = normalizeTodoWindow(
+      typeof payload.windowStartDay === 'number'
+        ? payload.windowStartDay
+        : undefined,
+      typeof payload.windowEndDay === 'number'
+        ? payload.windowEndDay
+        : undefined
+    );
     const result = await runChannelTodos({
       channelId,
       channelStrategyMarkdown:
@@ -473,18 +486,46 @@ async function executeStep(
       campaignContext: buildAgentContextEnvelope(store, { channelId }),
       targetMarkets: store.targetMarkets ?? [],
       locale: job.locale,
+      windowStartDay: window.startDay,
+      windowEndDay: window.endDay,
+      planningNote:
+        typeof payload.planningNote === 'string'
+          ? payload.planningNote.slice(0, 8_000)
+          : typeof payload.feedback === 'string'
+            ? payload.feedback.slice(0, 8_000)
+            : undefined,
     });
     const startDate =
       store.startDate ||
       store.launch?.project.startDate ||
       new Date().toISOString().slice(0, 10);
-    const preservePublished = payload.preservePublished === true;
-    const kept = preservePublished
-      ? store.todos.filter(
-          (todo) =>
-            todo.channelId !== channelId || todo.launchStatus === 'published'
-        )
-      : store.todos.filter((todo) => todo.channelId !== channelId);
+    if (result.todos.length === 0) {
+      throw new Error(
+        `No todos returned for ${channelId} Day ${window.startDay}-${window.endDay}`
+      );
+    }
+    const lockedInWindow = store.todos.filter(
+      (todo) =>
+        todo.channelId === channelId &&
+        todo.dayIndex >= window.startDay &&
+        todo.dayIndex <= window.endDay &&
+        (Boolean(todo.publishedUrl) ||
+          todo.status === 'done' ||
+          todo.launchStatus === 'published' ||
+          todo.launchStatus === 'completed')
+    );
+    const kept = store.todos.filter(
+      (todo) =>
+        todo.channelId !== channelId ||
+        todo.dayIndex < window.startDay ||
+        todo.dayIndex > window.endDay ||
+        lockedInWindow.some((locked) => locked.id === todo.id)
+    );
+    const lockedKeys = new Set(
+      lockedInWindow.map(
+        (todo) => `${todo.dayIndex}:${todo.title.trim().toLowerCase()}`
+      )
+    );
     const generated: Todo[] = result.todos.map((todo, todoIndex) => ({
       id: `${channelId}-${todo.dayIndex}-${todoIndex}-${job.id.slice(0, 8)}`,
       channelId,
@@ -501,13 +542,21 @@ async function executeStep(
       ...resolveTodoMarket(todo, store.targetMarkets),
       status: 'pending',
       launchStatus:
-        todo.launchStatus ?? (todo.dayIndex <= 7 ? 'draft' : 'planned'),
+        todo.launchStatus ?? 'draft',
       contentStatus: 'none',
       revision: 1,
     }));
     store = {
       ...store,
-      todos: [...kept, ...generated].sort(
+      todos: [
+        ...kept,
+        ...generated.filter(
+          (todo) =>
+            !lockedKeys.has(
+              `${todo.dayIndex}:${todo.title.trim().toLowerCase()}`
+            )
+        ),
+      ].sort(
         (left, right) =>
           left.dayIndex - right.dayIndex ||
           (left.time ?? '').localeCompare(right.time ?? '')
@@ -536,13 +585,24 @@ async function executeStep(
       step.channel_id || (typeof payload.channelId === 'string' ? payload.channelId : '');
     const title = typeof payload.title === 'string' ? payload.title.trim().slice(0, 300) : '';
     const brief = typeof payload.brief === 'string' ? payload.brief.trim().slice(0, 4_000) : title;
-    const date =
+    const dayIndexFromPayload =
+      typeof payload.dayIndex === 'number' &&
+      Number.isFinite(payload.dayIndex) &&
+      payload.dayIndex >= 1 &&
+      payload.dayIndex <= 30
+        ? Math.trunc(payload.dayIndex)
+        : undefined;
+    const startDate = store.startDate ?? store.launch?.project.startDate ?? todayStr();
+    const dateFromPayload =
       typeof payload.date === 'string' &&
       /^\d{4}-\d{2}-\d{2}$/.test(payload.date) &&
       !Number.isNaN(new Date(`${payload.date}T00:00:00Z`).getTime()) &&
       new Date(`${payload.date}T00:00:00Z`).toISOString().slice(0, 10) === payload.date
         ? payload.date
-        : todayStr();
+        : undefined;
+    const date = dayIndexFromPayload
+      ? addDays(startDate, dayIndexFromPayload - 1)
+      : dateFromPayload ?? todayStr();
     const time =
       typeof payload.time === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(payload.time)
         ? payload.time
@@ -551,13 +611,14 @@ async function executeStep(
       throw new Error(isZh ? '该渠道不支持日历 Todo' : 'This channel does not support calendar todos');
     }
     if (!title || !brief) throw new Error(isZh ? 'Todo 缺少标题或 brief' : 'Todo title or brief is missing');
-    const startDate = store.startDate ?? store.launch?.project.startDate ?? date;
-    const dayIndex = Math.max(
-      1,
-      Math.floor(
-        (parseDateStr(date).getTime() - parseDateStr(startDate).getTime()) / 86_400_000
-      ) + 1
-    );
+    const dayIndex =
+      dayIndexFromPayload ??
+      Math.max(
+        1,
+        Math.floor(
+          (parseDateStr(date).getTime() - parseDateStr(startDate).getTime()) / 86_400_000
+        ) + 1
+      );
     let todo: Todo = {
       id: crypto.randomUUID(),
       channelId,
@@ -573,12 +634,17 @@ async function executeStep(
       launchStatus: payload.writeNow === true ? 'generating' : 'planned',
       contentStatus: payload.writeNow === true ? 'writing' : 'none',
       revision: 1,
-      ...(() => {
-        const market = defaultTargetMarket(store.targetMarkets);
-        return market
-          ? { market: market.name, targetMarketId: market.id, outputLocale: market.locale, audience: market.audience }
-          : {};
-      })(),
+      ...resolveCreateTodoMarket(
+        {
+          targetMarketId:
+            typeof payload.targetMarketId === 'string' ? payload.targetMarketId : undefined,
+          market: typeof payload.market === 'string' ? payload.market : undefined,
+          outputLocale:
+            typeof payload.outputLocale === 'string' ? payload.outputLocale : undefined,
+          audience: typeof payload.audience === 'string' ? payload.audience : undefined,
+        },
+        store.targetMarkets
+      ),
     };
     if (payload.writeNow === true) {
       const written = await runChannelWrite({
@@ -588,6 +654,7 @@ async function executeStep(
         projectProfileDoc: store.projectProfileDoc,
         campaignContext: buildAgentContextEnvelope(store, { channelId }),
         locale: todo.outputLocale ?? job.locale,
+        sessionId: [store.launch?.project.id ?? 'project', channelId, todo.id].join(':'),
       });
       todo = {
         ...todo,
@@ -612,8 +679,8 @@ async function executeStep(
       lane: 'background',
       agentJobId: job.id,
       content: isZh
-        ? `已新增 Todo「${title}」，安排在 ${date}${time ? ` ${time}` : ''}${payload.writeNow === true ? '，可发布初稿也已写好' : ''}。`
-        : `Created “${title}” for ${date}${time ? ` at ${time}` : ''}${payload.writeNow === true ? ' and prepared the publish-ready draft' : ''}.`,
+        ? `已新增 Todo「${title}」，安排在 ${date}${time ? ` ${time}` : ''}${todo.outputLocale ? `，发布语言 ${todo.outputLocale}` : ''}${todo.audience ? `，面向 ${todo.audience}` : ''}${payload.writeNow === true ? '，可发布初稿也已写好' : ''}。`
+        : `Created “${title}” for ${date}${time ? ` at ${time}` : ''}${todo.outputLocale ? ` in ${todo.outputLocale}` : ''}${todo.audience ? ` for ${todo.audience}` : ''}${payload.writeNow === true ? ' and prepared the publish-ready draft' : ''}.`,
       card: { kind: 'calendar', title: isZh ? '新 Todo 已进入日历' : 'New todo added to the calendar' },
     });
     return { result: { todoId: todo.id, contentReady: todo.contentStatus === 'ready' }, store };
@@ -735,22 +802,31 @@ async function executeStep(
       throw new Error(isZh ? '选题规划未返回可用内容' : 'Topic planning returned no usable topics');
     }
     const now = Date.now();
-    const scheduleDay = scheduleTodos ? chooseTopicScheduleDay(store) : null;
-    const topics = result.topics.map((planned) => ({
-      id: crypto.randomUUID(),
-      title: planned.title,
-      source: planned.source,
-      targetAudience: planned.targetAudience,
-      painPoint: planned.painPoint,
-      corePoint: planned.corePoint,
-      priority: planned.priority,
-      status: scheduleDay ? ('scheduled' as const) : planned.status,
-      createdAt: now,
-      updatedAt: now,
-    }));
+    const scheduleDays = scheduleTodos
+      ? chooseTopicScheduleDays(store, result.topics.length)
+      : [];
+    const topicScheduleById = new Map<string, { dayIndex: number; date: string }>();
+    const topics = result.topics.map((planned, index) => {
+      const id = crypto.randomUUID();
+      const scheduleDay = scheduleDays[index];
+      if (scheduleDay) topicScheduleById.set(id, scheduleDay);
+      return {
+        id,
+        title: planned.title,
+        source: planned.source,
+        targetAudience: planned.targetAudience,
+        painPoint: planned.painPoint,
+        corePoint: planned.corePoint,
+        priority: planned.priority,
+        status: scheduleDay ? ('scheduled' as const) : planned.status,
+        createdAt: now,
+        updatedAt: now,
+      };
+    });
     const topicVariants = result.topics.flatMap((planned, index) => {
       const topicId = topics[index]?.id;
       if (!topicId) return [];
+      const scheduled = topicScheduleById.has(topicId);
       return planned.variants.map((variant) => ({
         id: crypto.randomUUID(),
         topicId,
@@ -760,39 +836,49 @@ async function executeStep(
         angle: variant.angle,
         format: variant.format,
         cta: variant.cta,
-        status: scheduleDay ? ('scheduled' as const) : variant.status,
+        status: scheduled ? ('scheduled' as const) : variant.status,
         createdAt: now,
         updatedAt: now,
       }));
     });
-    const addedTodos: Todo[] = scheduleDay
-      ? topicVariants.map((variant) => {
-          const topic = topics.find((candidate) => candidate.id === variant.topicId)!;
-          return {
-            id: crypto.randomUUID(),
-            topicVariantId: variant.id,
-            channelId: variant.channelId,
-            channelName: variant.channelName,
-            dayIndex: scheduleDay.dayIndex,
-            date: scheduleDay.date,
-            time: chooseTopicScheduleTime(store, variant.channelId, scheduleDay.date),
-            title: topic.title,
-            brief: [
-              `Hook：${variant.hook}`,
-              `角度：${variant.angle}`,
-              variant.format ? `形式：${variant.format}` : '',
-              variant.cta ? `CTA：${variant.cta}` : '',
-            ].filter(Boolean).join('\n'),
-            purpose: topic.corePoint,
-            taskType: 'content',
-            audience: topic.targetAudience,
-            status: 'pending' as const,
-            launchStatus: 'draft' as const,
-            contentStatus: 'none' as const,
-            revision: 1,
-          };
-        })
-      : [];
+    const addedTodos: Todo[] =
+      scheduleDays.length > 0
+        ? topicVariants.flatMap((variant) => {
+            const topic = topics.find((candidate) => candidate.id === variant.topicId);
+            const scheduleDay = topicScheduleById.get(variant.topicId);
+            if (!topic || !scheduleDay) return [];
+            return [
+              {
+                id: crypto.randomUUID(),
+                topicVariantId: variant.id,
+                channelId: variant.channelId,
+                channelName: variant.channelName,
+                dayIndex: scheduleDay.dayIndex,
+                date: scheduleDay.date,
+                time: chooseTopicScheduleTime(store, variant.channelId, scheduleDay.date),
+                title: topic.title,
+                brief: [
+                  `Hook：${variant.hook}`,
+                  `角度：${variant.angle}`,
+                  variant.format ? `形式：${variant.format}` : '',
+                  variant.cta ? `CTA：${variant.cta}` : '',
+                ]
+                  .filter(Boolean)
+                  .join('\n'),
+                purpose: topic.corePoint,
+                taskType: 'content',
+                ...resolveCreateTodoMarket(
+                  { audience: topic.targetAudience },
+                  store.targetMarkets
+                ),
+                status: 'pending' as const,
+                launchStatus: 'draft' as const,
+                contentStatus: 'none' as const,
+                revision: 1,
+              },
+            ];
+          })
+        : [];
     store = {
       ...store,
       topics: [...store.topics, ...topics],
@@ -826,15 +912,18 @@ async function executeStep(
       ],
       updatedAt: now,
     };
-    if (scheduleDay) {
+    if (scheduleDays.length > 0) {
       const topicTitle = topics[0]?.title ?? brief ?? (isZh ? '新选题' : 'New topic');
+      const dates = [...new Set(addedTodos.map((todo) => todo.date))].sort();
+      const scheduleSummary =
+        dates.length > 1 ? `${dates[0]} … ${dates.at(-1)}` : dates[0];
       store = appendDirectorMessage(store, {
         role: 'assistant',
         lane: 'background',
         agentJobId: job.id,
         content: isZh
-          ? `已把「${topicTitle}」拆成 ${addedTodos.length} 个渠道版本，并追加到 ${scheduleDay.date} 的 Todo。原有日历没有被覆盖。`
-          : `Added “${topicTitle}” as ${addedTodos.length} channel-specific todos on ${scheduleDay.date}. The existing calendar was preserved.`,
+          ? `已把「${topicTitle}」拆成 ${addedTodos.length} 个渠道版本，并分散排到 ${scheduleSummary}（共 ${dates.length} 天）。原有日历没有被覆盖。`
+          : `Added “${topicTitle}” as ${addedTodos.length} channel-specific todos across ${scheduleSummary} (${dates.length} day${dates.length === 1 ? '' : 's'}). The existing calendar was preserved.`,
         card: {
           kind: 'calendar',
           title: isZh ? '新选题已进入行动日历' : 'New topic added to the action calendar',
@@ -925,23 +1014,41 @@ async function executeStep(
       updatedAt: Date.now(),
     };
     if (store.launch && result.summary) {
+      const dueWeek = Math.max(
+        1,
+        Math.min(4, Math.floor(store.launch.project.currentDay / 7))
+      );
+      const safeProposals = result.evidenceSufficient
+        ? result.proposals.filter((proposal) => !proposal.requiresConfirmation)
+        : [];
       store = {
         ...store,
         launch: {
           ...store.launch,
-          weeklyReviews: [
-            ...store.launch.weeklyReviews,
-            {
-              id: crypto.randomUUID(),
-              week: store.launch.weeklyReviews.length + 1,
-              status: 'ready',
-              summary: result.summary,
-              channelFindings: [],
-              appliedChanges: result.proposals.map((proposal) => proposal.title),
-              revision: 1,
-              createdAt: Date.now(),
-            },
-          ],
+          weeklyReviews: store.launch.weeklyReviews.map((review) =>
+            review.week === dueWeek
+              ? {
+                  ...review,
+                  status: 'applied',
+                  summary: result.summary,
+                  channelFindings: safeProposals.map((proposal) => ({
+                    channelId: proposal.channelId ?? 'campaign',
+                    did: proposal.reason,
+                    signal: proposal.expectedSignal,
+                    keep: isZh
+                      ? '保留已有强信号做法'
+                      : 'Keep approaches with stronger signals',
+                    change: proposal.title,
+                  })),
+                  appliedChanges: safeProposals.map(
+                    (proposal) => proposal.title
+                  ),
+                  revision: review.revision + 1,
+                  createdAt: Date.now(),
+                }
+              : review
+          ),
+          project: { ...store.launch.project, updatedAt: Date.now() },
         },
       };
     }
@@ -956,16 +1063,14 @@ async function executeStep(
     return { result: { summaryLength: result.summary?.length ?? 0 }, store };
   }
 
-  if (
-    step.step_type === 'todo_content' ||
-    step.step_type === 'rewrite_todo_content'
-  ) {
+  if (step.step_type === 'todo_content') {
     const todoId =
       typeof payload.todoId === 'string' ? payload.todoId : '';
     const todo = store.todos.find((item) => item.id === todoId);
     if (!todo) throw new Error(`Todo not found: ${todoId}`);
     const written = await runChannelWrite({
       todo: {
+        id: todo.id,
         channelId: todo.channelId,
         title: todo.title,
         brief: todo.brief,
@@ -988,6 +1093,7 @@ async function executeStep(
         todoId,
       }),
       locale: job.locale,
+      sessionId: [store.launch?.project.id ?? 'project', todo.channelId, todo.id].join(':'),
     });
     store = {
       ...store,
@@ -1004,6 +1110,84 @@ async function executeStep(
       updatedAt: Date.now(),
     };
     return { result: { todoId }, store };
+  }
+
+  if (step.step_type === 'rewrite_todo_content') {
+    const todoId = typeof payload.todoId === 'string' ? payload.todoId : '';
+    const feedback =
+      typeof payload.feedback === 'string' ? payload.feedback.trim().slice(0, 4_000) : '';
+    const preferences = normalizeRewritePreferences(payload.preferences);
+    const todo = store.todos.find((item) => item.id === todoId);
+    if (!todo) throw new Error(`Todo not found: ${todoId}`);
+    if (!feedback) throw new Error('Todo rewrite feedback is required');
+
+    const edited = await runChannelChat({
+      todo: {
+        id: todo.id,
+        channelId: todo.channelId,
+        title: todo.title,
+        brief: todo.brief,
+        dayIndex: todo.dayIndex,
+        phase: todo.phase,
+        market: todo.market,
+        targetMarketId: todo.targetMarketId,
+        outputLocale: todo.outputLocale,
+        audience: todo.audience,
+      },
+      currentContent: todo.content,
+      history: [],
+      message: feedback,
+      channelStrategyMarkdown:
+        store.channelStrategies[todo.channelId]?.markdown ?? '',
+      channelTodosDigest: '',
+      userProfileDoc: store.userProfileDoc,
+      projectProfileDoc: store.projectProfileDoc,
+      campaignContext: buildTodoEditContextEnvelope(store, todoId),
+      locale: job.locale,
+      contentOnly: true,
+      sessionId: [store.launch?.project.id ?? 'project', todo.channelId, todo.id].join(':'),
+    });
+    if (!edited.rewriteContent) {
+      throw new Error('Todo editor did not return rewritten content');
+    }
+    const previousVersion = todo.contentRevision ?? 1;
+    const contentHistory = todo.content
+      ? [
+          ...(todo.contentHistory ?? []),
+          {
+            id: crypto.randomUUID(),
+            version: previousVersion,
+            content: todo.content,
+            createdAt: Date.now(),
+            reason: feedback,
+          },
+        ].slice(-10)
+      : todo.contentHistory ?? [];
+    store = {
+      ...store,
+      todos: store.todos.map((item) =>
+        item.id === todoId
+          ? {
+              ...item,
+              content: edited.rewriteContent ?? item.content,
+              contentStatus: 'ready',
+              contentRevision: previousVersion + 1,
+              contentHistory,
+              revision: (item.revision ?? 0) + 1,
+            }
+          : item
+      ),
+      memoryFacts: preferences.length
+        ? saveRewritePreferences({
+            memoryFacts: store.memoryFacts,
+            preferences,
+            channelId: todo.channelId,
+            todoId: todo.id,
+          })
+        : store.memoryFacts,
+      updatedAt: Date.now(),
+    };
+    return { result: { todoId, savedPreferences: preferences.length }, store };
   }
 
   if (step.step_type === 'launch_patch') {

@@ -341,8 +341,23 @@ create table if not exists public.ai_usage_events (
   user_id text not null,
   request_id text,
   model text not null,
+  provider text,
   prompt_tokens bigint not null default 0 check (prompt_tokens >= 0),
   completion_tokens bigint not null default 0 check (completion_tokens >= 0),
+  cached_tokens bigint not null default 0 check (cached_tokens >= 0),
+  cache_write_tokens bigint not null default 0 check (cache_write_tokens >= 0),
+  duration_ms integer not null default 0 check (duration_ms >= 0),
+  agent_name text,
+  operation text,
+  trace_id text,
+  session_id text,
+  prompt_hash text,
+  system_chars integer not null default 0 check (system_chars >= 0),
+  user_chars integer not null default 0 check (user_chars >= 0),
+  message_count integer not null default 0 check (message_count >= 0),
+  json_attempt integer not null default 1 check (json_attempt >= 1),
+  model_attempt integer not null default 1 check (model_attempt >= 1),
+  trace_metadata jsonb not null default '{}'::jsonb,
   provider_cost_usd numeric(14, 8) not null default 0 check (provider_cost_usd >= 0),
   billed_cost_usd numeric(14, 8) not null default 0 check (billed_cost_usd >= 0),
   created_at timestamptz not null default now()
@@ -373,6 +388,21 @@ alter table public.subscriptions add column if not exists cancel_at_period_end b
 alter table public.subscriptions add column if not exists current_period_start timestamptz;
 alter table public.subscriptions add column if not exists canceled_at timestamptz;
 alter table public.subscriptions add column if not exists stripe_event_created_at timestamptz;
+alter table public.ai_usage_events add column if not exists provider text;
+alter table public.ai_usage_events add column if not exists cached_tokens bigint not null default 0 check (cached_tokens >= 0);
+alter table public.ai_usage_events add column if not exists cache_write_tokens bigint not null default 0 check (cache_write_tokens >= 0);
+alter table public.ai_usage_events add column if not exists duration_ms integer not null default 0 check (duration_ms >= 0);
+alter table public.ai_usage_events add column if not exists agent_name text;
+alter table public.ai_usage_events add column if not exists operation text;
+alter table public.ai_usage_events add column if not exists trace_id text;
+alter table public.ai_usage_events add column if not exists session_id text;
+alter table public.ai_usage_events add column if not exists prompt_hash text;
+alter table public.ai_usage_events add column if not exists system_chars integer not null default 0 check (system_chars >= 0);
+alter table public.ai_usage_events add column if not exists user_chars integer not null default 0 check (user_chars >= 0);
+alter table public.ai_usage_events add column if not exists message_count integer not null default 0 check (message_count >= 0);
+alter table public.ai_usage_events add column if not exists json_attempt integer not null default 1 check (json_attempt >= 1);
+alter table public.ai_usage_events add column if not exists model_attempt integer not null default 1 check (model_attempt >= 1);
+alter table public.ai_usage_events add column if not exists trace_metadata jsonb not null default '{}'::jsonb;
 alter table public.todos add column if not exists publish_status text not null default 'not_started';
 alter table public.todos add column if not exists published_url text;
 alter table public.todos add column if not exists published_at timestamptz;
@@ -438,6 +468,10 @@ create index if not exists idx_stripe_events_status on public.stripe_events(stat
 create index if not exists idx_ai_usage_user_month on public.ai_usage_events(user_id, created_at);
 create unique index if not exists idx_ai_usage_request_id
   on public.ai_usage_events(request_id) where request_id is not null;
+create index if not exists idx_ai_usage_trace_id
+  on public.ai_usage_events(trace_id) where trace_id is not null;
+create index if not exists idx_ai_usage_agent_created
+  on public.ai_usage_events(agent_name, created_at desc);
 create index if not exists idx_campaign_jobs_claim
   on public.campaign_jobs(status, next_attempt_at, priority, created_at);
 create index if not exists idx_campaign_jobs_project

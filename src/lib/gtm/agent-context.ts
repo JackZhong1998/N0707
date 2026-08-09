@@ -1,5 +1,6 @@
 import type { GtmStore, LaunchTaskStatus, TodoStatus } from './types';
 import type { ViewContext } from './view-context';
+import { relevantMemoryFacts } from './content-preferences';
 
 function countBy<T extends string>(values: T[]): Partial<Record<T, number>> {
   return values.reduce<Partial<Record<T, number>>>((counts, value) => {
@@ -30,6 +31,7 @@ export function buildAgentContextEnvelope(
   const channelId =
     options.channelId ?? options.viewContext?.channelId ?? scopedTodo?.channelId;
   const channelPlan = channelId ? launch?.channelPlans[channelId] : undefined;
+  const durableFacts = relevantMemoryFacts(store.memoryFacts, channelId, 40);
   const taskStatuses = countBy(
     store.todos.map((todo) => (todo.launchStatus ?? todo.status) as LaunchTaskStatus | TodoStatus)
   );
@@ -70,17 +72,22 @@ export function buildAgentContextEnvelope(
           revision: launch.brief.revision,
         }
       : undefined,
-    blueprint: launch?.blueprint
+    marketStrategyReport: launch?.channelRecommendations
       ? {
-          campaignGoal: launch.blueprint.campaignGoal,
-          corePositioning: launch.blueprint.corePositioning,
-          targetAudience: launch.blueprint.targetAudience,
-          campaignPillars: launch.blueprint.campaignPillars,
-          weeks: launch.blueprint.weeks,
-          channelRoles: launch.blueprint.channelRoles,
-          guardrails: launch.blueprint.guardrails,
-          language: launch.blueprint.language,
-          revision: launch.blueprint.revision,
+          summary: launch.channelRecommendations.summaryMarkdown,
+          diagnosis: launch.channelRecommendations.diagnosis,
+          recommendations: launch.channelRecommendations.recommendations.map(
+            (item) => ({
+              channelId: item.channelId,
+              priority: item.priority,
+              fitScore: item.fitScore,
+              rationale: item.rationale,
+              marketFit: item.marketFit,
+              suggestedCadence: item.suggestedCadence,
+            })
+          ),
+          launchPlan: launch.channelRecommendations.launchPlan,
+          updatedAt: launch.channelRecommendations.updatedAt,
         }
       : undefined,
     scopedChannelPlan: channelPlan,
@@ -108,15 +115,81 @@ export function buildAgentContextEnvelope(
         revision: review.revision,
       })),
     },
-    durableFacts: store.memoryFacts.slice(0, 40).map((fact) => ({
+    durableFacts: durableFacts.map((fact) => ({
       category: fact.category,
       key: fact.key,
       value: fact.value,
       confidence: fact.confidence,
       confirmed: fact.confirmed,
+      scope: fact.scope,
+      channelId: fact.channelId,
       updatedAt: fact.updatedAt,
     })),
   };
 
   return JSON.stringify(envelope);
+}
+
+/**
+ * Small, immutable-fact projection for a local copy edit. The current draft,
+ * evidence and feedback travel separately, so execution history and the rest
+ * of the channel calendar cannot distract a one-Todo rewrite.
+ */
+export function buildTodoEditContextEnvelope(store: GtmStore, todoId: string): string {
+  const todo = store.todos.find((item) => item.id === todoId);
+  const launch = store.launch;
+  const market = todo?.targetMarketId
+    ? (store.targetMarkets ?? []).find((item) => item.id === todo.targetMarketId)
+    : undefined;
+  const contentPreferences = relevantMemoryFacts(
+    store.memoryFacts,
+    todo?.channelId,
+    12
+  ).filter((fact) => fact.category === 'preference');
+  return JSON.stringify({
+    schema: 'nowbuild.todo-edit-context.v1',
+    authority: 'current user feedback > confirmed fact > sourced fact > existing copy',
+    project: launch?.project
+      ? {
+          id: launch.project.id,
+          productName: launch.project.productName,
+          productUrl: launch.project.productUrl,
+        }
+      : undefined,
+    product: launch?.brief?.product,
+    audience: launch?.brief?.audience,
+    positioning: launch?.brief?.positioning,
+    marketStrategy: launch?.channelRecommendations
+      ? {
+          summary: launch.channelRecommendations.summaryMarkdown,
+          diagnosis: launch.channelRecommendations.diagnosis,
+          selectedChannel: todo?.channelId
+            ? launch.channelRecommendations.recommendations.find(
+                (item) => item.channelId === todo.channelId
+              )
+            : undefined,
+        }
+      : undefined,
+    targetMarket: market,
+    contentPreferences: contentPreferences.map((fact) => ({
+      rule: fact.value,
+      scope: fact.scope,
+      channelId: fact.channelId,
+    })),
+    todo: todo
+      ? {
+          id: todo.id,
+          channelId: todo.channelId,
+          title: todo.title,
+          brief: todo.brief,
+          market: todo.market,
+          targetMarketId: todo.targetMarketId,
+          outputLocale: todo.outputLocale,
+          audience: todo.audience,
+          purpose: todo.purpose,
+          pillar: todo.pillar,
+          taskType: todo.taskType,
+        }
+      : undefined,
+  });
 }

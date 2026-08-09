@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub Growth"
+  short_description: "Plan ethical open-source discovery and community"
+  default_prompt: "Use $github-growth to plan or write an evidence-grounded GitHub growth deliverable."

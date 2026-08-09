@@ -173,7 +173,9 @@ function publishUrl(channel, payload) {
 function isLoginUrl(urlString) {
   try {
     const url = new URL(urlString);
-    return /\/(?:login|log-in|signin|sign-in|auth)(?:\/|$)/i.test(url.pathname);
+    return /\/(?:login|log-in|signin|sign-in|auth|passport|account)(?:\/|$)/i.test(
+      url.pathname
+    );
   } catch {
     return true;
   }
@@ -1485,6 +1487,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             waitingForLogin: true,
             lastStatus: 'waiting_login',
           });
+          await notifyUserTakeover(
+            next,
+            request.message ||
+              '请先在打开的平台页面完成登录；登录成功后插件会自动继续，无需重新点击发布。'
+          );
           return;
         }
         await removeJob(job.requestId);

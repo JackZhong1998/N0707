@@ -6,28 +6,51 @@ export function chooseTopicScheduleDay(store: GtmStore): {
   dayIndex: number;
   date: string;
 } {
+  return chooseTopicScheduleDays(store, 1)[0]!;
+}
+
+/**
+ * Spread `count` schedule slots across remaining campaign days (1–30).
+ * Prefers least crowded days; when ties, earlier days win. Reuses days only
+ * after every remaining day has been assigned once.
+ */
+export function chooseTopicScheduleDays(
+  store: GtmStore,
+  count: number
+): Array<{ dayIndex: number; date: string }> {
+  const safeCount = Math.max(0, Math.min(60, Math.round(count)));
+  if (safeCount === 0) return [];
+
   const startDate = store.startDate ?? store.launch?.project.startDate ?? todayStr();
   const elapsed = Math.floor(
     (parseDateStr(todayStr()).getTime() - parseDateStr(startDate).getTime()) /
       86_400_000
   );
   const firstDay = Math.max(1, Math.min(30, elapsed + 1));
-  const counts = new Map<string, number>();
+  const counts = new Map<number, number>();
+  for (let dayIndex = firstDay; dayIndex <= 30; dayIndex += 1) {
+    counts.set(dayIndex, 0);
+  }
   for (const todo of store.todos) {
-    counts.set(todo.date, (counts.get(todo.date) ?? 0) + 1);
+    if (todo.dayIndex < firstDay || todo.dayIndex > 30) continue;
+    counts.set(todo.dayIndex, (counts.get(todo.dayIndex) ?? 0) + 1);
   }
 
-  let bestDay = firstDay;
-  let bestCount = Number.POSITIVE_INFINITY;
-  for (let dayIndex = firstDay; dayIndex <= 30; dayIndex += 1) {
-    const date = addDays(startDate, dayIndex - 1);
-    const count = counts.get(date) ?? 0;
-    if (count < bestCount) {
-      bestDay = dayIndex;
-      bestCount = count;
+  const picks: Array<{ dayIndex: number; date: string }> = [];
+  for (let i = 0; i < safeCount; i += 1) {
+    let bestDay = firstDay;
+    let bestCount = Number.POSITIVE_INFINITY;
+    for (let dayIndex = firstDay; dayIndex <= 30; dayIndex += 1) {
+      const occupied = counts.get(dayIndex) ?? 0;
+      if (occupied < bestCount) {
+        bestDay = dayIndex;
+        bestCount = occupied;
+      }
     }
+    counts.set(bestDay, (counts.get(bestDay) ?? 0) + 1);
+    picks.push({ dayIndex: bestDay, date: addDays(startDate, bestDay - 1) });
   }
-  return { dayIndex: bestDay, date: addDays(startDate, bestDay - 1) };
+  return picks;
 }
 
 export function chooseTopicScheduleTime(
