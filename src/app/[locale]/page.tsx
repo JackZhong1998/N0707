@@ -5,6 +5,7 @@ import Hero from '@/components/landing/Hero';
 import AgentTeam from '@/components/landing/AgentTeam';
 import Channels from '@/components/landing/Channels';
 import AutomatedWorkflow from '@/components/landing/AutomatedWorkflow';
+import SearchPaths from '@/components/landing/SearchPaths';
 import CalendarGlimpse from '@/components/landing/CalendarGlimpse';
 import Comparison from '@/components/landing/Comparison';
 import ClosingCta from '@/components/landing/ClosingCta';
@@ -130,6 +131,7 @@ export default async function HomePage({ params }: Props) {
         <AgentTeam />
         <Channels />
         <AutomatedWorkflow />
+        <SearchPaths />
         <CalendarGlimpse />
         <Comparison />
         <LandingPricing />

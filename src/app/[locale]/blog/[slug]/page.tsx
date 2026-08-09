@@ -16,9 +16,44 @@ export function generateStaticParams() {
   return enMessages.Blog.posts.map((post) => ({ slug: post.slug }));
 }
 
-function getFirstUsersNextSteps(locale: string) {
-  return locale === 'zh'
+function getPostNextSteps(locale: string, slug: string) {
+  const nextSteps = locale === 'zh'
     ? {
+        'product-done-now-what': {
+          eyebrow: '继续执行冷启动',
+          title: '下一步，确定首个渠道并开始获取用户',
+          description: '把 30 天路线图落实到具体渠道，再用真实对话和小规模测试找到前 100 位用户。',
+          relatedLabel: '继续阅读',
+          related: [
+            {
+              href: '/blog/how-to-choose-first-channel',
+              title: '按产品类型选择第一个推广渠道',
+            },
+            {
+              href: '/blog/first-100-users-without-ads',
+              title: '不投广告，找到前 100 位真实用户',
+            },
+          ],
+          cta: '制定我的 30 天推广计划',
+        },
+        'how-to-choose-first-channel': {
+          eyebrow: '把选择变成行动',
+          title: '下一步，用一个渠道跑完第一轮冷启动',
+          description: '先把渠道放进 30 天行动节奏，再通过触达、内容和反馈积累前 100 位用户。',
+          relatedLabel: '继续阅读',
+          related: [
+            {
+              href: '/blog/product-done-now-what',
+              title: '查看第一次推广的 30 天路线图',
+            },
+            {
+              href: '/blog/first-100-users-without-ads',
+              title: '不投广告，找到前 100 位真实用户',
+            },
+          ],
+          cta: '选择渠道并生成推广计划',
+        },
+        'first-100-users-without-ads': {
         eyebrow: '把方法变成行动',
         title: '接下来，选对渠道并排出 30 天计划',
         description: '先根据产品类型确定优先渠道，再把触达、内容和复盘安排进同一套冷启动节奏。',
@@ -34,8 +69,44 @@ function getFirstUsersNextSteps(locale: string) {
           },
         ],
         cta: '制定我的 30 天推广计划',
+        },
       }
     : {
+        'product-done-now-what': {
+          eyebrow: 'Keep the launch moving',
+          title: 'Next, choose your first channel and start finding users',
+          description: 'Turn the 30-day roadmap into a focused channel test, then use real conversations to find your first 100 users.',
+          relatedLabel: 'Continue reading',
+          related: [
+            {
+              href: '/blog/how-to-choose-first-channel',
+              title: 'Choose your first marketing channel by product type',
+            },
+            {
+              href: '/blog/first-100-users-without-ads',
+              title: 'Find your first 100 users without paid ads',
+            },
+          ],
+          cta: 'Build my 30-day marketing plan',
+        },
+        'how-to-choose-first-channel': {
+          eyebrow: 'Turn the choice into action',
+          title: 'Next, run one channel through a complete launch cycle',
+          description: 'Put the channel into a 30-day operating rhythm, then combine outreach, content, and feedback to reach your first 100 users.',
+          relatedLabel: 'Continue reading',
+          related: [
+            {
+              href: '/blog/product-done-now-what',
+              title: 'Follow the 30-day roadmap for your first launch',
+            },
+            {
+              href: '/blog/first-100-users-without-ads',
+              title: 'Find your first 100 users without paid ads',
+            },
+          ],
+          cta: 'Choose channels and build my plan',
+        },
+        'first-100-users-without-ads': {
         eyebrow: 'Turn the playbook into action',
         title: 'Next, choose your channels and map the next 30 days',
         description: 'Start with the channels that fit your product, then connect outreach, content, and review in one launch rhythm.',
@@ -51,7 +122,10 @@ function getFirstUsersNextSteps(locale: string) {
           },
         ],
         cta: 'Build my 30-day marketing plan',
+        },
       };
+
+  return nextSteps[slug as keyof typeof nextSteps] ?? null;
 }
 
 async function getPost(locale: string, slug: string) {
@@ -115,7 +189,7 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) notFound();
 
   const t = await getTranslations({ locale, namespace: 'Blog' });
-  const firstUsersNextSteps = getFirstUsersNextSteps(locale);
+  const postNextSteps = getPostNextSteps(locale, post.slug);
 
   const articleStructuredData = {
     '@context': 'https://schema.org',
@@ -200,29 +274,29 @@ export default async function BlogPostPage({ params }: Props) {
               })}
             </div>
 
-            {post.slug === 'first-100-users-without-ads' && (
+            {postNextSteps && (
               <aside
                 className="mt-14 rounded-3xl border border-gray-200 bg-gray-50 p-6 sm:p-8"
-                aria-labelledby="first-users-next-step"
+                aria-labelledby="post-next-step"
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">
-                  {firstUsersNextSteps.eyebrow}
+                  {postNextSteps.eyebrow}
                 </p>
                 <h2
-                  id="first-users-next-step"
+                  id="post-next-step"
                   className="mt-3 font-display text-2xl font-bold tracking-tight text-gray-900"
                 >
-                  {firstUsersNextSteps.title}
+                  {postNextSteps.title}
                 </h2>
                 <p className="mt-3 leading-7 text-gray-600">
-                  {firstUsersNextSteps.description}
+                  {postNextSteps.description}
                 </p>
-                <nav className="mt-6" aria-label={firstUsersNextSteps.relatedLabel}>
+                <nav className="mt-6" aria-label={postNextSteps.relatedLabel}>
                   <p className="text-sm font-semibold text-gray-900">
-                    {firstUsersNextSteps.relatedLabel}
+                    {postNextSteps.relatedLabel}
                   </p>
                   <ul className="mt-3 space-y-2">
-                    {firstUsersNextSteps.related.map((item) => (
+                    {postNextSteps.related.map((item) => (
                       <li key={item.href}>
                         <Link
                           href={item.href}
@@ -238,7 +312,7 @@ export default async function BlogPostPage({ params }: Props) {
                   href="/sign-in"
                   className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-primary-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
                 >
-                  {firstUsersNextSteps.cta}
+                  {postNextSteps.cta}
                 </Link>
               </aside>
             )}
